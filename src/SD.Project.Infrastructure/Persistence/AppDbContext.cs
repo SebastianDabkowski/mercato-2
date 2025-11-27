@@ -1,0 +1,23 @@
+using Microsoft.EntityFrameworkCore;
+using SD.Project.Domain.Entities;
+
+namespace SD.Project.Infrastructure.Persistence;
+
+/// <summary>
+/// EF Core database context used for persistence.
+/// </summary>
+public class AppDbContext : DbContext
+{
+    public AppDbContext(DbContextOptions<AppDbContext> options)
+        : base(options)
+    {
+    }
+
+    public DbSet<Product> Products => Set<Product>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+        base.OnModelCreating(modelBuilder);
+    }
+}

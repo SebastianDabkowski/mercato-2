@@ -1,0 +1,45 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Product dashboard</h1>
+    <p class="lead">This page shows data provided by the Application layer.</p>
+</div>
+
+<section>
+    <h2>Products</h2>
+
+    @if (!Model.Products.Any())
+    {
+        <p>No products available yet. Use the infrastructure stubs to persist initial data.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Id</th>
+                        <th>Name</th>
+                        <th>Price</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var product in Model.Products)
+                {
+                    <tr>
+                        <td>@product.Id</td>
+                        <td>@product.Name</td>
+                        <td>@product.Currency @product.Amount</td>
+                        <td>@(product.IsActive ? "Active" : "Inactive")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
