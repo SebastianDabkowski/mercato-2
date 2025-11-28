@@ -43,11 +43,11 @@ namespace SD.Project.Pages
 
             if (result.Success)
             {
-                _logger.LogInformation("Email verified successfully via token");
+                _logger.LogInformation("Email verified successfully via token: {Token}", token);
             }
             else
             {
-                _logger.LogWarning("Email verification failed: {Message}", result.Message);
+                _logger.LogWarning("Email verification failed for token {Token}: {Message}", token, result.Message);
             }
 
             return Page();

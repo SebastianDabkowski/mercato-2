@@ -77,7 +77,7 @@ public sealed class EmailVerificationService
             return EmailVerificationResultDto.Failed("User not found.");
         }
 
-        if (user.Status == UserStatus.Verified)
+        if (user.IsEmailVerified)
         {
             return EmailVerificationResultDto.Succeeded("Your email is already verified.");
         }
@@ -126,7 +126,7 @@ public sealed class EmailVerificationService
             return ResendVerificationResultDto.Succeeded("If an account exists with this email, a verification email has been sent.");
         }
 
-        if (user.Status == UserStatus.Verified)
+        if (user.IsEmailVerified)
         {
             return ResendVerificationResultDto.Failed("This email is already verified.");
         }

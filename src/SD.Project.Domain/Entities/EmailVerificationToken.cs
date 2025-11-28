@@ -104,10 +104,8 @@ public class EmailVerificationToken
     {
         // Generate a cryptographically secure random token
         var randomBytes = new byte[32];
-        using (var rng = System.Security.Cryptography.RandomNumberGenerator.Create())
-        {
-            rng.GetBytes(randomBytes);
-        }
+        using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
+        rng.GetBytes(randomBytes);
         // Convert to URL-safe base64
         return Convert.ToBase64String(randomBytes)
             .Replace('+', '-')

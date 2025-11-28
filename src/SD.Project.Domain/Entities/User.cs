@@ -218,6 +218,11 @@ public class User
     public bool RequiresKyc => Role == UserRole.Seller && KycStatus != KycStatus.Approved;
 
     /// <summary>
+    /// Indicates whether the user's email has been verified.
+    /// </summary>
+    public bool IsEmailVerified => EmailVerifiedAt is not null;
+
+    /// <summary>
     /// Suspends the user account.
     /// </summary>
     public void Suspend()
