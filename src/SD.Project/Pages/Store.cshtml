@@ -78,7 +78,11 @@
                                                 <h6 class="card-title">@product.Name</h6>
                                                 @if (!string.IsNullOrEmpty(product.Description))
                                                 {
-                                                    <p class="card-text text-muted small">@(product.Description.Length > 100 ? product.Description.Substring(0, 100) + "..." : product.Description)</p>
+                                                    var maxDescriptionLength = 100;
+                                                    var truncatedDescription = product.Description.Length > maxDescriptionLength 
+                                                        ? product.Description.Substring(0, maxDescriptionLength) + "..." 
+                                                        : product.Description;
+                                                    <p class="card-text text-muted small">@truncatedDescription</p>
                                                 }
                                                 <p class="card-text text-primary fw-bold">
                                                     @product.Amount.ToString("N2") @product.Currency
