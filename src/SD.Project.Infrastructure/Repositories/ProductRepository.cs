@@ -108,14 +108,10 @@ public sealed class ProductRepository : IProductRepository
         string? category = null,
         decimal? minPrice = null,
         decimal? maxPrice = null,
-        ProductStatus? condition = null,
         Guid? storeId = null,
         CancellationToken cancellationToken = default)
     {
         var query = _context.Products.AsNoTracking().AsQueryable();
-
-        // Always filter out archived products for public views
-        query = query.Where(p => p.Status != ProductStatus.Archived);
 
         // Apply search term filter (name and description)
         if (!string.IsNullOrWhiteSpace(searchTerm))
@@ -144,16 +140,9 @@ public sealed class ProductRepository : IProductRepository
             query = query.Where(p => p.Price.Amount <= maxPrice.Value);
         }
 
-        // Apply condition/status filter
-        if (condition.HasValue)
-        {
-            query = query.Where(p => p.Status == condition.Value);
-        }
-        else
-        {
-            // By default, only show active products for public views
-            query = query.Where(p => p.Status == ProductStatus.Active);
-        }
+        // For public views, always show only active products
+        // The condition filter is ignored for public views to prevent exposing non-public products
+        query = query.Where(p => p.Status == ProductStatus.Active);
 
         // Apply store/seller filter
         if (storeId.HasValue)

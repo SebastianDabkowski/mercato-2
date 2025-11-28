@@ -1,18 +1,17 @@
 namespace SD.Project.Application.Queries;
 
 /// <summary>
-/// Criteria for filtering products. All properties are optional.
+/// Criteria for filtering active products. All properties are optional.
+/// Only Active products are returned for public views.
 /// </summary>
 /// <param name="Category">Filter by category name.</param>
 /// <param name="MinPrice">Minimum price (inclusive).</param>
 /// <param name="MaxPrice">Maximum price (inclusive).</param>
-/// <param name="Condition">Filter by product status/condition (e.g., "Active", "Draft").</param>
 /// <param name="StoreId">Filter by seller/store ID.</param>
 public sealed record ProductFilterCriteria(
     string? Category = null,
     decimal? MinPrice = null,
     decimal? MaxPrice = null,
-    string? Condition = null,
     Guid? StoreId = null);
 
 /// <summary>

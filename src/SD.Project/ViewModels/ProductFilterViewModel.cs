@@ -21,11 +21,6 @@ public sealed class ProductFilterViewModel
     public decimal? MaxPrice { get; set; }
 
     /// <summary>
-    /// Filter by product condition/status.
-    /// </summary>
-    public string? Condition { get; set; }
-
-    /// <summary>
     /// Filter by store/seller ID.
     /// </summary>
     public Guid? StoreId { get; set; }
@@ -37,7 +32,6 @@ public sealed class ProductFilterViewModel
         !string.IsNullOrWhiteSpace(Category) ||
         MinPrice.HasValue ||
         MaxPrice.HasValue ||
-        !string.IsNullOrWhiteSpace(Condition) ||
         StoreId.HasValue;
 
     /// <summary>

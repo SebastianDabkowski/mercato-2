@@ -58,24 +58,15 @@
                     </div>
 
                     <!-- Price Range -->
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <label for="MinPrice" class="form-label">Min Price</label>
                         <input type="number" name="MinPrice" id="MinPrice" class="form-control" step="0.01" min="0"
                                placeholder="0.00" value="@Model.Filters.MinPrice">
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <label for="MaxPrice" class="form-label">Max Price</label>
                         <input type="number" name="MaxPrice" id="MaxPrice" class="form-control" step="0.01" min="0"
                                placeholder="No limit" value="@Model.Filters.MaxPrice">
-                    </div>
-
-                    <!-- Condition/Status Filter -->
-                    <div class="col-md-2">
-                        <label for="Condition" class="form-label">Condition</label>
-                        <select name="Condition" id="Condition" class="form-select">
-                            <option value="">All</option>
-                            <option value="Active" selected="@(Model.Filters.Condition == "Active")">Active</option>
-                        </select>
                     </div>
 
                     <!-- Seller/Store Filter -->

@@ -44,12 +44,6 @@ public class SearchModel : PageModel
     public decimal? MaxPrice { get; set; }
 
     /// <summary>
-    /// Condition/status filter.
-    /// </summary>
-    [BindProperty(SupportsGet = true)]
-    public string? Condition { get; set; }
-
-    /// <summary>
     /// Store/seller filter.
     /// </summary>
     [BindProperty(SupportsGet = true)]
@@ -124,7 +118,6 @@ public class SearchModel : PageModel
             Category = CategoryFilter,
             MinPrice = MinPrice,
             MaxPrice = MaxPrice,
-            Condition = Condition,
             StoreId = StoreId
         };
 
@@ -147,7 +140,6 @@ public class SearchModel : PageModel
                 Category: Filters.Category,
                 MinPrice: Filters.MinPrice,
                 MaxPrice: Filters.MaxPrice,
-                Condition: Filters.Condition,
                 StoreId: Filters.StoreId);
 
             var productDtos = await _productService.HandleAsync(
@@ -187,8 +179,7 @@ public class SearchModel : PageModel
     private void RestoreFiltersFromSession()
     {
         // Only restore if no explicit filter parameters were provided
-        if (CategoryFilter is null && MinPrice is null && MaxPrice is null &&
-            Condition is null && StoreId is null)
+        if (CategoryFilter is null && MinPrice is null && MaxPrice is null && StoreId is null)
         {
             var sessionFilters = HttpContext.Session.GetString(FilterSessionKey);
             if (!string.IsNullOrEmpty(sessionFilters))
@@ -201,7 +192,6 @@ public class SearchModel : PageModel
                         CategoryFilter = filters.Category;
                         MinPrice = filters.MinPrice;
                         MaxPrice = filters.MaxPrice;
-                        Condition = filters.Condition;
                         StoreId = filters.StoreId;
                     }
                 }
@@ -232,7 +222,6 @@ public class SearchModel : PageModel
         CategoryFilter = null;
         MinPrice = null;
         MaxPrice = null;
-        Condition = null;
         StoreId = null;
         HttpContext.Session.Remove(FilterSessionKey);
     }

@@ -57,12 +57,6 @@ public class CategoryModel : PageModel
     public decimal? MaxPrice { get; set; }
 
     /// <summary>
-    /// Condition/status filter.
-    /// </summary>
-    [BindProperty(SupportsGet = true)]
-    public string? Condition { get; set; }
-
-    /// <summary>
     /// Store/seller filter.
     /// </summary>
     [BindProperty(SupportsGet = true)]
@@ -133,7 +127,6 @@ public class CategoryModel : PageModel
         {
             MinPrice = MinPrice,
             MaxPrice = MaxPrice,
-            Condition = Condition,
             StoreId = StoreId
         };
 
@@ -174,7 +167,6 @@ public class CategoryModel : PageModel
                 Category: categoryDto.Name,
                 MinPrice: Filters.MinPrice,
                 MaxPrice: Filters.MaxPrice,
-                Condition: Filters.Condition,
                 StoreId: Filters.StoreId);
 
             var productDtos = await _productService.HandleAsync(
@@ -195,7 +187,7 @@ public class CategoryModel : PageModel
     private void RestoreFiltersFromSession()
     {
         // Only restore if no explicit filter parameters were provided
-        if (MinPrice is null && MaxPrice is null && Condition is null && StoreId is null)
+        if (MinPrice is null && MaxPrice is null && StoreId is null)
         {
             var sessionFilters = HttpContext.Session.GetString(FilterSessionKey);
             if (!string.IsNullOrEmpty(sessionFilters))
@@ -207,7 +199,6 @@ public class CategoryModel : PageModel
                     {
                         MinPrice = filters.MinPrice;
                         MaxPrice = filters.MaxPrice;
-                        Condition = filters.Condition;
                         StoreId = filters.StoreId;
                     }
                 }
@@ -237,7 +228,6 @@ public class CategoryModel : PageModel
     {
         MinPrice = null;
         MaxPrice = null;
-        Condition = null;
         StoreId = null;
         HttpContext.Session.Remove(FilterSessionKey);
     }
