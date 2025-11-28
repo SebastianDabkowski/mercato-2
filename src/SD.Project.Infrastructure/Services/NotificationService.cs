@@ -45,4 +45,16 @@ public sealed class NotificationService : INotificationService
             email, userId, resetLink);
         return Task.CompletedTask;
     }
+
+    public Task SendInternalUserInvitationAsync(string email, string storeName, string role, string invitationToken, CancellationToken cancellationToken = default)
+    {
+        // TODO: Replace logging with real email sending integration.
+        // In a production environment, this would generate a full URL like:
+        // https://yourdomain.com/AcceptInvitation?token={invitationToken}
+        var invitationLink = $"/AcceptInvitation?token={invitationToken}";
+        _logger.LogInformation(
+            "Internal user invitation sent to {Email} for store {StoreName} with role {Role}. Invitation link: {InvitationLink}",
+            email, storeName, role, invitationLink);
+        return Task.CompletedTask;
+    }
 }
