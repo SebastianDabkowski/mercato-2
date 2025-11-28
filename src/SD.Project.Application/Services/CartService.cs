@@ -3,6 +3,7 @@ using SD.Project.Application.DTOs;
 using SD.Project.Application.Queries;
 using SD.Project.Domain.Entities;
 using SD.Project.Domain.Repositories;
+using SD.Project.Domain.Services;
 
 namespace SD.Project.Application.Services;
 
@@ -14,15 +15,21 @@ public sealed class CartService
     private readonly ICartRepository _cartRepository;
     private readonly IProductRepository _productRepository;
     private readonly IStoreRepository _storeRepository;
+    private readonly IShippingRuleRepository _shippingRuleRepository;
+    private readonly CartTotalsCalculator _cartTotalsCalculator;
 
     public CartService(
         ICartRepository cartRepository,
         IProductRepository productRepository,
-        IStoreRepository storeRepository)
+        IStoreRepository storeRepository,
+        IShippingRuleRepository shippingRuleRepository,
+        CartTotalsCalculator cartTotalsCalculator)
     {
         _cartRepository = cartRepository;
         _productRepository = productRepository;
         _storeRepository = storeRepository;
+        _shippingRuleRepository = shippingRuleRepository;
+        _cartTotalsCalculator = cartTotalsCalculator;
     }
 
     /// <summary>
@@ -315,14 +322,26 @@ public sealed class CartService
         var storesList = await _storeRepository.GetByIdsAsync(storeIds, cancellationToken);
         var stores = storesList.ToDictionary(s => s.Id);
 
-        // Group items by seller
+        // Get shipping rules for all stores in a single batch query
+        var shippingRules = await _shippingRuleRepository.GetDefaultsByStoreIdsAsync(storeIds, cancellationToken);
+
+        // Determine currency from products. In a multi-currency marketplace, 
+        // products in a single cart should share the same currency.
+        // Fallback to USD if cart is empty or products have no price.
+        var currency = products.FirstOrDefault()?.Price.Currency ?? "USD";
+
+        // Group items by seller and calculate totals
         var sellerGroups = new List<CartSellerGroupDto>();
+        var sellerTotals = new List<SellerCartTotals>();
         var itemsByStore = cart.GetItemsGroupedBySeller();
 
         foreach (var (storeId, items) in itemsByStore)
         {
             var store = stores.GetValueOrDefault(storeId);
+            var shippingRule = shippingRules.GetValueOrDefault(storeId);
             var itemDtos = new List<CartItemDto>();
+            decimal sellerSubtotal = 0m;
+            int sellerItemCount = 0;
 
             foreach (var item in items)
             {
@@ -330,21 +349,35 @@ public sealed class CartService
                 if (product is not null)
                 {
                     itemDtos.Add(MapToCartItemDto(item, product));
+                    sellerSubtotal += product.Price.Amount * item.Quantity;
+                    sellerItemCount += item.Quantity;
                 }
             }
 
             if (itemDtos.Count > 0)
             {
+                // Calculate shipping for this seller
+                var sellerTotal = _cartTotalsCalculator.CalculateSellerTotals(
+                    storeId,
+                    sellerSubtotal,
+                    sellerItemCount,
+                    currency,
+                    shippingRule);
+                sellerTotals.Add(sellerTotal);
+
                 sellerGroups.Add(new CartSellerGroupDto(
                     storeId,
                     store?.Name ?? "Unknown Seller",
                     store?.Slug,
                     itemDtos.AsReadOnly(),
-                    itemDtos.Sum(i => i.LineTotal)));
+                    sellerSubtotal,
+                    sellerTotal.Shipping.Amount,
+                    sellerTotal.Total.Amount));
             }
         }
 
-        var totalAmount = sellerGroups.Sum(g => g.Subtotal);
+        // Calculate overall cart totals
+        var cartTotals = _cartTotalsCalculator.CalculateCartTotals(sellerTotals, currency);
 
         return new CartDto(
             cart.Id,
@@ -352,7 +385,10 @@ public sealed class CartService
             sellerGroups.AsReadOnly(),
             cart.TotalItemCount,
             cart.UniqueItemCount,
-            totalAmount,
+            cartTotals.ItemSubtotal.Amount,
+            cartTotals.TotalShipping.Amount,
+            cartTotals.TotalAmount.Amount,
+            currency,
             cart.CreatedAt,
             cart.UpdatedAt);
     }

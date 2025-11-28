@@ -31,6 +31,7 @@ public class AppDbContext : DbContext
     public DbSet<ProductImportJob> ProductImportJobs => Set<ProductImportJob>();
     public DbSet<Cart> Carts => Set<Cart>();
     public DbSet<CartItem> CartItems => Set<CartItem>();
+    public DbSet<ShippingRule> ShippingRules => Set<ShippingRule>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

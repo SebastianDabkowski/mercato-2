@@ -44,6 +44,7 @@ public static class DependencyInjection
         services.AddScoped<IInternalUserRepository, InternalUserRepository>();
         services.AddScoped<IInternalUserInvitationRepository, InternalUserInvitationRepository>();
         services.AddScoped<ICartRepository, CartRepository>();
+        services.AddScoped<IShippingRuleRepository, ShippingRuleRepository>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IPasswordValidator, PasswordValidator>();
