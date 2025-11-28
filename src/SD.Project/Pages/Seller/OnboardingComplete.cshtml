@@ -1,0 +1,88 @@
+@page
+@model SD.Project.Pages.Seller.OnboardingCompleteModel
+@using SD.Project.Domain.Entities
+@{
+    ViewData["Title"] = "Onboarding Status";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            @switch (Model.Status)
+            {
+                case OnboardingStatus.PendingVerification:
+                    <div class="text-center py-5">
+                        <div class="mb-4">
+                            <span class="display-1 text-warning">⏳</span>
+                        </div>
+                        <h1 class="mb-3">Application Submitted!</h1>
+                        <p class="lead text-muted mb-4">
+                            Thank you for completing your seller onboarding for <strong>@Model.StoreName</strong>.
+                        </p>
+                        <div class="alert alert-info">
+                            <h5 class="alert-heading">What happens next?</h5>
+                            <p class="mb-0">
+                                Our team will review your application. This usually takes 1-3 business days.
+                                We'll notify you by email once your account is verified.
+                            </p>
+                        </div>
+                        @if (Model.SubmittedAt.HasValue)
+                        {
+                            <p class="text-muted">
+                                <small>Submitted on @Model.SubmittedAt.Value.ToString("MMMM d, yyyy 'at' h:mm tt")</small>
+                            </p>
+                        }
+                        <a asp-page="/Seller/Dashboard" class="btn btn-primary mt-3">Go to Dashboard</a>
+                    </div>
+                    break;
+
+                case OnboardingStatus.Verified:
+                    <div class="text-center py-5">
+                        <div class="mb-4">
+                            <span class="display-1 text-success">✓</span>
+                        </div>
+                        <h1 class="mb-3">You're All Set!</h1>
+                        <p class="lead text-muted mb-4">
+                            Your seller account for <strong>@Model.StoreName</strong> is now active.
+                        </p>
+                        <div class="alert alert-success">
+                            <h5 class="alert-heading">Start selling!</h5>
+                            <p class="mb-0">
+                                Your store is ready to go. Add your first products and start making sales!
+                            </p>
+                        </div>
+                        <a asp-page="/Seller/Dashboard" class="btn btn-success mt-3">Go to Dashboard</a>
+                    </div>
+                    break;
+
+                case OnboardingStatus.Rejected:
+                    <div class="text-center py-5">
+                        <div class="mb-4">
+                            <span class="display-1 text-danger">✕</span>
+                        </div>
+                        <h1 class="mb-3">Application Not Approved</h1>
+                        <p class="lead text-muted mb-4">
+                            Unfortunately, we were unable to verify your seller application.
+                        </p>
+                        <div class="alert alert-danger">
+                            <h5 class="alert-heading">What can you do?</h5>
+                            <p class="mb-0">
+                                Please contact our support team for more information about why your application
+                                was not approved and how you can resubmit.
+                            </p>
+                        </div>
+                        <a href="mailto:support@example.com" class="btn btn-outline-danger mt-3">Contact Support</a>
+                    </div>
+                    break;
+
+                default:
+                    <div class="text-center py-5">
+                        <h1>Onboarding Status</h1>
+                        <p class="lead text-muted">Unknown status. Please contact support.</p>
+                        <a asp-page="/Seller/Dashboard" class="btn btn-primary mt-3">Go to Dashboard</a>
+                    </div>
+                    break;
+            }
+        </div>
+    </div>
+</div>

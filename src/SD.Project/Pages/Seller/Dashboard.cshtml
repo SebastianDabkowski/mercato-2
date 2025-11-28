@@ -1,11 +1,36 @@
 @page
 @model SD.Project.Pages.Seller.DashboardModel
+@using SD.Project.Domain.Entities
 @{
     ViewData["Title"] = "Seller Panel";
 }
 
 <h1>Seller Panel</h1>
 <p>Welcome to your seller panel, @User.Identity?.Name!</p>
+
+@if (Model.OnboardingRequired)
+{
+    <div class="alert alert-warning mb-4">
+        <h5 class="alert-heading">Complete Your Seller Onboarding</h5>
+        <p>You need to complete the seller onboarding wizard before you can start selling on the platform.</p>
+        <a asp-page="/Seller/Onboarding" class="btn btn-primary">Start Onboarding</a>
+    </div>
+}
+else if (Model.OnboardingStatus == OnboardingStatus.PendingVerification)
+{
+    <div class="alert alert-info mb-4">
+        <h5 class="alert-heading">Verification Pending</h5>
+        <p>Your seller application is being reviewed. We'll notify you once it's approved.</p>
+        <a asp-page="/Seller/OnboardingComplete" class="btn btn-outline-info">View Status</a>
+    </div>
+}
+else if (Model.OnboardingStatus == OnboardingStatus.Verified)
+{
+    <div class="alert alert-success mb-4">
+        <h5 class="alert-heading">Store Active</h5>
+        <p>Your store is active and ready to sell!</p>
+    </div>
+}
 
 <div class="row">
     <div class="col-md-4">
