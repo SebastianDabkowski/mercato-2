@@ -212,16 +212,23 @@ public class CategoryModel : PageModel
                 MaxPrice: Filters.MaxPrice,
                 StoreId: Filters.StoreId);
 
-            var productDtos = await _productService.HandleAsync(
-                new FilterProductsQuery(Filters: filterCriteria, SortBy: effectiveSortBy),
+            var pagedResult = await _productService.HandleAsync(
+                new FilterProductsQuery(
+                    Filters: filterCriteria, 
+                    SortBy: effectiveSortBy,
+                    PageNumber: PageNumber,
+                    PageSize: PageSize),
                 cancellationToken);
 
-            Products = productDtos
+            Products = pagedResult.Items
                 .Select(MapToProductViewModel)
                 .ToArray();
+            TotalCount = pagedResult.TotalCount;
+            TotalPages = pagedResult.TotalPages;
+            PageSize = pagedResult.PageSize;
 
-            _logger.LogDebug("Loaded category {CategoryName} with {ProductCount} products and {SubcategoryCount} subcategories",
-                categoryDto.Name, Products.Count, Subcategories.Count);
+            _logger.LogDebug("Loaded category {CategoryName} with {ProductCount} products and {SubcategoryCount} subcategories (page {Page} of {TotalPages})",
+                categoryDto.Name, TotalCount, Subcategories.Count, PageNumber, TotalPages);
         }
 
         return Page();
