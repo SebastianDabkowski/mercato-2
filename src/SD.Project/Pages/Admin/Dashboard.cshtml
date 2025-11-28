@@ -1,0 +1,59 @@
+@page
+@model SD.Project.Pages.Admin.DashboardModel
+@{
+    ViewData["Title"] = "Admin Panel";
+}
+
+<h1>Admin Panel</h1>
+<p>Welcome to the administration panel, @User.Identity?.Name!</p>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">User Management</h5>
+                <p class="card-text">Manage platform users and roles.</p>
+                <a href="#" class="btn btn-primary">Manage Users</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Platform Settings</h5>
+                <p class="card-text">Configure platform-wide settings.</p>
+                <a href="#" class="btn btn-primary">Settings</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Reports</h5>
+                <p class="card-text">View platform analytics and reports.</p>
+                <a href="#" class="btn btn-primary">View Reports</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Moderation</h5>
+                <p class="card-text">Review flagged content and disputes.</p>
+                <a href="#" class="btn btn-primary">Moderation Queue</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Seller Verification</h5>
+                <p class="card-text">Review seller KYC applications.</p>
+                <a href="#" class="btn btn-primary">Review KYC</a>
+            </div>
+        </div>
+    </div>
+</div>

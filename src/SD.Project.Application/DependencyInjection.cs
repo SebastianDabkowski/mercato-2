@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using SD.Project.Application.Interfaces;
 using SD.Project.Application.Services;
 
 namespace SD.Project.Application;
@@ -17,6 +18,7 @@ public static class DependencyInjection
         services.AddScoped<EmailVerificationService>();
         services.AddScoped<PasswordResetService>();
         services.AddScoped<SessionService>();
+        services.AddScoped<IAuthorizationService, AuthorizationService>();
         return services;
     }
 }

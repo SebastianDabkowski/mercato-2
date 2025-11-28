@@ -1,0 +1,38 @@
+@page
+@model SD.Project.Pages.Buyer.DashboardModel
+@{
+    ViewData["Title"] = "Buyer Dashboard";
+}
+
+<h1>Buyer Dashboard</h1>
+<p>Welcome to your buyer dashboard, @User.Identity?.Name!</p>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">My Orders</h5>
+                <p class="card-text">View and track your orders.</p>
+                <a href="#" class="btn btn-primary">View Orders</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Shopping Cart</h5>
+                <p class="card-text">View items in your cart.</p>
+                <a href="#" class="btn btn-primary">View Cart</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">My Account</h5>
+                <p class="card-text">Manage your account settings.</p>
+                <a href="#" class="btn btn-primary">Account Settings</a>
+            </div>
+        </div>
+    </div>
+</div>

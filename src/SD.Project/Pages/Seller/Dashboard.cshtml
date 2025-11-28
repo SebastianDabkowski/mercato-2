@@ -1,0 +1,38 @@
+@page
+@model SD.Project.Pages.Seller.DashboardModel
+@{
+    ViewData["Title"] = "Seller Panel";
+}
+
+<h1>Seller Panel</h1>
+<p>Welcome to your seller panel, @User.Identity?.Name!</p>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">My Products</h5>
+                <p class="card-text">Manage your product listings.</p>
+                <a href="#" class="btn btn-primary">Manage Products</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Orders</h5>
+                <p class="card-text">View and manage customer orders.</p>
+                <a href="#" class="btn btn-primary">View Orders</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Store Settings</h5>
+                <p class="card-text">Configure your store profile.</p>
+                <a href="#" class="btn btn-primary">Store Settings</a>
+            </div>
+        </div>
+    </div>
+</div>

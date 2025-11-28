@@ -9,6 +9,8 @@ namespace SD.Project.Pages
     public class ErrorModel : PageModel
     {
         public string? RequestId { get; set; }
+        public string? ErrorMessage { get; set; }
+        public bool IsAccessDenied => !string.IsNullOrEmpty(ErrorMessage);
 
         public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
 
@@ -19,9 +21,15 @@ namespace SD.Project.Pages
             _logger = logger;
         }
 
-        public void OnGet()
+        public void OnGet(string? message = null)
         {
             RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+            ErrorMessage = message;
+
+            if (!string.IsNullOrEmpty(message))
+            {
+                _logger.LogWarning("Access denied error displayed: {Message}", message);
+            }
         }
     }
 

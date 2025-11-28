@@ -13,5 +13,10 @@ public enum UserRole
     /// <summary>
     /// A seller who can list and sell products.
     /// </summary>
-    Seller = 1
+    Seller = 1,
+
+    /// <summary>
+    /// An administrator with full platform access.
+    /// </summary>
+    Admin = 2
 }
