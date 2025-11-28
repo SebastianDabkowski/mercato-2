@@ -26,6 +26,7 @@ public interface IProductRepository
     /// <param name="minPrice">Optional minimum price (inclusive).</param>
     /// <param name="maxPrice">Optional maximum price (inclusive).</param>
     /// <param name="storeId">Optional store ID filter.</param>
+    /// <param name="sortOrder">Sort order for results. Defaults to Newest.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Collection of active products matching all specified criteria.</returns>
     Task<IReadOnlyCollection<Product>> FilterAsync(
@@ -34,6 +35,7 @@ public interface IProductRepository
         decimal? minPrice = null,
         decimal? maxPrice = null,
         Guid? storeId = null,
+        ProductSortOrder sortOrder = ProductSortOrder.Newest,
         CancellationToken cancellationToken = default);
     
     Task AddAsync(Product product, CancellationToken cancellationToken = default);

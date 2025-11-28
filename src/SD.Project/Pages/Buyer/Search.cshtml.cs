@@ -13,6 +13,7 @@ namespace SD.Project.Pages.Buyer;
 public class SearchModel : PageModel
 {
     private const string FilterSessionKey = "SearchFilters";
+    private const string SortSessionKey = "SearchSort";
 
     private readonly ILogger<SearchModel> _logger;
     private readonly ProductService _productService;
@@ -54,6 +55,12 @@ public class SearchModel : PageModel
     /// </summary>
     [BindProperty(SupportsGet = true)]
     public bool ClearFilters { get; set; }
+
+    /// <summary>
+    /// Selected sort option.
+    /// </summary>
+    [BindProperty(SupportsGet = true)]
+    public ProductSortOption? SortBy { get; set; }
 
     /// <summary>
     /// Products matching the search term and filters.
@@ -109,8 +116,12 @@ public class SearchModel : PageModel
             return RedirectToPage(new { q = SearchTerm });
         }
 
-        // Restore filters from session if not provided in request
+        // Restore filters and sort from session if not provided in request
         RestoreFiltersFromSession();
+        RestoreSortFromSession();
+
+        // Determine effective sort option - default to Relevance for search
+        var effectiveSortBy = SortBy ?? ProductSortOption.Relevance;
 
         // Build filter object
         Filters = new ProductFilterViewModel
@@ -121,8 +132,9 @@ public class SearchModel : PageModel
             StoreId = StoreId
         };
 
-        // Save filters to session for persistence
+        // Save filters and sort to session for persistence
         SaveFiltersToSession();
+        SaveSortToSession(effectiveSortBy);
 
         // Check if we have any search or filter criteria
         bool hasSearchOrFilters = !string.IsNullOrWhiteSpace(SearchTerm) || Filters.HasActiveFilters;
@@ -145,7 +157,8 @@ public class SearchModel : PageModel
             var productDtos = await _productService.HandleAsync(
                 new FilterProductsQuery(
                     SearchTerm: string.IsNullOrWhiteSpace(sanitizedTerm) ? null : sanitizedTerm,
-                    Filters: filterCriteria),
+                    Filters: filterCriteria,
+                    SortBy: effectiveSortBy),
                 cancellationToken);
 
             Products = productDtos
@@ -215,6 +228,24 @@ public class SearchModel : PageModel
         {
             HttpContext.Session.Remove(FilterSessionKey);
         }
+    }
+
+    private void RestoreSortFromSession()
+    {
+        // Only restore if no explicit sort parameter was provided
+        if (SortBy is null)
+        {
+            var sessionSort = HttpContext.Session.GetString(SortSessionKey);
+            if (!string.IsNullOrEmpty(sessionSort) && Enum.TryParse<ProductSortOption>(sessionSort, out var sortOption))
+            {
+                SortBy = sortOption;
+            }
+        }
+    }
+
+    private void SaveSortToSession(ProductSortOption sortOption)
+    {
+        HttpContext.Session.SetString(SortSessionKey, sortOption.ToString());
     }
 
     private void ClearAllFilters()

@@ -20,6 +20,8 @@ public sealed record ProductFilterCriteria(
 /// </summary>
 /// <param name="SearchTerm">Optional search term to match against product name and description.</param>
 /// <param name="Filters">Optional filter criteria.</param>
+/// <param name="SortBy">Sort order for results. Defaults to Relevance for search, Newest for category browsing.</param>
 public sealed record FilterProductsQuery(
     string? SearchTerm = null,
-    ProductFilterCriteria? Filters = null);
+    ProductFilterCriteria? Filters = null,
+    ProductSortOption? SortBy = null);

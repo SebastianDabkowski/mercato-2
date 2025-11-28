@@ -109,6 +109,7 @@ public sealed class ProductRepository : IProductRepository
         decimal? minPrice = null,
         decimal? maxPrice = null,
         Guid? storeId = null,
+        ProductSortOrder sortOrder = ProductSortOrder.Newest,
         CancellationToken cancellationToken = default)
     {
         var query = _context.Products.AsNoTracking().AsQueryable();
@@ -150,9 +151,16 @@ public sealed class ProductRepository : IProductRepository
             query = query.Where(p => p.StoreId == storeId.Value);
         }
 
-        var results = await query
-            .OrderByDescending(p => p.CreatedAt)
-            .ToListAsync(cancellationToken);
+        // Apply sorting with stable secondary sort by Id
+        query = sortOrder switch
+        {
+            ProductSortOrder.PriceAscending => query.OrderBy(p => p.Price.Amount).ThenBy(p => p.Id),
+            ProductSortOrder.PriceDescending => query.OrderByDescending(p => p.Price.Amount).ThenBy(p => p.Id),
+            ProductSortOrder.Newest => query.OrderByDescending(p => p.CreatedAt).ThenBy(p => p.Id),
+            _ => query.OrderByDescending(p => p.CreatedAt).ThenBy(p => p.Id)
+        };
+
+        var results = await query.ToListAsync(cancellationToken);
 
         return results.AsReadOnly();
     }

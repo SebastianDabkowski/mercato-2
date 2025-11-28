@@ -160,13 +160,27 @@ public sealed class ProductService
     {
         ArgumentNullException.ThrowIfNull(query);
 
+        // Convert application-layer sort option to domain-layer sort order
+        // For relevance with search term, we use Newest as a fallback (text matching is done at filter level)
+        // For relevance without search term, we also use Newest
+        var sortOrder = query.SortBy switch
+        {
+            ProductSortOption.PriceAscending => ProductSortOrder.PriceAscending,
+            ProductSortOption.PriceDescending => ProductSortOrder.PriceDescending,
+            ProductSortOption.Newest => ProductSortOrder.Newest,
+            ProductSortOption.Relevance => ProductSortOrder.Newest, // Relevance falls back to Newest
+            null => ProductSortOrder.Newest, // Default to Newest
+            _ => ProductSortOrder.Newest
+        };
+
         var products = await _repository.FilterAsync(
             searchTerm: query.SearchTerm,
             category: query.Filters?.Category,
             minPrice: query.Filters?.MinPrice,
             maxPrice: query.Filters?.MaxPrice,
             storeId: query.Filters?.StoreId,
-            cancellationToken);
+            sortOrder: sortOrder,
+            cancellationToken: cancellationToken);
 
         return products
             .Select(p => MapToDto(p))

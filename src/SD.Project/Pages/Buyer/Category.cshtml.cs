@@ -13,6 +13,7 @@ namespace SD.Project.Pages.Buyer;
 public class CategoryModel : PageModel
 {
     private const string FilterSessionKey = "CategoryFilters";
+    private const string SortSessionKey = "CategorySort";
 
     private readonly ILogger<CategoryModel> _logger;
     private readonly CategoryService _categoryService;
@@ -69,6 +70,12 @@ public class CategoryModel : PageModel
     public bool ClearFilters { get; set; }
 
     /// <summary>
+    /// Selected sort option.
+    /// </summary>
+    [BindProperty(SupportsGet = true)]
+    public ProductSortOption? SortBy { get; set; }
+
+    /// <summary>
     /// Available stores for filter dropdown.
     /// </summary>
     public IReadOnlyCollection<StoreViewModel> AvailableStores { get; private set; } = Array.Empty<StoreViewModel>();
@@ -119,8 +126,12 @@ public class CategoryModel : PageModel
             return RedirectToPage(new { id });
         }
 
-        // Restore filters from session if not provided in request
+        // Restore filters and sort from session if not provided in request
         RestoreFiltersFromSession();
+        RestoreSortFromSession();
+
+        // Determine effective sort option - default to Newest for category browsing
+        var effectiveSortBy = SortBy ?? ProductSortOption.Newest;
 
         // Build filter object
         Filters = new ProductFilterViewModel
@@ -130,8 +141,9 @@ public class CategoryModel : PageModel
             StoreId = StoreId
         };
 
-        // Save filters to session for persistence
+        // Save filters and sort to session for persistence
         SaveFiltersToSession();
+        SaveSortToSession(effectiveSortBy);
 
         if (id.HasValue)
         {
@@ -162,7 +174,7 @@ public class CategoryModel : PageModel
                 .Select(MapToViewModel)
                 .ToArray();
 
-            // Load products for this category with filters applied
+            // Load products for this category with filters and sorting applied
             var filterCriteria = new ProductFilterCriteria(
                 Category: categoryDto.Name,
                 MinPrice: Filters.MinPrice,
@@ -170,7 +182,7 @@ public class CategoryModel : PageModel
                 StoreId: Filters.StoreId);
 
             var productDtos = await _productService.HandleAsync(
-                new FilterProductsQuery(Filters: filterCriteria),
+                new FilterProductsQuery(Filters: filterCriteria, SortBy: effectiveSortBy),
                 cancellationToken);
 
             Products = productDtos
@@ -222,6 +234,24 @@ public class CategoryModel : PageModel
         {
             HttpContext.Session.Remove(FilterSessionKey);
         }
+    }
+
+    private void RestoreSortFromSession()
+    {
+        // Only restore if no explicit sort parameter was provided
+        if (SortBy is null)
+        {
+            var sessionSort = HttpContext.Session.GetString(SortSessionKey);
+            if (!string.IsNullOrEmpty(sessionSort) && Enum.TryParse<ProductSortOption>(sessionSort, out var sortOption))
+            {
+                SortBy = sortOption;
+            }
+        }
+    }
+
+    private void SaveSortToSession(ProductSortOption sortOption)
+    {
+        HttpContext.Session.SetString(SortSessionKey, sortOption.ToString());
     }
 
     private void ClearAllFilters()

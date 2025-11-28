@@ -1,5 +1,6 @@
 @page "{id:guid?}"
 @model SD.Project.Pages.Buyer.CategoryModel
+@using SD.Project.Application.Queries
 @{
     ViewData["Title"] = Model.CurrentCategory?.Name ?? "Browse Categories";
 }
@@ -146,16 +147,28 @@ else
 
     @if (Model.Products.Any())
     {
+        var currentSort = Model.SortBy ?? ProductSortOption.Newest;
         <section>
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="mb-0">Products</h5>
-                <span class="text-muted">
-                    @Model.Products.Count result(s)
-                    @if (Model.HasActiveFilters)
-                    {
-                        <text>with filters applied</text>
-                    }
-                </span>
+                <div>
+                    <h5 class="mb-0 d-inline">Products</h5>
+                    <span class="text-muted ms-2">
+                        @Model.Products.Count result(s)
+                        @if (Model.HasActiveFilters)
+                        {
+                            <text>with filters applied</text>
+                        }
+                    </span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <label for="sortSelect" class="form-label mb-0 text-nowrap">Sort by:</label>
+                    <select id="sortSelect" class="form-select form-select-sm" style="width: auto;" onchange="applySorting(this.value)">
+                        <option value="Newest" selected="@(currentSort == ProductSortOption.Newest)">Newest</option>
+                        <option value="PriceAscending" selected="@(currentSort == ProductSortOption.PriceAscending)">Price: Low to High</option>
+                        <option value="PriceDescending" selected="@(currentSort == ProductSortOption.PriceDescending)">Price: High to Low</option>
+                        <option value="Relevance" selected="@(currentSort == ProductSortOption.Relevance)">Relevance</option>
+                    </select>
+                </div>
             </div>
             <div class="row row-cols-1 row-cols-md-3 g-4">
                 @foreach (var product in Model.Products)
@@ -236,4 +249,14 @@ else
             }
         </div>
     }
+}
+
+@section Scripts {
+    <script>
+        function applySorting(sortValue) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('SortBy', sortValue);
+            window.location.href = url.toString();
+        }
+    </script>
 }

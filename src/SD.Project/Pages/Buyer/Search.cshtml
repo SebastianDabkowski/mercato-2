@@ -1,5 +1,6 @@
 @page
 @model SD.Project.Pages.Buyer.SearchModel
+@using SD.Project.Application.Queries
 @{
     ViewData["Title"] = string.IsNullOrEmpty(Model.SearchTerm) ? "Search Products" : $"Search: {Model.SearchTerm}";
 }
@@ -98,36 +99,52 @@
 
 @{
     var hasSearchOrFilters = !string.IsNullOrEmpty(Model.SearchTerm) || Model.HasActiveFilters;
+    var currentSort = Model.SortBy ?? ProductSortOption.Relevance;
 }
 
 @if (hasSearchOrFilters)
 {
-    <p class="text-muted mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <p class="text-muted mb-0">
+            @if (Model.Products.Any())
+            {
+                <text>Found @Model.Products.Count result(s)</text>
+                if (!string.IsNullOrEmpty(Model.SearchTerm))
+                {
+                    <text> for "<strong>@Model.SearchTerm</strong>"</text>
+                }
+                if (Model.HasActiveFilters)
+                {
+                    <text> with filters applied</text>
+                }
+            }
+            else
+            {
+                <text>No results found</text>
+                if (!string.IsNullOrEmpty(Model.SearchTerm))
+                {
+                    <text> for "<strong>@Model.SearchTerm</strong>"</text>
+                }
+                if (Model.HasActiveFilters)
+                {
+                    <text> with the selected filters</text>
+                }
+            }
+        </p>
+
         @if (Model.Products.Any())
         {
-            <text>Found @Model.Products.Count result(s)</text>
-            if (!string.IsNullOrEmpty(Model.SearchTerm))
-            {
-                <text> for "<strong>@Model.SearchTerm</strong>"</text>
-            }
-            if (Model.HasActiveFilters)
-            {
-                <text> with filters applied</text>
-            }
+            <div class="d-flex align-items-center gap-2">
+                <label for="sortSelect" class="form-label mb-0 text-nowrap">Sort by:</label>
+                <select id="sortSelect" class="form-select form-select-sm" style="width: auto;" onchange="applySorting(this.value)">
+                    <option value="Relevance" selected="@(currentSort == ProductSortOption.Relevance)">Relevance</option>
+                    <option value="PriceAscending" selected="@(currentSort == ProductSortOption.PriceAscending)">Price: Low to High</option>
+                    <option value="PriceDescending" selected="@(currentSort == ProductSortOption.PriceDescending)">Price: High to Low</option>
+                    <option value="Newest" selected="@(currentSort == ProductSortOption.Newest)">Newest</option>
+                </select>
+            </div>
         }
-        else
-        {
-            <text>No results found</text>
-            if (!string.IsNullOrEmpty(Model.SearchTerm))
-            {
-                <text> for "<strong>@Model.SearchTerm</strong>"</text>
-            }
-            if (Model.HasActiveFilters)
-            {
-                <text> with the selected filters</text>
-            }
-        }
-    </p>
+    </div>
 
     @if (Model.Products.Any())
     {
@@ -221,4 +238,14 @@ else
             </div>
         </section>
     }
+}
+
+@section Scripts {
+    <script>
+        function applySorting(sortValue) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('SortBy', sortValue);
+            window.location.href = url.toString();
+        }
+    </script>
 }
