@@ -79,9 +79,9 @@ public sealed class ProductExportService
         // Apply category filter
         if (!string.IsNullOrWhiteSpace(query.CategoryFilter))
         {
-            var category = query.CategoryFilter.Trim().ToLowerInvariant();
+            var category = query.CategoryFilter.Trim();
             filtered = filtered.Where(p =>
-                p.Category.ToLowerInvariant().Equals(category, StringComparison.OrdinalIgnoreCase));
+                p.Category.Equals(category, StringComparison.OrdinalIgnoreCase));
         }
 
         // Apply active only filter
@@ -129,6 +129,9 @@ public sealed class ProductExportService
 
     private static ExportResultDto GenerateXlsxExport(IReadOnlyCollection<Product> products, string timestamp)
     {
+        // Build shared string table first
+        var sharedStrings = BuildSharedStringTable(products);
+
         // Generate a simple XLSX file using the Open XML format
         // XLSX is a ZIP archive containing XML files
         using var memoryStream = new MemoryStream();
@@ -147,10 +150,10 @@ public sealed class ProductExportService
             AddWorkbookRelationships(archive);
 
             // Add xl/worksheets/sheet1.xml
-            AddWorksheet(archive, products);
+            AddWorksheet(archive, products, sharedStrings);
 
             // Add xl/sharedStrings.xml
-            AddSharedStrings(archive, products);
+            AddSharedStrings(archive, sharedStrings);
 
             // Add xl/styles.xml
             AddStyles(archive);
@@ -161,6 +164,46 @@ public sealed class ProductExportService
         var fileName = $"products-export-{timestamp}.xlsx";
 
         return ExportResultDto.Success(bytes, fileName, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", products.Count);
+    }
+
+    private static Dictionary<string, int> BuildSharedStringTable(IReadOnlyCollection<Product> products)
+    {
+        var stringTable = new Dictionary<string, int>(StringComparer.Ordinal);
+        var index = 0;
+
+        // Add headers first
+        var headers = new[] { "SKU", "Name", "Description", "Price", "Currency", "Stock", "Category", "Status", "WeightKg", "LengthCm", "WidthCm", "HeightCm" };
+        foreach (var header in headers)
+        {
+            if (!stringTable.ContainsKey(header))
+            {
+                stringTable[header] = index++;
+            }
+        }
+
+        // Add product string values
+        foreach (var product in products)
+        {
+            var values = new[]
+            {
+                product.Sku ?? string.Empty,
+                product.Name,
+                product.Description,
+                product.Price.Currency,
+                product.Category,
+                product.Status.ToString()
+            };
+
+            foreach (var value in values)
+            {
+                if (!stringTable.ContainsKey(value))
+                {
+                    stringTable[value] = index++;
+                }
+            }
+        }
+
+        return stringTable;
     }
 
     private static string EscapeCsvValue(string value)
@@ -301,7 +344,7 @@ public sealed class ProductExportService
         writer.WriteEndDocument();
     }
 
-    private static void AddWorksheet(ZipArchive archive, IReadOnlyCollection<Product> products)
+    private static void AddWorksheet(ZipArchive archive, IReadOnlyCollection<Product> products, Dictionary<string, int> sharedStrings)
     {
         var entry = archive.CreateEntry("xl/worksheets/sheet1.xml");
         using var stream = entry.Open();
@@ -315,23 +358,22 @@ public sealed class ProductExportService
 
         // Header row
         var headers = new[] { "SKU", "Name", "Description", "Price", "Currency", "Stock", "Category", "Status", "WeightKg", "LengthCm", "WidthCm", "HeightCm" };
-        WriteRow(writer, ns, 1, headers.Select((h, i) => (Value: h, IsString: true, Index: i)).ToArray());
+        WriteRow(writer, ns, 1, headers.Select(h => (Value: h, IsString: true, Index: sharedStrings[h])).ToArray());
 
         // Data rows
         var rowIndex = 2;
-        var stringIndex = headers.Length; // Start string indices after headers
         foreach (var product in products)
         {
             var cells = new (string Value, bool IsString, int StringIndex)[]
             {
-                (product.Sku ?? string.Empty, true, stringIndex++),
-                (product.Name, true, stringIndex++),
-                (product.Description, true, stringIndex++),
+                (product.Sku ?? string.Empty, true, sharedStrings[product.Sku ?? string.Empty]),
+                (product.Name, true, sharedStrings[product.Name]),
+                (product.Description, true, sharedStrings[product.Description]),
                 (product.Price.Amount.ToString("F2", CultureInfo.InvariantCulture), false, -1),
-                (product.Price.Currency, true, stringIndex++),
+                (product.Price.Currency, true, sharedStrings[product.Price.Currency]),
                 (product.Stock.ToString(CultureInfo.InvariantCulture), false, -1),
-                (product.Category, true, stringIndex++),
-                (product.Status.ToString(), true, stringIndex++),
+                (product.Category, true, sharedStrings[product.Category]),
+                (product.Status.ToString(), true, sharedStrings[product.Status.ToString()]),
                 (product.WeightKg?.ToString("F2", CultureInfo.InvariantCulture) ?? string.Empty, false, -1),
                 (product.LengthCm?.ToString("F2", CultureInfo.InvariantCulture) ?? string.Empty, false, -1),
                 (product.WidthCm?.ToString("F2", CultureInfo.InvariantCulture) ?? string.Empty, false, -1),
@@ -403,7 +445,7 @@ public sealed class ProductExportService
         return col + rowIndex.ToString(CultureInfo.InvariantCulture);
     }
 
-    private static void AddSharedStrings(ZipArchive archive, IReadOnlyCollection<Product> products)
+    private static void AddSharedStrings(ZipArchive archive, Dictionary<string, int> sharedStrings)
     {
         var entry = archive.CreateEntry("xl/sharedStrings.xml");
         using var stream = entry.Open();
@@ -411,28 +453,18 @@ public sealed class ProductExportService
 
         const string ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
 
-        // Collect all strings (headers + product string values)
-        var strings = new List<string>
-        {
-            "SKU", "Name", "Description", "Price", "Currency", "Stock", "Category", "Status", "WeightKg", "LengthCm", "WidthCm", "HeightCm"
-        };
-
-        foreach (var product in products)
-        {
-            strings.Add(product.Sku ?? string.Empty);
-            strings.Add(product.Name);
-            strings.Add(product.Description);
-            strings.Add(product.Price.Currency);
-            strings.Add(product.Category);
-            strings.Add(product.Status.ToString());
-        }
+        // Sort strings by their index to ensure correct order
+        var orderedStrings = sharedStrings
+            .OrderBy(kvp => kvp.Value)
+            .Select(kvp => kvp.Key)
+            .ToArray();
 
         writer.WriteStartDocument();
         writer.WriteStartElement("sst", ns);
-        writer.WriteAttributeString("count", strings.Count.ToString(CultureInfo.InvariantCulture));
-        writer.WriteAttributeString("uniqueCount", strings.Count.ToString(CultureInfo.InvariantCulture));
+        writer.WriteAttributeString("count", orderedStrings.Length.ToString(CultureInfo.InvariantCulture));
+        writer.WriteAttributeString("uniqueCount", orderedStrings.Length.ToString(CultureInfo.InvariantCulture));
 
-        foreach (var str in strings)
+        foreach (var str in orderedStrings)
         {
             writer.WriteStartElement("si", ns);
             writer.WriteElementString("t", ns, str);
@@ -457,14 +489,23 @@ public sealed class ProductExportService
         writer.WriteStartElement("fonts", ns);
         writer.WriteAttributeString("count", "1");
         writer.WriteStartElement("font", ns);
-        writer.WriteElementString("sz", ns, string.Empty);
+        writer.WriteStartElement("sz", ns);
+        writer.WriteAttributeString("val", "11");
+        writer.WriteEndElement();
         writer.WriteEndElement();
         writer.WriteEndElement();
 
         writer.WriteStartElement("fills", ns);
-        writer.WriteAttributeString("count", "1");
+        writer.WriteAttributeString("count", "2");
         writer.WriteStartElement("fill", ns);
-        writer.WriteElementString("patternFill", ns, string.Empty);
+        writer.WriteStartElement("patternFill", ns);
+        writer.WriteAttributeString("patternType", "none");
+        writer.WriteEndElement();
+        writer.WriteEndElement();
+        writer.WriteStartElement("fill", ns);
+        writer.WriteStartElement("patternFill", ns);
+        writer.WriteAttributeString("patternType", "gray125");
+        writer.WriteEndElement();
         writer.WriteEndElement();
         writer.WriteEndElement();
 

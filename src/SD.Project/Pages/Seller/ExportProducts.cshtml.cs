@@ -97,9 +97,11 @@ public class ExportProductsModel : PageModel
 
         var result = await _exportService.HandleAsync(query);
 
-        if (!result.IsSuccess)
+        if (!result.IsSuccess || result.FileData is null || result.ContentType is null || result.FileName is null)
         {
-            ErrorMessage = string.Join(", ", result.Errors);
+            ErrorMessage = result.IsSuccess 
+                ? "Export failed: No data generated." 
+                : string.Join(", ", result.Errors);
             await LoadCategoriesAsync();
             return Page();
         }
@@ -110,7 +112,7 @@ public class ExportProductsModel : PageModel
             result.ExportedCount,
             exportFormat);
 
-        return File(result.FileData!, result.ContentType!, result.FileName);
+        return File(result.FileData, result.ContentType, result.FileName);
     }
 
     private async Task LoadCategoriesAsync()

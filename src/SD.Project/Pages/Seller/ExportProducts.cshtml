@@ -82,6 +82,7 @@
 
                             <div class="mt-3">
                                 <div class="form-check">
+                                    <input type="hidden" name="ActiveOnly" value="false" />
                                     <input class="form-check-input" type="checkbox" id="activeOnly" name="ActiveOnly" value="true" @(Model.ActiveOnly ? "checked" : "")>
                                     <label class="form-check-label" for="activeOnly">
                                         Export only active products
