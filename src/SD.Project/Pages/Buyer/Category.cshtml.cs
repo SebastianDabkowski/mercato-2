@@ -8,13 +8,16 @@ using SD.Project.ViewModels;
 namespace SD.Project.Pages.Buyer;
 
 /// <summary>
-/// Page model for browsing products by category.
+/// Page model for browsing products by category with filter support.
 /// </summary>
 public class CategoryModel : PageModel
 {
+    private const string FilterSessionKey = "CategoryFilters";
+
     private readonly ILogger<CategoryModel> _logger;
     private readonly CategoryService _categoryService;
     private readonly ProductService _productService;
+    private readonly StoreService _storeService;
 
     /// <summary>
     /// The current category being viewed.
@@ -41,18 +44,71 @@ public class CategoryModel : PageModel
     /// </summary>
     public CategoryViewModel? ParentCategory { get; private set; }
 
+    /// <summary>
+    /// Minimum price filter.
+    /// </summary>
+    [BindProperty(SupportsGet = true)]
+    public decimal? MinPrice { get; set; }
+
+    /// <summary>
+    /// Maximum price filter.
+    /// </summary>
+    [BindProperty(SupportsGet = true)]
+    public decimal? MaxPrice { get; set; }
+
+    /// <summary>
+    /// Condition/status filter.
+    /// </summary>
+    [BindProperty(SupportsGet = true)]
+    public string? Condition { get; set; }
+
+    /// <summary>
+    /// Store/seller filter.
+    /// </summary>
+    [BindProperty(SupportsGet = true)]
+    public Guid? StoreId { get; set; }
+
+    /// <summary>
+    /// Flag to clear all filters.
+    /// </summary>
+    [BindProperty(SupportsGet = true)]
+    public bool ClearFilters { get; set; }
+
+    /// <summary>
+    /// Available stores for filter dropdown.
+    /// </summary>
+    public IReadOnlyCollection<StoreViewModel> AvailableStores { get; private set; } = Array.Empty<StoreViewModel>();
+
+    /// <summary>
+    /// Current filter state for the view.
+    /// </summary>
+    public ProductFilterViewModel Filters { get; private set; } = new();
+
+    /// <summary>
+    /// Indicates if any filters are currently active.
+    /// </summary>
+    public bool HasActiveFilters => Filters.HasActiveFilters;
+
     public CategoryModel(
         ILogger<CategoryModel> logger,
         CategoryService categoryService,
-        ProductService productService)
+        ProductService productService,
+        StoreService storeService)
     {
         _logger = logger;
         _categoryService = categoryService;
         _productService = productService;
+        _storeService = storeService;
     }
 
     public async Task<IActionResult> OnGetAsync(Guid? id, CancellationToken cancellationToken = default)
     {
+        // Load filter options
+        var stores = await _storeService.HandleAsync(new GetPublicStoresQuery(), cancellationToken);
+        AvailableStores = stores
+            .Select(s => new StoreViewModel(s.Id, s.Name, s.Slug))
+            .ToArray();
+
         // Load all active categories
         var allCategories = await _categoryService.HandleAsync(new GetActiveCategoriesQuery(), cancellationToken);
 
@@ -61,6 +117,28 @@ public class CategoryModel : PageModel
             .Where(c => c.ParentId is null)
             .Select(MapToViewModel)
             .ToArray();
+
+        // Handle clear filters action
+        if (ClearFilters)
+        {
+            ClearAllFilters();
+            return RedirectToPage(new { id });
+        }
+
+        // Restore filters from session if not provided in request
+        RestoreFiltersFromSession();
+
+        // Build filter object
+        Filters = new ProductFilterViewModel
+        {
+            MinPrice = MinPrice,
+            MaxPrice = MaxPrice,
+            Condition = Condition,
+            StoreId = StoreId
+        };
+
+        // Save filters to session for persistence
+        SaveFiltersToSession();
 
         if (id.HasValue)
         {
@@ -91,8 +169,18 @@ public class CategoryModel : PageModel
                 .Select(MapToViewModel)
                 .ToArray();
 
-            // Load products for this category
-            var productDtos = await _productService.HandleAsync(new GetProductsByCategoryQuery(categoryDto.Name), cancellationToken);
+            // Load products for this category with filters applied
+            var filterCriteria = new ProductFilterCriteria(
+                Category: categoryDto.Name,
+                MinPrice: Filters.MinPrice,
+                MaxPrice: Filters.MaxPrice,
+                Condition: Filters.Condition,
+                StoreId: Filters.StoreId);
+
+            var productDtos = await _productService.HandleAsync(
+                new FilterProductsQuery(Filters: filterCriteria),
+                cancellationToken);
+
             Products = productDtos
                 .Select(MapToProductViewModel)
                 .ToArray();
@@ -102,6 +190,56 @@ public class CategoryModel : PageModel
         }
 
         return Page();
+    }
+
+    private void RestoreFiltersFromSession()
+    {
+        // Only restore if no explicit filter parameters were provided
+        if (MinPrice is null && MaxPrice is null && Condition is null && StoreId is null)
+        {
+            var sessionFilters = HttpContext.Session.GetString(FilterSessionKey);
+            if (!string.IsNullOrEmpty(sessionFilters))
+            {
+                try
+                {
+                    var filters = System.Text.Json.JsonSerializer.Deserialize<ProductFilterViewModel>(sessionFilters);
+                    if (filters is not null)
+                    {
+                        MinPrice = filters.MinPrice;
+                        MaxPrice = filters.MaxPrice;
+                        Condition = filters.Condition;
+                        StoreId = filters.StoreId;
+                    }
+                }
+                catch (System.Text.Json.JsonException)
+                {
+                    // Invalid session data, ignore
+                    HttpContext.Session.Remove(FilterSessionKey);
+                }
+            }
+        }
+    }
+
+    private void SaveFiltersToSession()
+    {
+        if (Filters.HasActiveFilters)
+        {
+            var filterJson = System.Text.Json.JsonSerializer.Serialize(Filters);
+            HttpContext.Session.SetString(FilterSessionKey, filterJson);
+        }
+        else
+        {
+            HttpContext.Session.Remove(FilterSessionKey);
+        }
+    }
+
+    private void ClearAllFilters()
+    {
+        MinPrice = null;
+        MaxPrice = null;
+        Condition = null;
+        StoreId = null;
+        HttpContext.Session.Remove(FilterSessionKey);
     }
 
     private static CategoryViewModel MapToViewModel(CategoryDto dto)

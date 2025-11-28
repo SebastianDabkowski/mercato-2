@@ -103,6 +103,71 @@ public sealed class ProductRepository : IProductRepository
         return results.AsReadOnly();
     }
 
+    public async Task<IReadOnlyCollection<Product>> FilterAsync(
+        string? searchTerm = null,
+        string? category = null,
+        decimal? minPrice = null,
+        decimal? maxPrice = null,
+        ProductStatus? condition = null,
+        Guid? storeId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Products.AsNoTracking().AsQueryable();
+
+        // Always filter out archived products for public views
+        query = query.Where(p => p.Status != ProductStatus.Archived);
+
+        // Apply search term filter (name and description)
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var searchPattern = $"%{searchTerm.Trim()}%";
+            query = query.Where(p =>
+                EF.Functions.Like(p.Name, searchPattern) ||
+                EF.Functions.Like(p.Description ?? string.Empty, searchPattern));
+        }
+
+        // Apply category filter (case-insensitive)
+        if (!string.IsNullOrWhiteSpace(category))
+        {
+            var categoryLower = category.ToLowerInvariant();
+            query = query.Where(p => p.Category.ToLower() == categoryLower);
+        }
+
+        // Apply price range filters
+        if (minPrice.HasValue)
+        {
+            query = query.Where(p => p.Price.Amount >= minPrice.Value);
+        }
+
+        if (maxPrice.HasValue)
+        {
+            query = query.Where(p => p.Price.Amount <= maxPrice.Value);
+        }
+
+        // Apply condition/status filter
+        if (condition.HasValue)
+        {
+            query = query.Where(p => p.Status == condition.Value);
+        }
+        else
+        {
+            // By default, only show active products for public views
+            query = query.Where(p => p.Status == ProductStatus.Active);
+        }
+
+        // Apply store/seller filter
+        if (storeId.HasValue)
+        {
+            query = query.Where(p => p.StoreId == storeId.Value);
+        }
+
+        var results = await query
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        return results.AsReadOnly();
+    }
+
     public async Task AddAsync(Product product, CancellationToken cancellationToken = default)
     {
         await _context.Products.AddAsync(product, cancellationToken);

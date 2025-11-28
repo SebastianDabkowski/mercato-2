@@ -154,6 +154,36 @@ public sealed class ProductService
     }
 
     /// <summary>
+    /// Filters products by multiple criteria including search term, category, price range, condition, and store.
+    /// </summary>
+    public async Task<IReadOnlyCollection<ProductDto>> HandleAsync(FilterProductsQuery query, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        ProductStatus? conditionStatus = null;
+        if (!string.IsNullOrWhiteSpace(query.Filters?.Condition))
+        {
+            if (Enum.TryParse<ProductStatus>(query.Filters.Condition, ignoreCase: true, out var parsedStatus))
+            {
+                conditionStatus = parsedStatus;
+            }
+        }
+
+        var products = await _repository.FilterAsync(
+            searchTerm: query.SearchTerm,
+            category: query.Filters?.Category,
+            minPrice: query.Filters?.MinPrice,
+            maxPrice: query.Filters?.MaxPrice,
+            condition: conditionStatus,
+            storeId: query.Filters?.StoreId,
+            cancellationToken);
+
+        return products
+            .Select(p => MapToDto(p))
+            .ToArray();
+    }
+
+    /// <summary>
     /// Handles a request to update an existing product.
     /// </summary>
     public async Task<UpdateProductResultDto> HandleAsync(UpdateProductCommand command, CancellationToken cancellationToken = default)

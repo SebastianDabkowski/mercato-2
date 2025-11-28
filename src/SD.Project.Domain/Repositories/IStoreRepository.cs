@@ -43,6 +43,11 @@ public interface IStoreRepository
     Task AddAsync(Store store, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets all publicly visible stores (Active and LimitedActive status).
+    /// </summary>
+    Task<IReadOnlyCollection<Store>> GetPubliclyVisibleAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Persists changes to the underlying store.
     /// </summary>
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
