@@ -14,7 +14,6 @@ public sealed class DeliveryAddressService
 {
     private readonly IDeliveryAddressRepository _addressRepository;
     private readonly ICartRepository _cartRepository;
-    private readonly IProductRepository _productRepository;
 
     // List of countries where Mercato operates and can ship to
     private static readonly HashSet<string> AllowedCountries = new(StringComparer.OrdinalIgnoreCase)
@@ -34,12 +33,10 @@ public sealed class DeliveryAddressService
 
     public DeliveryAddressService(
         IDeliveryAddressRepository addressRepository,
-        ICartRepository cartRepository,
-        IProductRepository productRepository)
+        ICartRepository cartRepository)
     {
         _addressRepository = addressRepository;
         _cartRepository = cartRepository;
-        _productRepository = productRepository;
     }
 
     /// <summary>
@@ -212,16 +209,17 @@ public sealed class DeliveryAddressService
         // Handle default address logic
         if (command.SetAsDefault && command.BuyerId.HasValue)
         {
-            // Clear default from other addresses
+            // Clear default from other addresses - collect changes first to avoid N+1 updates
             var existingAddresses = await _addressRepository.GetByBuyerIdAsync(command.BuyerId.Value, cancellationToken);
-            foreach (var existingAddress in existingAddresses)
+            var addressesToUpdate = existingAddresses
+                .Where(a => a.Id != address.Id && a.IsDefault)
+                .ToList();
+
+            foreach (var existingAddress in addressesToUpdate)
             {
-                if (existingAddress.Id != address.Id && existingAddress.IsDefault)
-                {
-                    existingAddress.RemoveDefault();
-                    await _addressRepository.UpdateAsync(existingAddress, cancellationToken);
-                }
+                existingAddress.RemoveDefault();
             }
+
             address.SetAsDefault();
         }
 
@@ -251,15 +249,15 @@ public sealed class DeliveryAddressService
             return SetDefaultAddressResultDto.Failed("Address not found.");
         }
 
-        // Clear default from other addresses
+        // Clear default from other addresses - collect changes first to avoid N+1 updates
         var existingAddresses = await _addressRepository.GetByBuyerIdAsync(command.BuyerId, cancellationToken);
-        foreach (var existingAddress in existingAddresses)
+        var addressesToUpdate = existingAddresses
+            .Where(a => a.Id != command.AddressId && a.IsDefault)
+            .ToList();
+
+        foreach (var existingAddress in addressesToUpdate)
         {
-            if (existingAddress.Id != command.AddressId && existingAddress.IsDefault)
-            {
-                existingAddress.RemoveDefault();
-                await _addressRepository.UpdateAsync(existingAddress, cancellationToken);
-            }
+            existingAddress.RemoveDefault();
         }
 
         address.SetAsDefault();
@@ -324,12 +322,9 @@ public sealed class DeliveryAddressService
             return ValidateShippingResultDto.Success();
         }
 
-        // Get products to check for any restrictions
-        var productIds = cart.Items.Select(i => i.ProductId).ToList();
-        var products = await _productRepository.GetByIdsAsync(productIds, cancellationToken);
-
-        // For now, all products can ship to allowed countries
-        // In future, products could have region restrictions
+        // TODO: Add product-level region restrictions when implemented.
+        // For now, all products can ship to allowed countries.
+        // Future implementation would fetch products and check their shipping restrictions.
         var restrictedProducts = new List<string>();
 
         if (restrictedProducts.Count > 0)

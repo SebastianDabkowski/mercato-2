@@ -68,7 +68,7 @@
                                 @foreach (var address in Model.SavedAddresses)
                                 {
                                     <div class="col-md-6">
-                                        <div class="card h-100 @(Model.SelectedAddressId == address.Id ? "border-primary" : "")" style="cursor: pointer;" onclick="selectAddress('@address.Id')">
+                                        <div class="card h-100 @(Model.SelectedAddressId == address.Id ? "border-primary" : "")" style="cursor: pointer;" tabindex="0" role="button" aria-pressed="@(Model.SelectedAddressId == address.Id ? "true" : "false")" onclick="selectAddress('@address.Id')" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectAddress('@address.Id'); }">
                                             <div class="card-body">
                                                 <div class="d-flex justify-content-between align-items-start mb-2">
                                                     <div>
@@ -82,7 +82,7 @@
                                                         }
                                                     </div>
                                                     <div class="form-check">
-                                                        <input class="form-check-input" type="radio" name="selectedAddress" id="addr_@address.Id" value="@address.Id" @(Model.SelectedAddressId == address.Id ? "checked" : "") onchange="selectAddress('@address.Id')">
+                                                        <input class="form-check-input" type="radio" name="selectedAddress" id="addr_@address.Id" value="@address.Id" @(Model.SelectedAddressId == address.Id ? "checked" : "") onchange="selectAddress('@address.Id')" aria-label="Select address for @address.RecipientName at @address.Street">
                                                     </div>
                                                 </div>
                                                 <h6 class="card-title">@address.RecipientName</h6>
