@@ -36,6 +36,13 @@ public sealed class NotificationService : INotificationService
         return Task.CompletedTask;
     }
 
+    public Task SendProductStatusChangedAsync(Guid productId, string previousStatus, string newStatus, CancellationToken cancellationToken = default)
+    {
+        // TODO: Replace logging with integration (email, message bus, etc.).
+        _logger.LogInformation("Product {ProductId} status changed from {PreviousStatus} to {NewStatus}", productId, previousStatus, newStatus);
+        return Task.CompletedTask;
+    }
+
     public Task SendEmailVerificationAsync(Guid userId, string email, string verificationToken, CancellationToken cancellationToken = default)
     {
         // TODO: Replace logging with real email sending integration.

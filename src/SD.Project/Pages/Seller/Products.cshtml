@@ -87,6 +87,10 @@
                                         {
                                             <span class="badge bg-dark">@product.StatusDisplay</span>
                                         }
+                                        else if (product.Status == ProductStatus.Suspended)
+                                        {
+                                            <span class="badge bg-danger">@product.StatusDisplay</span>
+                                        }
                                         else
                                         {
                                             <span class="badge bg-warning text-dark">@product.StatusDisplay</span>
@@ -98,6 +102,9 @@
                                         {
                                             <a asp-page="/Seller/EditProduct" asp-route-id="@product.Id" class="btn btn-sm btn-outline-primary me-1" title="Edit">
                                                 <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <a asp-page="/Seller/ProductStatus" asp-route-id="@product.Id" class="btn btn-sm btn-outline-secondary me-1" title="Change Status">
+                                                <i class="bi bi-arrow-repeat"></i>
                                             </a>
                                             <a asp-page="/Seller/DeleteProduct" asp-route-id="@product.Id" class="btn btn-sm btn-outline-danger" title="Delete">
                                                 <i class="bi bi-trash"></i>

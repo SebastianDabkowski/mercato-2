@@ -22,6 +22,15 @@ public interface INotificationService
     Task SendProductDeletedAsync(Guid productId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Sends a notification when a product's workflow status changes.
+    /// </summary>
+    /// <param name="productId">The ID of the product.</param>
+    /// <param name="previousStatus">The previous status.</param>
+    /// <param name="newStatus">The new status.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendProductStatusChangedAsync(Guid productId, string previousStatus, string newStatus, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Sends a verification email to a newly registered user with a verification link.
     /// </summary>
     /// <param name="userId">The ID of the user.</param>

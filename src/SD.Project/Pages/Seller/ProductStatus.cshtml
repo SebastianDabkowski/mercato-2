@@ -1,0 +1,126 @@
+@page "{id:guid}"
+@model SD.Project.Pages.Seller.ProductStatusModel
+@using SD.Project.Domain.Entities
+@{
+    ViewData["Title"] = "Change Product Status";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">Change Product Status</h4>
+                </div>
+                <div class="card-body">
+                    @if (Model.Product is null)
+                    {
+                        <div class="alert alert-danger">Product not found.</div>
+                    }
+                    else
+                    {
+                        <div class="mb-4">
+                            <h5>@Model.Product.Name</h5>
+                            <p class="text-muted mb-2">@Model.Product.Description</p>
+                            <p class="mb-0">
+                                <strong>Current Status:</strong>
+                                @if (Model.Product.Status == ProductStatus.Draft)
+                                {
+                                    <span class="badge bg-secondary">@Model.Product.StatusDisplay</span>
+                                }
+                                else if (Model.Product.Status == ProductStatus.Active)
+                                {
+                                    <span class="badge bg-success">@Model.Product.StatusDisplay</span>
+                                }
+                                else if (Model.Product.Status == ProductStatus.Suspended)
+                                {
+                                    <span class="badge bg-danger">@Model.Product.StatusDisplay</span>
+                                }
+                                else if (Model.Product.Status == ProductStatus.Archived)
+                                {
+                                    <span class="badge bg-dark">@Model.Product.StatusDisplay</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning text-dark">@Model.Product.StatusDisplay</span>
+                                }
+                            </p>
+                        </div>
+
+                        @if (Model.ValidationErrors is not null && Model.ValidationErrors.Count > 0)
+                        {
+                            <div class="alert alert-danger">
+                                <strong>Cannot change status:</strong>
+                                <ul class="mb-0 mt-2">
+                                    @foreach (var error in Model.ValidationErrors)
+                                    {
+                                        <li>@error</li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+
+                        @if (Model.AvailableTransitions.Count == 0)
+                        {
+                            <div class="alert alert-info">
+                                No status transitions are available for this product.
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-info mb-4">
+                                <strong>Workflow Rules:</strong>
+                                <ul class="mb-0 mt-2">
+                                    <li><strong>Draft → Active:</strong> Product becomes visible and searchable. Requires valid description, category, and price.</li>
+                                    <li><strong>Active → Suspended:</strong> Product is no longer available for new orders but remains visible in order history.</li>
+                                    <li><strong>Any → Archived:</strong> Product is removed from all public listings and editing flows (kept for audit).</li>
+                                </ul>
+                            </div>
+
+                            <form method="post">
+                                <div class="mb-3">
+                                    <label class="form-label">Select New Status</label>
+                                    @foreach (var transition in Model.AvailableTransitions)
+                                    {
+                                        var statusValue = Enum.Parse<ProductStatus>(transition);
+                                        var badgeClass = statusValue switch
+                                        {
+                                            ProductStatus.Active => "bg-success",
+                                            ProductStatus.Suspended => "bg-danger",
+                                            ProductStatus.Archived => "bg-dark",
+                                            _ => "bg-secondary"
+                                        };
+                                        var description = statusValue switch
+                                        {
+                                            ProductStatus.Active => "Make this product visible and available for purchase",
+                                            ProductStatus.Suspended => "Temporarily suspend this product (not available for new orders)",
+                                            ProductStatus.Archived => "Archive this product (removed from all listings, kept for audit)",
+                                            _ => ""
+                                        };
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="radio" name="TargetStatus" 
+                                                   id="status_@transition" value="@statusValue">
+                                            <label class="form-check-label" for="status_@transition">
+                                                <span class="badge @badgeClass">@transition</span>
+                                                <span class="text-muted ms-2">@description</span>
+                                            </label>
+                                        </div>
+                                    }
+                                </div>
+
+                                <div class="d-flex justify-content-between">
+                                    <a asp-page="/Seller/Products" class="btn btn-outline-secondary">Cancel</a>
+                                    <button type="submit" class="btn btn-primary">Change Status</button>
+                                </div>
+                            </form>
+                        }
+                    }
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <a asp-page="/Seller/Products" class="btn btn-outline-secondary">Back to Products</a>
+            </div>
+        </div>
+    </div>
+</div>

@@ -220,7 +220,11 @@ public sealed class ProductService
 
         try
         {
-            product.Archive();
+            var archiveErrors = product.Archive();
+            if (archiveErrors.Count > 0)
+            {
+                return DeleteProductResultDto.Failed(archiveErrors.First());
+            }
 
             _repository.Update(product);
             await _repository.SaveChangesAsync(cancellationToken);
@@ -231,6 +235,65 @@ public sealed class ProductService
         catch (ArgumentException ex)
         {
             return DeleteProductResultDto.Failed(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Handles a request to change the workflow status of a product.
+    /// </summary>
+    public async Task<ChangeProductStatusResultDto> HandleAsync(ChangeProductStatusCommand command, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+
+        // Get seller's store
+        var store = await _storeRepository.GetBySellerIdAsync(command.SellerId, cancellationToken);
+        if (store is null)
+        {
+            return ChangeProductStatusResultDto.Failed("Store not found.");
+        }
+
+        // Get the product
+        var product = await _repository.GetByIdAsync(command.ProductId, cancellationToken);
+        if (product is null)
+        {
+            return ChangeProductStatusResultDto.Failed("Product not found.");
+        }
+
+        // Check ownership (unless admin override)
+        if (!command.IsAdminOverride && product.StoreId != store.Id)
+        {
+            return ChangeProductStatusResultDto.Failed("You do not have permission to change this product's status.");
+        }
+
+        // Cannot change status of archived products
+        if (product.IsArchived)
+        {
+            return ChangeProductStatusResultDto.Failed("Cannot change the status of an archived product.");
+        }
+
+        var previousStatus = product.Status.ToString();
+
+        try
+        {
+            var transitionErrors = product.TransitionTo(command.TargetStatus, command.IsAdminOverride);
+            if (transitionErrors.Count > 0)
+            {
+                return ChangeProductStatusResultDto.Failed(transitionErrors);
+            }
+
+            _repository.Update(product);
+            await _repository.SaveChangesAsync(cancellationToken);
+            await _notificationService.SendProductStatusChangedAsync(
+                product.Id,
+                previousStatus,
+                product.Status.ToString(),
+                cancellationToken);
+
+            return ChangeProductStatusResultDto.Succeeded(MapToDto(product));
+        }
+        catch (ArgumentException ex)
+        {
+            return ChangeProductStatusResultDto.Failed(ex.Message);
         }
     }
 
