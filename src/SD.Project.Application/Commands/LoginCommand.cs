@@ -5,4 +5,6 @@ namespace SD.Project.Application.Commands;
 /// </summary>
 public sealed record LoginCommand(
     string Email,
-    string Password);
+    string Password,
+    string? IpAddress = null,
+    string? UserAgent = null);

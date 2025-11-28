@@ -14,6 +14,7 @@ public sealed record LoginResultDto
     public string? FirstName { get; init; }
     public string? ErrorMessage { get; init; }
     public bool RequiresEmailVerification { get; init; }
+    public bool RequiresTwoFactor { get; init; }
 
     public static LoginResultDto Succeeded(Guid userId, UserRole role, string email, string firstName) =>
         new()
@@ -35,5 +36,14 @@ public sealed record LoginResultDto
             ErrorMessage = "Your email address has not been verified. Please check your inbox for the verification email.",
             RequiresEmailVerification = true,
             Email = email
+        };
+
+    public static LoginResultDto TwoFactorRequired(Guid userId, string email) =>
+        new()
+        {
+            Success = false,
+            UserId = userId,
+            Email = email,
+            RequiresTwoFactor = true
         };
 }

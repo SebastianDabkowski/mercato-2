@@ -18,6 +18,7 @@ public class AppDbContext : DbContext
     public DbSet<EmailVerificationToken> EmailVerificationTokens => Set<EmailVerificationToken>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
     public DbSet<UserSession> UserSessions => Set<UserSession>();
+    public DbSet<LoginEvent> LoginEvents => Set<LoginEvent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -36,6 +36,12 @@ public class User
     // Email verification timestamp
     public DateTime? EmailVerifiedAt { get; private set; }
 
+    // Two-factor authentication configuration
+    public bool TwoFactorEnabled { get; private set; }
+    public string? TwoFactorSecretKey { get; private set; }
+    public string? TwoFactorRecoveryCodes { get; private set; }
+    public DateTime? TwoFactorEnabledAt { get; private set; }
+
     private User()
     {
         // EF Core constructor
@@ -92,6 +98,10 @@ public class User
         KycSubmittedAt = null;
         KycReviewedAt = null;
         EmailVerifiedAt = null;
+        TwoFactorEnabled = false;
+        TwoFactorSecretKey = null;
+        TwoFactorRecoveryCodes = null;
+        TwoFactorEnabledAt = null;
     }
 
     /// <summary>
@@ -145,7 +155,11 @@ public class User
             KycStatus = KycStatus.NotStarted,
             KycSubmittedAt = null,
             KycReviewedAt = null,
-            EmailVerifiedAt = DateTime.UtcNow // Social login users are automatically email verified
+            EmailVerifiedAt = DateTime.UtcNow, // Social login users are automatically email verified
+            TwoFactorEnabled = false,
+            TwoFactorSecretKey = null,
+            TwoFactorRecoveryCodes = null,
+            TwoFactorEnabledAt = null
         };
 
         return user;
@@ -249,4 +263,87 @@ public class User
 
         PasswordHash = newPasswordHash;
     }
+
+    /// <summary>
+    /// Enables two-factor authentication for the user.
+    /// </summary>
+    /// <param name="secretKey">The TOTP secret key (base32 encoded).</param>
+    /// <param name="recoveryCodes">Comma-separated recovery codes for backup access.</param>
+    /// <exception cref="InvalidOperationException">Thrown if 2FA is already enabled.</exception>
+    public void EnableTwoFactor(string secretKey, string recoveryCodes)
+    {
+        if (TwoFactorEnabled)
+        {
+            throw new InvalidOperationException("Two-factor authentication is already enabled.");
+        }
+
+        if (string.IsNullOrWhiteSpace(secretKey))
+        {
+            throw new ArgumentException("Secret key is required.", nameof(secretKey));
+        }
+
+        if (string.IsNullOrWhiteSpace(recoveryCodes))
+        {
+            throw new ArgumentException("Recovery codes are required.", nameof(recoveryCodes));
+        }
+
+        TwoFactorEnabled = true;
+        TwoFactorSecretKey = secretKey;
+        TwoFactorRecoveryCodes = recoveryCodes;
+        TwoFactorEnabledAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Disables two-factor authentication for the user.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Thrown if 2FA is not enabled.</exception>
+    public void DisableTwoFactor()
+    {
+        if (!TwoFactorEnabled)
+        {
+            throw new InvalidOperationException("Two-factor authentication is not enabled.");
+        }
+
+        TwoFactorEnabled = false;
+        TwoFactorSecretKey = null;
+        TwoFactorRecoveryCodes = null;
+        TwoFactorEnabledAt = null;
+    }
+
+    /// <summary>
+    /// Uses a recovery code to bypass 2FA. The code is removed from the list after use.
+    /// </summary>
+    /// <param name="code">The recovery code to use.</param>
+    /// <returns>True if the code was valid and used, false otherwise.</returns>
+    public bool UseRecoveryCode(string code)
+    {
+        if (!TwoFactorEnabled || string.IsNullOrWhiteSpace(TwoFactorRecoveryCodes))
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            return false;
+        }
+
+        var normalizedCode = code.Trim().ToUpperInvariant();
+        var codes = TwoFactorRecoveryCodes.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(c => c.Trim().ToUpperInvariant())
+            .ToList();
+
+        if (!codes.Contains(normalizedCode))
+        {
+            return false;
+        }
+
+        codes.Remove(normalizedCode);
+        TwoFactorRecoveryCodes = codes.Count > 0 ? string.Join(",", codes) : null;
+        return true;
+    }
+
+    /// <summary>
+    /// Indicates whether two-factor authentication is enabled and configured.
+    /// </summary>
+    public bool IsTwoFactorConfigured => TwoFactorEnabled && !string.IsNullOrEmpty(TwoFactorSecretKey);
 }

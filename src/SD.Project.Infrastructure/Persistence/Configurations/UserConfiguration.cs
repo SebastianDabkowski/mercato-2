@@ -79,5 +79,18 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
 
         // Email verification timestamp
         builder.Property(u => u.EmailVerifiedAt);
+
+        // Two-factor authentication configuration
+        builder.Property(u => u.TwoFactorEnabled)
+            .IsRequired()
+            .HasDefaultValue(false);
+
+        builder.Property(u => u.TwoFactorSecretKey)
+            .HasMaxLength(500);
+
+        builder.Property(u => u.TwoFactorRecoveryCodes)
+            .HasMaxLength(1000);
+
+        builder.Property(u => u.TwoFactorEnabledAt);
     }
 }
