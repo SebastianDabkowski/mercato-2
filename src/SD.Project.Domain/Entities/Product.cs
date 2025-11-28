@@ -8,6 +8,7 @@ public class Product
     public Guid Id { get; private set; }
     public Guid? StoreId { get; private set; }
     public string Name { get; private set; } = default!;
+    public string Description { get; private set; } = string.Empty;
     public ValueObjects.Money Price { get; private set; } = default!;
     public int Stock { get; private set; }
     public string Category { get; private set; } = default!;
@@ -15,6 +16,12 @@ public class Product
     public bool IsActive { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
+
+    // Shipping parameters
+    public decimal? WeightKg { get; private set; }
+    public decimal? LengthCm { get; private set; }
+    public decimal? WidthCm { get; private set; }
+    public decimal? HeightCm { get; private set; }
 
     private Product()
     {
@@ -119,6 +126,41 @@ public class Product
     {
         ArgumentNullException.ThrowIfNull(price);
         Price = price;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void UpdateDescription(string? description)
+    {
+        Description = description?.Trim() ?? string.Empty;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void UpdateShippingParameters(decimal? weightKg, decimal? lengthCm, decimal? widthCm, decimal? heightCm)
+    {
+        if (weightKg.HasValue && weightKg.Value < 0)
+        {
+            throw new ArgumentException("Weight cannot be negative", nameof(weightKg));
+        }
+
+        if (lengthCm.HasValue && lengthCm.Value < 0)
+        {
+            throw new ArgumentException("Length cannot be negative", nameof(lengthCm));
+        }
+
+        if (widthCm.HasValue && widthCm.Value < 0)
+        {
+            throw new ArgumentException("Width cannot be negative", nameof(widthCm));
+        }
+
+        if (heightCm.HasValue && heightCm.Value < 0)
+        {
+            throw new ArgumentException("Height cannot be negative", nameof(heightCm));
+        }
+
+        WeightKg = weightKg;
+        LengthCm = lengthCm;
+        WidthCm = widthCm;
+        HeightCm = heightCm;
         UpdatedAt = DateTime.UtcNow;
     }
 

@@ -6,7 +6,12 @@ namespace SD.Project.Application.Commands;
 public sealed record CreateProductCommand(
     Guid StoreId,
     string Name,
+    string? Description,
     decimal Amount,
     string Currency,
     int Stock,
-    string Category);
+    string Category,
+    decimal? WeightKg,
+    decimal? LengthCm,
+    decimal? WidthCm,
+    decimal? HeightCm);

@@ -7,7 +7,12 @@ public sealed record UpdateProductCommand(
     Guid ProductId,
     Guid SellerId,
     string Name,
+    string? Description,
     decimal Amount,
     string Currency,
     int Stock,
-    string Category);
+    string Category,
+    decimal? WeightKg,
+    decimal? LengthCm,
+    decimal? WidthCm,
+    decimal? HeightCm);

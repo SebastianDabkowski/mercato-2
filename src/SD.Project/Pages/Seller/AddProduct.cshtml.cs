@@ -78,10 +78,15 @@ namespace SD.Project.Pages.Seller
             var command = new CreateProductCommand(
                 store.Id,
                 Input.Name.Trim(),
+                Input.Description?.Trim(),
                 Input.Price,
                 Input.Currency.Trim().ToUpperInvariant(),
                 Input.Stock,
-                Input.Category.Trim());
+                Input.Category.Trim(),
+                Input.WeightKg,
+                Input.LengthCm,
+                Input.WidthCm,
+                Input.HeightCm);
 
             var result = await _productService.HandleAsync(command);
 

@@ -14,6 +14,10 @@ public sealed class EditProductViewModel
     [Display(Name = "Product Title")]
     public string Name { get; set; } = string.Empty;
 
+    [StringLength(2000, ErrorMessage = "Description cannot exceed 2000 characters.")]
+    [Display(Name = "Description")]
+    public string? Description { get; set; }
+
     [Required(ErrorMessage = "Price is required.")]
     [Range(0.01, 999999.99, ErrorMessage = "Price must be between 0.01 and 999,999.99.")]
     [Display(Name = "Price")]
@@ -32,4 +36,20 @@ public sealed class EditProductViewModel
     [StringLength(100, MinimumLength = 1, ErrorMessage = "Category cannot exceed 100 characters.")]
     [Display(Name = "Category")]
     public string Category { get; set; } = string.Empty;
+
+    [Range(0, 10000, ErrorMessage = "Weight must be between 0 and 10,000 kg.")]
+    [Display(Name = "Weight (kg)")]
+    public decimal? WeightKg { get; set; }
+
+    [Range(0, 10000, ErrorMessage = "Length must be between 0 and 10,000 cm.")]
+    [Display(Name = "Length (cm)")]
+    public decimal? LengthCm { get; set; }
+
+    [Range(0, 10000, ErrorMessage = "Width must be between 0 and 10,000 cm.")]
+    [Display(Name = "Width (cm)")]
+    public decimal? WidthCm { get; set; }
+
+    [Range(0, 10000, ErrorMessage = "Height must be between 0 and 10,000 cm.")]
+    [Display(Name = "Height (cm)")]
+    public decimal? HeightCm { get; set; }
 }

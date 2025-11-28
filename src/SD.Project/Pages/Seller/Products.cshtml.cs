@@ -53,6 +53,7 @@ namespace SD.Project.Pages.Seller
                 .Select(p => new ProductViewModel(
                     p.Id,
                     p.Name,
+                    p.Description,
                     p.Amount,
                     p.Currency,
                     p.Stock,
@@ -60,7 +61,11 @@ namespace SD.Project.Pages.Seller
                     p.Status,
                     p.IsActive,
                     p.CreatedAt,
-                    p.UpdatedAt))
+                    p.UpdatedAt,
+                    p.WeightKg,
+                    p.LengthCm,
+                    p.WidthCm,
+                    p.HeightCm))
                 .ToArray();
 
             _logger.LogInformation(

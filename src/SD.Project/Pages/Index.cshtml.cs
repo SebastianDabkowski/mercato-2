@@ -30,6 +30,7 @@ namespace SD.Project.Pages
                 .Select(p => new ProductViewModel(
                     p.Id,
                     p.Name,
+                    p.Description,
                     p.Amount,
                     p.Currency,
                     p.Stock,
@@ -37,7 +38,11 @@ namespace SD.Project.Pages
                     p.Status,
                     p.IsActive,
                     p.CreatedAt,
-                    p.UpdatedAt))
+                    p.UpdatedAt,
+                    p.WeightKg,
+                    p.LengthCm,
+                    p.WidthCm,
+                    p.HeightCm))
                 .ToArray();
             _logger.LogDebug("Loaded {Count} products for display", Products.Count);
         }
