@@ -140,6 +140,20 @@ public sealed class ProductService
     }
 
     /// <summary>
+    /// Searches products by keyword matching against name and description.
+    /// Returns only active products.
+    /// </summary>
+    public async Task<IReadOnlyCollection<ProductDto>> HandleAsync(SearchProductsQuery query, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var products = await _repository.SearchAsync(query.SearchTerm, cancellationToken);
+        return products
+            .Select(p => MapToDto(p))
+            .ToArray();
+    }
+
+    /// <summary>
     /// Handles a request to update an existing product.
     /// </summary>
     public async Task<UpdateProductResultDto> HandleAsync(UpdateProductCommand command, CancellationToken cancellationToken = default)
