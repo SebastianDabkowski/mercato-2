@@ -114,13 +114,10 @@ public class CheckoutModel : PageModel
         SelectedAddressId = result.Address!.Id;
         HttpContext.Session.SetString(Constants.CheckoutAddressIdKey, result.Address.Id.ToString());
 
-        IsSuccess = true;
-        Message = "Address saved successfully.";
-
         _logger.LogInformation("Address saved for checkout: {AddressId}", result.Address.Id);
 
-        await LoadPageDataAsync(cancellationToken);
-        return Page();
+        // Redirect to shipping step
+        return RedirectToPage("/Buyer/CheckoutShipping");
     }
 
     public async Task<IActionResult> OnPostUseSelectedAddressAsync(CancellationToken cancellationToken = default)
@@ -169,13 +166,10 @@ public class CheckoutModel : PageModel
         // Store the selected address in session for next steps
         HttpContext.Session.SetString(Constants.CheckoutAddressIdKey, SelectedAddressId.Value.ToString());
 
-        IsSuccess = true;
-        Message = "Address selected. You can proceed to payment.";
-
         _logger.LogInformation("Address selected for checkout: {AddressId}", SelectedAddressId.Value);
 
-        await LoadPageDataAsync(cancellationToken);
-        return Page();
+        // Redirect to shipping step
+        return RedirectToPage("/Buyer/CheckoutShipping");
     }
 
     private async Task LoadPageDataAsync(CancellationToken cancellationToken)
