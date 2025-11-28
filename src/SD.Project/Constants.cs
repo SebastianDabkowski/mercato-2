@@ -9,4 +9,9 @@ public static class Constants
     /// Session key for storing the anonymous cart identifier.
     /// </summary>
     public const string CartSessionKey = "CartSessionId";
+
+    /// <summary>
+    /// Session key for storing the selected checkout address ID.
+    /// </summary>
+    public const string CheckoutAddressIdKey = "CheckoutAddressId";
 }
