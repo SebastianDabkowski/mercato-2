@@ -172,12 +172,17 @@ else
 @section Scripts {
     <script src="~/js/recently-viewed.js" asp-append-version="true"></script>
     <script>
-        // Hide the "Back to results" button if this is the first page in history
-        // (no previous page to go back to)
+        // Hide the "Back to results" button if the user navigated directly to this page
+        // (no referrer or referrer is from external site)
         document.addEventListener('DOMContentLoaded', function() {
-            if (window.history.length <= 1) {
-                var backBtn = document.getElementById('back-to-results-btn');
-                if (backBtn) {
+            var backBtn = document.getElementById('back-to-results-btn');
+            if (backBtn) {
+                // Check if we have a referrer from our own site
+                var referrer = document.referrer;
+                var currentOrigin = window.location.origin;
+                
+                // Hide the button if there's no referrer or it's from an external site
+                if (!referrer || !referrer.startsWith(currentOrigin)) {
                     backBtn.style.display = 'none';
                 }
             }

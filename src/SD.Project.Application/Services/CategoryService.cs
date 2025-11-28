@@ -232,6 +232,22 @@ public sealed class CategoryService
     }
 
     /// <summary>
+    /// Retrieves a single active category by its name.
+    /// </summary>
+    public async Task<CategoryDto?> HandleAsync(GetCategoryByNameQuery query, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        if (string.IsNullOrWhiteSpace(query.CategoryName))
+        {
+            return null;
+        }
+
+        var category = await _repository.GetByNameAsync(query.CategoryName, cancellationToken);
+        return category is null ? null : await MapSingleToDtoAsync(category, cancellationToken);
+    }
+
+    /// <summary>
     /// Maps multiple categories to DTOs with optimized batch loading.
     /// </summary>
     private async Task<IReadOnlyCollection<CategoryDto>> MapToDtosAsync(IReadOnlyCollection<Category> categories, CancellationToken cancellationToken)

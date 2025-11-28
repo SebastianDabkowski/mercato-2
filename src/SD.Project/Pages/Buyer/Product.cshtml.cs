@@ -92,13 +92,11 @@ public class ProductModel : PageModel
 
     private async Task LoadCategoryIdAsync(string categoryName, CancellationToken cancellationToken)
     {
-        var categories = await _categoryService.HandleAsync(new GetActiveCategoriesQuery(), cancellationToken);
-        var matchingCategory = categories.FirstOrDefault(c => 
-            c.Name.Equals(categoryName, StringComparison.OrdinalIgnoreCase));
+        var category = await _categoryService.HandleAsync(new GetCategoryByNameQuery(categoryName), cancellationToken);
         
-        if (matchingCategory is not null)
+        if (category is not null)
         {
-            CategoryId = matchingCategory.Id;
+            CategoryId = category.Id;
             _logger.LogDebug("Found category ID {CategoryId} for category '{CategoryName}'", CategoryId, categoryName);
         }
         else
