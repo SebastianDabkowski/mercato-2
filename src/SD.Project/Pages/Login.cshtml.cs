@@ -105,9 +105,17 @@ namespace SD.Project.Pages
                 var guestSessionId = HttpContext.Session.GetString(Constants.CartSessionKey);
                 if (!string.IsNullOrEmpty(guestSessionId))
                 {
-                    await _cartService.HandleAsync(new MergeCartsCommand(result.UserId!.Value, guestSessionId));
-                    HttpContext.Session.Remove(Constants.CartSessionKey);
-                    _logger.LogInformation("Merged guest cart for user {UserId}", result.UserId);
+                    try
+                    {
+                        await _cartService.HandleAsync(new MergeCartsCommand(result.UserId!.Value, guestSessionId));
+                        HttpContext.Session.Remove(Constants.CartSessionKey);
+                        _logger.LogInformation("Merged guest cart for user {UserId}", result.UserId);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log the error but don't fail the login - cart merge is not critical
+                        _logger.LogWarning(ex, "Failed to merge guest cart for user {UserId}", result.UserId);
+                    }
                 }
 
                 return LocalRedirect(returnUrl);

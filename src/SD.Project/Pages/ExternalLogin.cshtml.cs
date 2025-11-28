@@ -192,9 +192,17 @@ public class ExternalLoginModel : PageModel
         var guestSessionId = HttpContext.Session.GetString(Constants.CartSessionKey);
         if (!string.IsNullOrEmpty(guestSessionId))
         {
-            await _cartService.HandleAsync(new MergeCartsCommand(loginResult.UserId!.Value, guestSessionId));
-            HttpContext.Session.Remove(Constants.CartSessionKey);
-            _logger.LogInformation("Merged guest cart for user {UserId} via external login", loginResult.UserId);
+            try
+            {
+                await _cartService.HandleAsync(new MergeCartsCommand(loginResult.UserId!.Value, guestSessionId));
+                HttpContext.Session.Remove(Constants.CartSessionKey);
+                _logger.LogInformation("Merged guest cart for user {UserId} via external login", loginResult.UserId);
+            }
+            catch (Exception ex)
+            {
+                // Log the error but don't fail the login - cart merge is not critical
+                _logger.LogWarning(ex, "Failed to merge guest cart for user {UserId} via external login", loginResult.UserId);
+            }
         }
 
         return LocalRedirect(returnUrl);
