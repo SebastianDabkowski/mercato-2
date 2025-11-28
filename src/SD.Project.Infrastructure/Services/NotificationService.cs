@@ -22,10 +22,15 @@ public sealed class NotificationService : INotificationService
         return Task.CompletedTask;
     }
 
-    public Task SendEmailVerificationAsync(Guid userId, string email, CancellationToken cancellationToken = default)
+    public Task SendEmailVerificationAsync(Guid userId, string email, string verificationToken, CancellationToken cancellationToken = default)
     {
         // TODO: Replace logging with real email sending integration.
-        _logger.LogInformation("Verification email sent to {Email} for user {UserId}", email, userId);
+        // In a production environment, this would generate a full URL like:
+        // https://yourdomain.com/VerifyEmail?token={verificationToken}
+        var verificationLink = $"/VerifyEmail?token={verificationToken}";
+        _logger.LogInformation(
+            "Verification email sent to {Email} for user {UserId}. Verification link: {VerificationLink}",
+            email, userId, verificationLink);
         return Task.CompletedTask;
     }
 }

@@ -4,10 +4,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using SD.Project.Application.Commands;
-using SD.Project.Application.Interfaces;
 using SD.Project.Application.Services;
-using SD.Project.Domain.Repositories;
-using SD.Project.Domain.ValueObjects;
 using SD.Project.ViewModels;
 
 namespace SD.Project.Pages
@@ -16,8 +13,7 @@ namespace SD.Project.Pages
     {
         private readonly ILogger<LoginModel> _logger;
         private readonly LoginService _loginService;
-        private readonly INotificationService _notificationService;
-        private readonly IUserRepository _userRepository;
+        private readonly EmailVerificationService _emailVerificationService;
         private readonly IAuthenticationSchemeProvider _schemeProvider;
 
         [BindProperty]
@@ -34,14 +30,12 @@ namespace SD.Project.Pages
         public LoginModel(
             ILogger<LoginModel> logger,
             LoginService loginService,
-            INotificationService notificationService,
-            IUserRepository userRepository,
+            EmailVerificationService emailVerificationService,
             IAuthenticationSchemeProvider schemeProvider)
         {
             _logger = logger;
             _loginService = loginService;
-            _notificationService = notificationService;
-            _userRepository = userRepository;
+            _emailVerificationService = emailVerificationService;
             _schemeProvider = schemeProvider;
         }
 
@@ -111,25 +105,15 @@ namespace SD.Project.Pages
                 return Page();
             }
 
-            // Look up the user by email to get the actual user ID
-            // We use a generic success message regardless of whether the user exists
-            // to prevent user enumeration attacks
-            try
+            var resendCommand = new ResendVerificationEmailCommand(email);
+            var resendResult = await _emailVerificationService.HandleAsync(resendCommand);
+
+            if (resendResult.Success)
             {
-                var emailObj = Email.Create(email);
-                var user = await _userRepository.GetByEmailAsync(emailObj);
-                if (user != null)
-                {
-                    await _notificationService.SendEmailVerificationAsync(user.Id, email);
-                    _logger.LogInformation("Verification email resent to user {UserId}", user.Id);
-                }
-            }
-            catch (ArgumentException)
-            {
-                // Invalid email format - silently ignore to prevent enumeration
+                _logger.LogInformation("Verification email resend requested for {Email}", email);
             }
 
-            StatusMessage = "If an account exists with this email address, a verification email has been sent.";
+            StatusMessage = resendResult.Message;
             return RedirectToPage();
         }
 
