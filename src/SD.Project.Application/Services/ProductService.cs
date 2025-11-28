@@ -14,6 +14,8 @@ namespace SD.Project.Application.Services;
 /// </summary>
 public sealed class ProductService
 {
+    private const decimal MaxPercentageValue = 100m;
+
     private readonly IProductRepository _repository;
     private readonly IStoreRepository _storeRepository;
     private readonly INotificationService _notificationService;
@@ -289,6 +291,219 @@ public sealed class ProductService
         {
             return ChangeProductStatusResultDto.Failed(ex.Message);
         }
+    }
+
+    /// <summary>
+    /// Handles a bulk update of price and/or stock for multiple products.
+    /// </summary>
+    public async Task<BulkUpdateResultDto> HandleAsync(BulkUpdatePriceAndStockCommand command, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+
+        // Validate command
+        var validationErrors = ValidateBulkUpdateCommand(command);
+        if (validationErrors.Count > 0)
+        {
+            return BulkUpdateResultDto.Failed(validationErrors);
+        }
+
+        // Get seller's store
+        var store = await _storeRepository.GetBySellerIdAsync(command.SellerId, cancellationToken);
+        if (store is null)
+        {
+            return BulkUpdateResultDto.Failed("Store not found.");
+        }
+
+        // Get products by IDs
+        var products = await _repository.GetByIdsAsync(command.ProductIds, cancellationToken);
+        if (products.Count == 0)
+        {
+            return BulkUpdateResultDto.Failed("No products found with the specified IDs.");
+        }
+
+        var results = new List<BulkUpdateItemResultDto>();
+
+        foreach (var product in products)
+        {
+            // Check ownership
+            if (product.StoreId != store.Id)
+            {
+                results.Add(new BulkUpdateItemResultDto(
+                    product.Id,
+                    product.Name,
+                    false,
+                    "You do not have permission to update this product.",
+                    null, null, null, null));
+                continue;
+            }
+
+            // Check if product is archived
+            if (product.IsArchived)
+            {
+                results.Add(new BulkUpdateItemResultDto(
+                    product.Id,
+                    product.Name,
+                    false,
+                    "Cannot update an archived product.",
+                    null, null, null, null));
+                continue;
+            }
+
+            var oldPrice = product.Price.Amount;
+            var oldStock = product.Stock;
+
+            try
+            {
+                // Apply price change
+                if (command.PriceChangeType != PriceChangeType.None && command.PriceValue.HasValue)
+                {
+                    var newPriceAmount = CalculateNewPrice(oldPrice, command.PriceChangeType, command.PriceValue.Value);
+                    if (newPriceAmount <= 0)
+                    {
+                        results.Add(new BulkUpdateItemResultDto(
+                            product.Id,
+                            product.Name,
+                            false,
+                            "Resulting price must be greater than zero.",
+                            oldPrice, null, oldStock, null));
+                        continue;
+                    }
+                    product.UpdatePrice(new Money(newPriceAmount, product.Price.Currency));
+                }
+
+                // Apply stock change
+                if (command.StockChangeType != StockChangeType.None && command.StockValue.HasValue)
+                {
+                    var newStock = CalculateNewStock(oldStock, command.StockChangeType, command.StockValue.Value);
+                    if (newStock < 0)
+                    {
+                        results.Add(new BulkUpdateItemResultDto(
+                            product.Id,
+                            product.Name,
+                            false,
+                            "Resulting stock cannot be negative.",
+                            oldPrice, null, oldStock, null));
+                        continue;
+                    }
+                    product.UpdateStock(newStock);
+                }
+
+                _repository.Update(product);
+
+                results.Add(new BulkUpdateItemResultDto(
+                    product.Id,
+                    product.Name,
+                    true,
+                    null,
+                    oldPrice,
+                    product.Price.Amount,
+                    oldStock,
+                    product.Stock));
+            }
+            catch (ArgumentException ex)
+            {
+                results.Add(new BulkUpdateItemResultDto(
+                    product.Id,
+                    product.Name,
+                    false,
+                    ex.Message,
+                    oldPrice, null, oldStock, null));
+            }
+        }
+
+        // Save all changes
+        try
+        {
+            await _repository.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            return BulkUpdateResultDto.Failed($"Failed to save changes: {ex.Message}");
+        }
+
+        var successCount = results.Count(r => r.IsSuccess);
+        var failureCount = results.Count - successCount;
+
+        // Log the bulk operation
+        await _notificationService.SendBulkUpdateCompletedAsync(command.SellerId, successCount, failureCount, cancellationToken);
+
+        return BulkUpdateResultDto.Succeeded(results);
+    }
+
+    private static decimal CalculateNewPrice(decimal currentPrice, PriceChangeType changeType, decimal value)
+    {
+        return changeType switch
+        {
+            PriceChangeType.FixedValue => value,
+            PriceChangeType.PercentageUp => currentPrice * (1 + value / MaxPercentageValue),
+            PriceChangeType.PercentageDown => currentPrice * (1 - value / MaxPercentageValue),
+            _ => currentPrice
+        };
+    }
+
+    private static int CalculateNewStock(int currentStock, StockChangeType changeType, int value)
+    {
+        return changeType switch
+        {
+            StockChangeType.SetExact => value,
+            StockChangeType.Increase => currentStock + value,
+            StockChangeType.Decrease => currentStock - value,
+            _ => currentStock
+        };
+    }
+
+    private static IReadOnlyList<string> ValidateBulkUpdateCommand(BulkUpdatePriceAndStockCommand command)
+    {
+        var errors = new List<string>();
+
+        if (command.ProductIds.Count == 0)
+        {
+            errors.Add("At least one product must be selected.");
+        }
+
+        // At least one change type must be specified
+        if (command.PriceChangeType == PriceChangeType.None && command.StockChangeType == StockChangeType.None)
+        {
+            errors.Add("At least one change (price or stock) must be specified.");
+        }
+
+        // Validate price change
+        if (command.PriceChangeType != PriceChangeType.None)
+        {
+            if (!command.PriceValue.HasValue)
+            {
+                errors.Add("Price value is required when changing price.");
+            }
+            else if (command.PriceChangeType == PriceChangeType.FixedValue && command.PriceValue.Value <= 0)
+            {
+                errors.Add("Fixed price must be greater than zero.");
+            }
+            else if ((command.PriceChangeType == PriceChangeType.PercentageUp || command.PriceChangeType == PriceChangeType.PercentageDown)
+                     && (command.PriceValue.Value < 0 || command.PriceValue.Value > MaxPercentageValue))
+            {
+                errors.Add($"Percentage must be between 0 and {MaxPercentageValue}.");
+            }
+        }
+
+        // Validate stock change
+        if (command.StockChangeType != StockChangeType.None)
+        {
+            if (!command.StockValue.HasValue)
+            {
+                errors.Add("Stock value is required when changing stock.");
+            }
+            else if (command.StockChangeType == StockChangeType.SetExact && command.StockValue.Value < 0)
+            {
+                errors.Add("Stock cannot be negative.");
+            }
+            else if ((command.StockChangeType == StockChangeType.Increase || command.StockChangeType == StockChangeType.Decrease)
+                     && command.StockValue.Value < 0)
+            {
+                errors.Add("Stock change value must be non-negative.");
+            }
+        }
+
+        return errors;
     }
 
     private static ProductDto MapToDto(Product p)

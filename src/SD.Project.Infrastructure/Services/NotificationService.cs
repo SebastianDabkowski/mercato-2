@@ -78,4 +78,13 @@ public sealed class NotificationService : INotificationService
             email, storeName, role, invitationLink);
         return Task.CompletedTask;
     }
+
+    public Task SendBulkUpdateCompletedAsync(Guid sellerId, int successCount, int failureCount, CancellationToken cancellationToken = default)
+    {
+        // TODO: Replace logging with real notification integration.
+        _logger.LogInformation(
+            "Bulk update completed for seller {SellerId}: {SuccessCount} succeeded, {FailureCount} failed",
+            sellerId, successCount, failureCount);
+        return Task.CompletedTask;
+    }
 }
