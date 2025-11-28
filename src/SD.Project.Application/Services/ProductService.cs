@@ -265,12 +265,6 @@ public sealed class ProductService
             return ChangeProductStatusResultDto.Failed("You do not have permission to change this product's status.");
         }
 
-        // Cannot change status of archived products
-        if (product.IsArchived)
-        {
-            return ChangeProductStatusResultDto.Failed("Cannot change the status of an archived product.");
-        }
-
         var previousStatus = product.Status.ToString();
 
         try

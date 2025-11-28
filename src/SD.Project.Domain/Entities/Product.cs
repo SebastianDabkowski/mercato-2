@@ -214,7 +214,7 @@ public class Product
     /// <summary>
     /// Activates the product. Use TransitionTo for workflow-aware activation with validation.
     /// </summary>
-    [Obsolete("Use TransitionTo(ProductStatus.Active) for workflow-aware activation.")]
+    [Obsolete("Use TransitionTo(ProductStatus.Active) for workflow-aware activation. This method will be removed in a future version. Migrate by replacing Activate() calls with TransitionTo(ProductStatus.Active).")]
     public void Activate()
     {
         Status = ProductStatus.Active;
