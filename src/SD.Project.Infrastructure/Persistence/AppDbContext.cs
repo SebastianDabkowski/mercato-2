@@ -29,6 +29,8 @@ public class AppDbContext : DbContext
     public DbSet<InternalUser> InternalUsers => Set<InternalUser>();
     public DbSet<InternalUserInvitation> InternalUserInvitations => Set<InternalUserInvitation>();
     public DbSet<ProductImportJob> ProductImportJobs => Set<ProductImportJob>();
+    public DbSet<Cart> Carts => Set<Cart>();
+    public DbSet<CartItem> CartItems => Set<CartItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
