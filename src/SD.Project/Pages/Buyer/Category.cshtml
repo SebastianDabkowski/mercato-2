@@ -104,7 +104,7 @@ else
                             }
                             <div class="card-body">
                                 <h5 class="card-title">@product.Name</h5>
-                                <p class="card-text text-muted">@(product.Description.Length > 100 ? product.Description.Substring(0, 100) + "..." : product.Description)</p>
+                                <p class="card-text text-muted">@(string.IsNullOrEmpty(product.Description) ? "" : (product.Description.Length > 100 ? product.Description.Substring(0, 100) + "..." : product.Description))</p>
                                 <p class="card-text">
                                     <strong>@product.Currency @product.Amount.ToString("N2")</strong>
                                 </p>
