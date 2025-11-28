@@ -37,6 +37,8 @@ public static class SeedDataExtensions
         var userRepo = scope.ServiceProvider.GetRequiredService<IUserRepository>();
         var categoryRepo = scope.ServiceProvider.GetRequiredService<ICategoryRepository>();
         var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+        var paymentMethodRepo = scope.ServiceProvider.GetRequiredService<IPaymentMethodRepository>();
+        var shippingMethodRepo = scope.ServiceProvider.GetRequiredService<IShippingMethodRepository>();
 
         // Create an admin user for development
         var existingAdmin = await userRepo.GetByIdAsync(DevAdminId);
@@ -78,6 +80,7 @@ public static class SeedDataExtensions
 
         // Create an active store
         var existingStore = await storeRepo.GetBySlugAsync("demo-store");
+        Store? demoStore = existingStore;
         if (existingStore is null)
         {
             var store = new Store(DevSellerId, "Demo Store", "contact@demostore.com");
@@ -86,6 +89,7 @@ public static class SeedDataExtensions
             store.Activate(); // Make it publicly visible
             await storeRepo.AddAsync(store);
             await storeRepo.SaveChangesAsync();
+            demoStore = store;
 
             // Add some products to the store
             var product1 = new Product(Guid.NewGuid(), store.Id, "Sample Product 1", new Money(29.99m, "USD"), 50, "Electronics");
@@ -147,6 +151,101 @@ public static class SeedDataExtensions
             await categoryRepo.AddAsync(new Category(Guid.NewGuid(), "Garden Tools", homeGardenId, 3));
 
             await categoryRepo.SaveChangesAsync();
+        }
+
+        // Seed payment methods
+        var existingPaymentMethods = await paymentMethodRepo.GetAllAsync();
+        if (existingPaymentMethods.Count == 0)
+        {
+            var creditCard = new PaymentMethod(
+                "Credit Card",
+                PaymentMethodType.Card,
+                "stripe",
+                "Pay securely with Visa, Mastercard, or American Express",
+                iconClass: null,
+                displayOrder: 1,
+                feePercentage: 2.9m,
+                feeFixed: 0.30m,
+                isDefault: true);
+
+            var paypal = new PaymentMethod(
+                "PayPal",
+                PaymentMethodType.DigitalWallet,
+                "paypal",
+                "Pay with your PayPal account",
+                iconClass: null,
+                displayOrder: 2,
+                feePercentage: 3.49m,
+                feeFixed: 0.49m,
+                isDefault: false);
+
+            var bankTransfer = new PaymentMethod(
+                "Bank Transfer",
+                PaymentMethodType.BankTransfer,
+                "bank",
+                "Direct bank transfer - order ships after payment clears",
+                iconClass: null,
+                displayOrder: 3,
+                feePercentage: null,
+                feeFixed: null,
+                isDefault: false);
+
+            await paymentMethodRepo.AddAsync(creditCard);
+            await paymentMethodRepo.AddAsync(paypal);
+            await paymentMethodRepo.AddAsync(bankTransfer);
+            await paymentMethodRepo.SaveChangesAsync();
+        }
+
+        // Seed shipping methods (platform-wide defaults)
+        var existingShippingMethods = await shippingMethodRepo.GetPlatformMethodsAsync();
+        if (existingShippingMethods.Count == 0)
+        {
+            var standardShipping = new ShippingMethod(
+                storeId: null, // Platform-wide
+                name: "Standard Shipping",
+                description: "Delivered by postal service",
+                carrierName: "USPS",
+                estimatedDeliveryDaysMin: 5,
+                estimatedDeliveryDaysMax: 7,
+                baseCost: 4.99m,
+                costPerItem: 0.50m,
+                currency: "USD",
+                freeShippingThreshold: 50.00m,
+                displayOrder: 1,
+                isDefault: true);
+
+            var expressShipping = new ShippingMethod(
+                storeId: null, // Platform-wide
+                name: "Express Shipping",
+                description: "Fast delivery via courier",
+                carrierName: "FedEx",
+                estimatedDeliveryDaysMin: 2,
+                estimatedDeliveryDaysMax: 3,
+                baseCost: 9.99m,
+                costPerItem: 1.00m,
+                currency: "USD",
+                freeShippingThreshold: 100.00m,
+                displayOrder: 2,
+                isDefault: false);
+
+            var overnightShipping = new ShippingMethod(
+                storeId: null, // Platform-wide
+                name: "Overnight Shipping",
+                description: "Next business day delivery",
+                carrierName: "UPS",
+                estimatedDeliveryDaysMin: 1,
+                estimatedDeliveryDaysMax: 1,
+                baseCost: 19.99m,
+                costPerItem: 2.00m,
+                currency: "USD",
+                freeShippingThreshold: null,
+                displayOrder: 3,
+                isDefault: false);
+
+            await shippingMethodRepo.AddAsync(standardShipping);
+            await shippingMethodRepo.AddAsync(expressShipping);
+            await shippingMethodRepo.AddAsync(overnightShipping);
+            await shippingMethodRepo.SaveChangesAsync();
         }
     }
 }

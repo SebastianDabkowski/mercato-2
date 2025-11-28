@@ -1,0 +1,250 @@
+@page
+@model SD.Project.Pages.Buyer.CheckoutShippingModel
+@{
+    ViewData["Title"] = "Checkout - Shipping";
+}
+
+<div class="container py-4">
+    <!-- Breadcrumb Progress -->
+    <nav aria-label="Checkout progress" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a asp-page="/Buyer/Cart">Cart</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a asp-page="/Buyer/Checkout">Delivery Address</a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="step">
+                <strong>Shipping</strong>
+            </li>
+            <li class="breadcrumb-item text-muted">Payment</li>
+            <li class="breadcrumb-item text-muted">Confirmation</li>
+        </ol>
+    </nav>
+
+    <h1 class="mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-truck me-2" viewBox="0 0 16 16">
+            <path d="M0 3.5A1.5 1.5 0 0 1 1.5 2h9A1.5 1.5 0 0 1 12 3.5V5h1.02a1.5 1.5 0 0 1 1.17.563l1.481 1.85a1.5 1.5 0 0 1 .329.938V10.5a1.5 1.5 0 0 1-1.5 1.5H14a2 2 0 1 1-4 0H5a2 2 0 1 1-3.998-.085A1.5 1.5 0 0 1 0 10.5zm1.294 7.456A2 2 0 0 1 4.732 11h5.536a2 2 0 0 1 .732-.732V3.5a.5.5 0 0 0-.5-.5h-9a.5.5 0 0 0-.5.5v7a.5.5 0 0 0 .294.456M12 10a2 2 0 0 1 1.732 1h.768a.5.5 0 0 0 .5-.5V8.35a.5.5 0 0 0-.11-.312l-1.48-1.85A.5.5 0 0 0 13.02 6H12zm-9 1a1 1 0 1 0 0 2 1 1 0 0 0 0-2m9 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2"/>
+        </svg>
+        Select Shipping Method
+    </h1>
+
+    @if (!string.IsNullOrEmpty(Model.Message))
+    {
+        <div class="alert @(Model.IsSuccess ? "alert-success" : "alert-danger") alert-dismissible fade show" role="alert">
+            @Model.Message
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (Model.ShippingData is null)
+    {
+        <div class="alert alert-warning">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-exclamation-triangle me-2" viewBox="0 0 16 16">
+                <path d="M7.938 2.016A.13.13 0 0 1 8.002 2a.13.13 0 0 1 .063.016.15.15 0 0 1 .054.057l6.857 11.667c.036.06.035.124.002.183a.2.2 0 0 1-.054.06.1.1 0 0 1-.066.017H1.146a.1.1 0 0 1-.066-.017.2.2 0 0 1-.054-.06.18.18 0 0 1 .002-.183L7.884 2.073a.15.15 0 0 1 .054-.057m1.044-.45a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767z"/>
+                <path d="M7.002 12a1 1 0 1 1 2 0 1 1 0 0 1-2 0M7.1 5.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0z"/>
+            </svg>
+            Your cart is empty or no delivery address selected. Please <a asp-page="/Buyer/Checkout" class="alert-link">go back to the address step</a>.
+        </div>
+    }
+    else
+    {
+        <form method="post" asp-page-handler="SelectShipping">
+            <div class="row">
+                <!-- Shipping Options -->
+                <div class="col-lg-8">
+                    @foreach (var seller in Model.ShippingData.SellerShippingOptions)
+                    {
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-shop me-2" viewBox="0 0 16 16">
+                                        <path d="M2.97 1.35A1 1 0 0 1 3.73 1h8.54a1 1 0 0 1 .76.35l2.609 3.044A1.5 1.5 0 0 1 16 5.37v.255a2.375 2.375 0 0 1-4.25 1.458A2.37 2.37 0 0 1 9.875 8 2.37 2.37 0 0 1 8 7.083 2.37 2.37 0 0 1 6.125 8a2.37 2.37 0 0 1-1.875-.917A2.375 2.375 0 0 1 0 5.625V5.37a1.5 1.5 0 0 1 .361-.976zm1.78 4.275a1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0 1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0 1.375 1.375 0 1 0 2.75 0V5.37a.5.5 0 0 0-.12-.325L12.27 2H3.73L1.12 5.045A.5.5 0 0 0 1 5.37v.255a1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0M1.5 8.5A.5.5 0 0 1 2 9v6h1v-5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v5h6V9a.5.5 0 0 1 1 0v6h.5a.5.5 0 0 1 0 1H.5a.5.5 0 0 1 0-1H1V9a.5.5 0 0 1 .5-.5M4 15h3v-5H4zm5-5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1zm2 0h-1v3h2v-3z"/>
+                                    </svg>
+                                    @seller.StoreName
+                                    <span class="badge bg-secondary ms-2">@seller.ItemCount item(s) - @Model.ShippingData.Currency @seller.Subtotal.ToString("N2")</span>
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                @if (seller.Methods.Any())
+                                {
+                                    <div class="row g-3">
+                                        @foreach (var method in seller.Methods)
+                                        {
+                                            var isSelected = Model.SelectedShippingMethods.TryGetValue(seller.StoreId, out var selectedId) && selectedId == method.Id;
+                                            if (!isSelected && method.IsDefault && !Model.SelectedShippingMethods.ContainsKey(seller.StoreId))
+                                            {
+                                                isSelected = true;
+                                            }
+                                            <div class="col-md-6">
+                                                <div class="card h-100 @(isSelected ? "border-primary" : "")" style="cursor: pointer;" tabindex="0" role="button" aria-pressed="@(isSelected ? "true" : "false")" onclick="selectShipping('@seller.StoreId', '@method.Id')" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectShipping('@seller.StoreId', '@method.Id'); }">
+                                                    <div class="card-body">
+                                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                                            <div>
+                                                                <h6 class="card-title mb-1">@method.Name</h6>
+                                                                @if (!string.IsNullOrEmpty(method.CarrierName))
+                                                                {
+                                                                    <small class="text-muted">via @method.CarrierName</small>
+                                                                }
+                                                            </div>
+                                                            <div class="form-check">
+                                                                <input class="form-check-input" type="radio" 
+                                                                    name="shipping_@seller.StoreId" 
+                                                                    id="ship_@(seller.StoreId)_@(method.Id)" 
+                                                                    value="@method.Id" 
+                                                                    @(isSelected ? "checked" : "") 
+                                                                    onchange="selectShipping('@seller.StoreId', '@method.Id')"
+                                                                    aria-label="Select @method.Name shipping">
+                                                            </div>
+                                                        </div>
+                                                        <p class="card-text small text-muted mb-2">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-clock me-1" viewBox="0 0 16 16">
+                                                                <path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71z"/>
+                                                                <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0"/>
+                                                            </svg>
+                                                            @method.DeliveryTimeDisplay
+                                                        </p>
+                                                        @if (!string.IsNullOrEmpty(method.Description))
+                                                        {
+                                                            <p class="card-text small text-muted mb-2">@method.Description</p>
+                                                        }
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            @if (method.IsFreeShipping)
+                                                            {
+                                                                <span class="badge bg-success">FREE</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="fw-bold text-primary">@method.Currency @method.Cost.ToString("N2")</span>
+                                                            }
+                                                            @if (method.IsDefault)
+                                                            {
+                                                                <span class="badge bg-secondary">Recommended</span>
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="alert alert-info mb-0">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-info-circle me-2" viewBox="0 0 16 16">
+                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                                            <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
+                                        </svg>
+                                        Standard shipping will be applied for this seller.
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Hidden inputs for selected shipping methods -->
+                    <div id="selectedShippingMethods">
+                        @foreach (var seller in Model.ShippingData.SellerShippingOptions)
+                        {
+                            var selectedId = Model.SelectedShippingMethods.TryGetValue(seller.StoreId, out var id) 
+                                ? id 
+                                : (seller.Methods.FirstOrDefault(m => m.IsDefault)?.Id ?? seller.Methods.FirstOrDefault()?.Id);
+                            <input type="hidden" name="ShippingSelections[@seller.StoreId]" value="@selectedId" id="hidden_shipping_@seller.StoreId" />
+                        }
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <a asp-page="/Buyer/Checkout" class="btn btn-outline-secondary">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left me-2" viewBox="0 0 16 16">
+                                <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/>
+                            </svg>
+                            Back to Address
+                        </a>
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            Continue to Payment
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right ms-2" viewBox="0 0 16 16">
+                                <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Order Summary Sidebar -->
+                <div class="col-lg-4">
+                    <div class="card sticky-top" style="top: 1rem;">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">Order Summary</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Items</span>
+                                <span>@Model.ShippingData.Currency @Model.ShippingData.ItemSubtotal.ToString("N2")</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Shipping</span>
+                                <span id="shippingTotal">@Model.ShippingData.Currency @Model.ShippingData.TotalShipping.ToString("N2")</span>
+                            </div>
+                            <hr>
+                            <div class="d-flex justify-content-between mb-3">
+                                <span class="fw-bold fs-5">Total</span>
+                                <span class="fw-bold fs-5 text-primary" id="orderTotal">@Model.ShippingData.Currency @Model.ShippingData.TotalAmount.ToString("N2")</span>
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(Model.DeliveryAddressSummary))
+                            {
+                                <div class="bg-light p-3 rounded mb-3">
+                                    <h6 class="mb-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-geo-alt me-2" viewBox="0 0 16 16">
+                                            <path d="M12.166 8.94c-.524 1.062-1.234 2.12-1.96 3.07A32 32 0 0 1 8 14.58a32 32 0 0 1-2.206-2.57c-.726-.95-1.436-2.008-1.96-3.07C3.304 7.867 3 6.862 3 6a5 5 0 0 1 10 0c0 .862-.305 1.867-.834 2.94M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10"/>
+                                            <path d="M8 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4m0 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6"/>
+                                        </svg>
+                                        Shipping To
+                                    </h6>
+                                    <p class="small mb-0">@Model.DeliveryAddressSummary</p>
+                                </div>
+                            }
+
+                            <div class="alert alert-info small mb-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-shield-check me-1" viewBox="0 0 16 16">
+                                    <path d="M5.338 1.59a61 61 0 0 0-2.837.856.48.48 0 0 0-.328.39c-.554 4.157.726 7.19 2.253 9.188a10.7 10.7 0 0 0 2.287 2.233c.346.244.652.42.893.533q.18.085.293.118a1 1 0 0 0 .101.025 1 1 0 0 0 .1-.025q.114-.034.294-.118c.24-.113.547-.29.893-.533a10.7 10.7 0 0 0 2.287-2.233c1.527-1.997 2.807-5.031 2.253-9.188a.48.48 0 0 0-.328-.39c-.651-.213-1.75-.56-2.837-.855C9.552 1.29 8.531 1.067 8 1.067c-.53 0-1.552.223-2.662.524zM5.072.56C6.157.265 7.31 0 8 0s1.843.265 2.928.56c1.11.3 2.229.655 2.887.87a1.54 1.54 0 0 1 1.044 1.262c.596 4.477-.787 7.795-2.465 9.99a11.8 11.8 0 0 1-2.517 2.453 7 7 0 0 1-1.048.625c-.28.132-.581.24-.829.24s-.548-.108-.829-.24a7 7 0 0 1-1.048-.625 11.8 11.8 0 0 1-2.517-2.453C1.928 10.487.545 7.169 1.141 2.692A1.54 1.54 0 0 1 2.185 1.43 63 63 0 0 1 5.072.56"/>
+                                    <path d="M10.854 5.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 7.793l2.646-2.647a.5.5 0 0 1 .708 0"/>
+                                </svg>
+                                Secure checkout - your data is protected
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        function selectShipping(storeId, methodId) {
+            // Update the radio button
+            const radio = document.getElementById('ship_' + storeId + '_' + methodId);
+            if (radio) {
+                radio.checked = true;
+            }
+
+            // Update the hidden input
+            const hiddenInput = document.getElementById('hidden_shipping_' + storeId);
+            if (hiddenInput) {
+                hiddenInput.value = methodId;
+            }
+
+            // Highlight selected card
+            const container = radio.closest('.card-body');
+            if (container) {
+                container.querySelectorAll('.card.h-100').forEach(card => {
+                    card.classList.remove('border-primary');
+                });
+                const selectedCard = radio.closest('.card.h-100');
+                if (selectedCard) {
+                    selectedCard.classList.add('border-primary');
+                }
+            }
+        }
+    </script>
+}

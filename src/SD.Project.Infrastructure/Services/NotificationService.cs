@@ -87,4 +87,15 @@ public sealed class NotificationService : INotificationService
             sellerId, successCount, failureCount);
         return Task.CompletedTask;
     }
+
+    public Task SendOrderConfirmationAsync(Guid orderId, CancellationToken cancellationToken = default)
+    {
+        // TODO: Replace logging with real email/notification integration.
+        // In a production environment, this would send an email with order details,
+        // tracking information, and receipt to the buyer.
+        _logger.LogInformation(
+            "Order confirmation sent for order {OrderId}",
+            orderId);
+        return Task.CompletedTask;
+    }
 }

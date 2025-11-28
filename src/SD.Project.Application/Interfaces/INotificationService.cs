@@ -66,4 +66,11 @@ public interface INotificationService
     /// <param name="failureCount">Number of products that failed to update.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     Task SendBulkUpdateCompletedAsync(Guid sellerId, int successCount, int failureCount, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends an order confirmation notification to the buyer.
+    /// </summary>
+    /// <param name="orderId">The ID of the order.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendOrderConfirmationAsync(Guid orderId, CancellationToken cancellationToken = default);
 }
