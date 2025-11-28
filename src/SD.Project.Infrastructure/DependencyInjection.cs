@@ -32,9 +32,11 @@ public static class DependencyInjection
         services.AddScoped<IEmailVerificationTokenRepository, EmailVerificationTokenRepository>();
         services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
         services.AddScoped<IUserSessionRepository, UserSessionRepository>();
+        services.AddScoped<ILoginEventRepository, LoginEventRepository>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IPasswordValidator, PasswordValidator>();
+        services.AddScoped<ISecurityAlertService, SecurityAlertService>();
         services.AddSingleton<ILoginRateLimiter, LoginRateLimiter>();
 
         return services;
