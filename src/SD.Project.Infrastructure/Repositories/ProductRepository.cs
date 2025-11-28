@@ -85,6 +85,24 @@ public sealed class ProductRepository : IProductRepository
         return results.AsReadOnly();
     }
 
+    public async Task<IReadOnlyCollection<Product>> SearchAsync(string searchTerm, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            return Array.Empty<Product>();
+        }
+
+        var searchPattern = $"%{searchTerm.Trim()}%";
+        var results = await _context.Products
+            .AsNoTracking()
+            .Where(p => p.Status == ProductStatus.Active &&
+                        (EF.Functions.Like(p.Name, searchPattern) ||
+                         EF.Functions.Like(p.Description ?? string.Empty, searchPattern)))
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync(cancellationToken);
+        return results.AsReadOnly();
+    }
+
     public async Task AddAsync(Product product, CancellationToken cancellationToken = default)
     {
         await _context.Products.AddAsync(product, cancellationToken);

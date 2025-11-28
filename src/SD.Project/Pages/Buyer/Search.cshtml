@@ -1,0 +1,123 @@
+@page
+@model SD.Project.Pages.Buyer.SearchModel
+@{
+    ViewData["Title"] = string.IsNullOrEmpty(Model.SearchTerm) ? "Search Products" : $"Search: {Model.SearchTerm}";
+}
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="/Index">Home</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Search</li>
+    </ol>
+</nav>
+
+<h1>Search Products</h1>
+
+<form method="get" class="mb-4">
+    <div class="input-group">
+        <input type="text" name="q" class="form-control form-control-lg" placeholder="Search for products..."
+               value="@Model.SearchTerm" aria-label="Search products">
+        <button class="btn btn-primary" type="submit">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+            </svg>
+            Search
+        </button>
+    </div>
+</form>
+
+@if (!string.IsNullOrEmpty(Model.SearchTerm))
+{
+    <p class="text-muted mb-3">
+        @if (Model.Products.Any())
+        {
+            <text>Found @Model.Products.Count result(s) for "<strong>@Model.SearchTerm</strong>"</text>
+        }
+        else
+        {
+            <text>No results found for "<strong>@Model.SearchTerm</strong>"</text>
+        }
+    </p>
+
+    @if (Model.Products.Any())
+    {
+        <section>
+            <div class="row row-cols-1 row-cols-md-3 g-4">
+                @foreach (var product in Model.Products)
+                {
+                    <div class="col">
+                        <div class="card h-100">
+                            @if (!string.IsNullOrEmpty(product.MainImageThumbnailUrl))
+                            {
+                                <img src="@product.MainImageThumbnailUrl" class="card-img-top" alt="@product.Name">
+                            }
+                            else
+                            {
+                                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 180px;">
+                                    <span class="text-muted">No Image</span>
+                                </div>
+                            }
+                            <div class="card-body">
+                                <h5 class="card-title">@product.Name</h5>
+                                <p class="card-text text-muted">@(string.IsNullOrEmpty(product.Description) ? "" : (product.Description.Length > 100 ? product.Description.Substring(0, 100) + "..." : product.Description))</p>
+                                <p class="card-text">
+                                    <strong>@product.Currency @product.Amount.ToString("N2")</strong>
+                                </p>
+                                <p class="card-text">
+                                    <small class="text-muted">Category: @product.Category</small>
+                                </p>
+                            </div>
+                            <div class="card-footer bg-transparent">
+                                @if (product.Stock > 0)
+                                {
+                                    <span class="badge bg-success">In Stock</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">Out of Stock</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </section>
+    }
+    else
+    {
+        <div class="alert alert-info" role="alert">
+            <h4 class="alert-heading">No Products Found</h4>
+            <p>We couldn't find any products matching "<strong>@Model.SearchTerm</strong>".</p>
+            <hr>
+            <p class="mb-0">Suggestions:</p>
+            <ul class="mb-0">
+                <li>Check your spelling</li>
+                <li>Try using different or more general keywords</li>
+                <li>Try using fewer keywords</li>
+                <li><a asp-page="/Buyer/Category" asp-route-id="" class="alert-link">Browse all categories</a></li>
+            </ul>
+        </div>
+    }
+}
+else
+{
+    <div class="alert alert-secondary" role="alert">
+        <h4 class="alert-heading">Start Your Search</h4>
+        <p class="mb-0">Enter a keyword above to find products by name or description.</p>
+    </div>
+
+    @if (Model.RootCategories.Any())
+    {
+        <section class="mt-4">
+            <h5>Or browse by category</h5>
+            <div class="d-flex flex-wrap gap-2 mt-3">
+                @foreach (var category in Model.RootCategories)
+                {
+                    <a asp-page="/Buyer/Category" asp-route-id="@category.Id" class="btn btn-outline-primary">
+                        @category.Name
+                    </a>
+                }
+            </div>
+        </section>
+    }
+}
