@@ -54,6 +54,44 @@
                 </div>
 
                 <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Product Images</h5>
+                        <a asp-page="/Seller/ProductImages" asp-route-id="@Model.Input.Id" class="btn btn-outline-primary btn-sm">
+                            Manage Images
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        @if (Model.Images.Count == 0)
+                        {
+                            <div class="text-center text-muted py-3">
+                                <p class="mb-0">No images uploaded yet. Click "Manage Images" to add product images.</p>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="row">
+                                @foreach (var image in Model.Images.OrderBy(i => i.DisplayOrder).Take(4))
+                                {
+                                    <div class="col-3">
+                                        <div class="position-relative">
+                                            <img src="@image.ThumbnailUrl" class="img-thumbnail" alt="@image.FileName" style="height: 100px; width: 100%; object-fit: cover;">
+                                            @if (image.IsMain)
+                                            {
+                                                <span class="badge bg-primary position-absolute top-0 start-0 m-1" style="font-size: 0.6rem;">Main</span>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                            @if (Model.Images.Count > 4)
+                            {
+                                <p class="text-muted mt-2 mb-0 small">Showing 4 of @Model.Images.Count images. Click "Manage Images" to view all.</p>
+                            }
+                        }
+                    </div>
+                </div>
+
+                <div class="card mb-4">
                     <div class="card-header">
                         <h5 class="mb-0">Pricing & Inventory</h5>
                     </div>

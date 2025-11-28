@@ -20,7 +20,9 @@ public sealed record ProductViewModel(
     decimal? WeightKg,
     decimal? LengthCm,
     decimal? WidthCm,
-    decimal? HeightCm)
+    decimal? HeightCm,
+    string? MainImageUrl = null,
+    string? MainImageThumbnailUrl = null)
 {
     /// <summary>
     /// Gets a display-friendly status string.
