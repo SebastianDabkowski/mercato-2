@@ -59,6 +59,7 @@ namespace SD.Project.Pages.Seller
             Product = new ProductViewModel(
                 product.Id,
                 product.Name,
+                product.Description,
                 product.Amount,
                 product.Currency,
                 product.Stock,
@@ -66,7 +67,11 @@ namespace SD.Project.Pages.Seller
                 product.Status,
                 product.IsActive,
                 product.CreatedAt,
-                product.UpdatedAt);
+                product.UpdatedAt,
+                product.WeightKg,
+                product.LengthCm,
+                product.WidthCm,
+                product.HeightCm);
 
             return Page();
         }
@@ -99,20 +104,25 @@ namespace SD.Project.Pages.Seller
             }
 
             // If we have errors, we need to reload the product for display
-            var product = await _productService.HandleAsync(new GetProductByIdQuery(id));
-            if (product is not null)
+            var productDto = await _productService.HandleAsync(new GetProductByIdQuery(id));
+            if (productDto is not null)
             {
                 Product = new ProductViewModel(
-                    product.Id,
-                    product.Name,
-                    product.Amount,
-                    product.Currency,
-                    product.Stock,
-                    product.Category,
-                    product.Status,
-                    product.IsActive,
-                    product.CreatedAt,
-                    product.UpdatedAt);
+                    productDto.Id,
+                    productDto.Name,
+                    productDto.Description,
+                    productDto.Amount,
+                    productDto.Currency,
+                    productDto.Stock,
+                    productDto.Category,
+                    productDto.Status,
+                    productDto.IsActive,
+                    productDto.CreatedAt,
+                    productDto.UpdatedAt,
+                    productDto.WeightKg,
+                    productDto.LengthCm,
+                    productDto.WidthCm,
+                    productDto.HeightCm);
             }
 
             Errors = result.Errors;

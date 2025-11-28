@@ -59,6 +59,9 @@ public sealed class ProductService
                 command.Stock,
                 command.Category);
 
+            product.UpdateDescription(command.Description);
+            product.UpdateShippingParameters(command.WeightKg, command.LengthCm, command.WidthCm, command.HeightCm);
+
             await _repository.AddAsync(product, cancellationToken);
             await _repository.SaveChangesAsync(cancellationToken);
             await _notificationService.SendProductCreatedAsync(product.Id, cancellationToken);
@@ -164,9 +167,11 @@ public sealed class ProductService
         try
         {
             product.UpdateName(command.Name.Trim());
+            product.UpdateDescription(command.Description);
             product.UpdatePrice(new Money(command.Amount, command.Currency.Trim().ToUpperInvariant()));
             product.UpdateStock(command.Stock);
             product.UpdateCategory(command.Category.Trim());
+            product.UpdateShippingParameters(command.WeightKg, command.LengthCm, command.WidthCm, command.HeightCm);
 
             _repository.Update(product);
             await _repository.SaveChangesAsync(cancellationToken);
@@ -234,6 +239,7 @@ public sealed class ProductService
         return new ProductDto(
             p.Id,
             p.Name,
+            p.Description,
             p.Price.Amount,
             p.Price.Currency,
             p.Stock,
@@ -241,20 +247,27 @@ public sealed class ProductService
             p.Status,
             p.IsActive,
             p.CreatedAt,
-            p.UpdatedAt);
+            p.UpdatedAt,
+            p.WeightKg,
+            p.LengthCm,
+            p.WidthCm,
+            p.HeightCm);
     }
 
     private static IReadOnlyList<string> ValidateProduct(CreateProductCommand command)
     {
-        return ValidateProductFields(command.Name, command.Amount, command.Currency, command.Stock, command.Category);
+        return ValidateProductFields(command.Name, command.Amount, command.Currency, command.Stock, command.Category,
+            command.WeightKg, command.LengthCm, command.WidthCm, command.HeightCm);
     }
 
     private static IReadOnlyList<string> ValidateUpdateProduct(UpdateProductCommand command)
     {
-        return ValidateProductFields(command.Name, command.Amount, command.Currency, command.Stock, command.Category);
+        return ValidateProductFields(command.Name, command.Amount, command.Currency, command.Stock, command.Category,
+            command.WeightKg, command.LengthCm, command.WidthCm, command.HeightCm);
     }
 
-    private static IReadOnlyList<string> ValidateProductFields(string name, decimal amount, string currency, int stock, string category)
+    private static IReadOnlyList<string> ValidateProductFields(string name, decimal amount, string currency, int stock, string category,
+        decimal? weightKg, decimal? lengthCm, decimal? widthCm, decimal? heightCm)
     {
         var errors = new List<string>();
 
@@ -301,6 +314,27 @@ public sealed class ProductService
         else if (category.Trim().Length > 100)
         {
             errors.Add("Category cannot exceed 100 characters.");
+        }
+
+        // Validate shipping parameters
+        if (weightKg.HasValue && weightKg.Value < 0)
+        {
+            errors.Add("Weight cannot be negative.");
+        }
+
+        if (lengthCm.HasValue && lengthCm.Value < 0)
+        {
+            errors.Add("Length cannot be negative.");
+        }
+
+        if (widthCm.HasValue && widthCm.Value < 0)
+        {
+            errors.Add("Width cannot be negative.");
+        }
+
+        if (heightCm.HasValue && heightCm.Value < 0)
+        {
+            errors.Add("Height cannot be negative.");
         }
 
         return errors;

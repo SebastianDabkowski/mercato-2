@@ -8,6 +8,7 @@ namespace SD.Project.Application.DTOs;
 public sealed record ProductDto(
     Guid Id,
     string Name,
+    string Description,
     decimal Amount,
     string Currency,
     int Stock,
@@ -15,4 +16,8 @@ public sealed record ProductDto(
     ProductStatus Status,
     bool IsActive,
     DateTime CreatedAt,
-    DateTime UpdatedAt);
+    DateTime UpdatedAt,
+    decimal? WeightKg,
+    decimal? LengthCm,
+    decimal? WidthCm,
+    decimal? HeightCm);

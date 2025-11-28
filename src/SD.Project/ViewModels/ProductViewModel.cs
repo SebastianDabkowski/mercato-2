@@ -8,6 +8,7 @@ namespace SD.Project.ViewModels;
 public sealed record ProductViewModel(
     Guid Id,
     string Name,
+    string Description,
     decimal Amount,
     string Currency,
     int Stock,
@@ -15,7 +16,11 @@ public sealed record ProductViewModel(
     ProductStatus Status,
     bool IsActive,
     DateTime CreatedAt,
-    DateTime UpdatedAt)
+    DateTime UpdatedAt,
+    decimal? WeightKg,
+    decimal? LengthCm,
+    decimal? WidthCm,
+    decimal? HeightCm)
 {
     /// <summary>
     /// Gets a display-friendly status string.

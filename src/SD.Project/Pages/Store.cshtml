@@ -76,6 +76,10 @@
                                         <div class="card h-100">
                                             <div class="card-body">
                                                 <h6 class="card-title">@product.Name</h6>
+                                                @if (!string.IsNullOrEmpty(product.Description))
+                                                {
+                                                    <p class="card-text text-muted small">@(product.Description.Length > 100 ? product.Description.Substring(0, 100) + "..." : product.Description)</p>
+                                                }
                                                 <p class="card-text text-primary fw-bold">
                                                     @product.Amount.ToString("N2") @product.Currency
                                                 </p>

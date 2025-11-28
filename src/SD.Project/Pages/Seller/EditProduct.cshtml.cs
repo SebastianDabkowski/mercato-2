@@ -65,10 +65,15 @@ namespace SD.Project.Pages.Seller
             {
                 Id = product.Id,
                 Name = product.Name,
+                Description = product.Description,
                 Price = product.Amount,
                 Currency = product.Currency,
                 Stock = product.Stock,
-                Category = product.Category
+                Category = product.Category,
+                WeightKg = product.WeightKg,
+                LengthCm = product.LengthCm,
+                WidthCm = product.WidthCm,
+                HeightCm = product.HeightCm
             };
 
             return Page();
@@ -97,10 +102,15 @@ namespace SD.Project.Pages.Seller
                 id,
                 userId,
                 Input.Name.Trim(),
+                Input.Description?.Trim(),
                 Input.Price,
                 Input.Currency.Trim().ToUpperInvariant(),
                 Input.Stock,
-                Input.Category.Trim());
+                Input.Category.Trim(),
+                Input.WeightKg,
+                Input.LengthCm,
+                Input.WidthCm,
+                Input.HeightCm);
 
             var result = await _productService.HandleAsync(command);
 
