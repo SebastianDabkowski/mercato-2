@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using SD.Project.Application.Interfaces;
 using SD.Project.Application.Services;
+using SD.Project.Domain.Services;
 
 namespace SD.Project.Application;
 
@@ -30,6 +31,11 @@ public static class DependencyInjection
         services.AddScoped<InternalUserService>();
         services.AddScoped<CartService>();
         services.AddScoped<IAuthorizationService, AuthorizationService>();
+
+        // Domain services for cart totals calculation
+        services.AddSingleton<CartTotalsCalculator>();
+        services.AddSingleton<CommissionCalculator>();
+
         return services;
     }
 }
