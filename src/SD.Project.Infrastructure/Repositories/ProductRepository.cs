@@ -156,7 +156,8 @@ public sealed class ProductRepository : IProductRepository
         {
             ProductSortOrder.PriceAscending => query.OrderBy(p => p.Price.Amount).ThenBy(p => p.Id),
             ProductSortOrder.PriceDescending => query.OrderByDescending(p => p.Price.Amount).ThenBy(p => p.Id),
-            _ => query.OrderByDescending(p => p.CreatedAt).ThenBy(p => p.Id)  // Newest is default
+            ProductSortOrder.Newest => query.OrderByDescending(p => p.CreatedAt).ThenBy(p => p.Id),
+            _ => query.OrderByDescending(p => p.CreatedAt).ThenBy(p => p.Id)
         };
 
         var results = await query.ToListAsync(cancellationToken);

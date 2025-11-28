@@ -1,5 +1,6 @@
 @page
 @model SD.Project.Pages.Buyer.SearchModel
+@using SD.Project.Application.Queries
 @{
     ViewData["Title"] = string.IsNullOrEmpty(Model.SearchTerm) ? "Search Products" : $"Search: {Model.SearchTerm}";
 }
@@ -98,7 +99,7 @@
 
 @{
     var hasSearchOrFilters = !string.IsNullOrEmpty(Model.SearchTerm) || Model.HasActiveFilters;
-    var currentSort = Model.SortBy ?? SD.Project.Application.Queries.ProductSortOption.Relevance;
+    var currentSort = Model.SortBy ?? ProductSortOption.Relevance;
 }
 
 @if (hasSearchOrFilters)
@@ -136,10 +137,10 @@
             <div class="d-flex align-items-center gap-2">
                 <label for="sortSelect" class="form-label mb-0 text-nowrap">Sort by:</label>
                 <select id="sortSelect" class="form-select form-select-sm" style="width: auto;" onchange="applySorting(this.value)">
-                    <option value="Relevance" selected="@(currentSort == SD.Project.Application.Queries.ProductSortOption.Relevance)">Relevance</option>
-                    <option value="PriceAscending" selected="@(currentSort == SD.Project.Application.Queries.ProductSortOption.PriceAscending)">Price: Low to High</option>
-                    <option value="PriceDescending" selected="@(currentSort == SD.Project.Application.Queries.ProductSortOption.PriceDescending)">Price: High to Low</option>
-                    <option value="Newest" selected="@(currentSort == SD.Project.Application.Queries.ProductSortOption.Newest)">Newest</option>
+                    <option value="Relevance" selected="@(currentSort == ProductSortOption.Relevance)">Relevance</option>
+                    <option value="PriceAscending" selected="@(currentSort == ProductSortOption.PriceAscending)">Price: Low to High</option>
+                    <option value="PriceDescending" selected="@(currentSort == ProductSortOption.PriceDescending)">Price: High to Low</option>
+                    <option value="Newest" selected="@(currentSort == ProductSortOption.Newest)">Newest</option>
                 </select>
             </div>
         }
