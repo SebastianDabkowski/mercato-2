@@ -18,6 +18,19 @@ public interface IProductRepository
     Task<IReadOnlyCollection<Product>> SearchAsync(string searchTerm, CancellationToken cancellationToken = default);
     
     /// <summary>
+    /// Gets product name suggestions matching the search prefix.
+    /// Only returns distinct product names from Active products.
+    /// </summary>
+    /// <param name="searchPrefix">The prefix to search for.</param>
+    /// <param name="maxResults">Maximum number of suggestions to return.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Collection of product names matching the prefix.</returns>
+    Task<IReadOnlyCollection<string>> GetProductSuggestionsAsync(
+        string searchPrefix,
+        int maxResults = 5,
+        CancellationToken cancellationToken = default);
+    
+    /// <summary>
     /// Filters active products by multiple criteria including search term, category, price range, and store.
     /// Only returns Active products for public views.
     /// </summary>

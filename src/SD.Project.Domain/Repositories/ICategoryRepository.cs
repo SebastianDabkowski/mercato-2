@@ -15,6 +15,20 @@ public interface ICategoryRepository
     Task<int> GetProductCountAsync(Guid categoryId, CancellationToken cancellationToken = default);
     Task<IReadOnlyDictionary<Guid, int>> GetProductCountsAsync(IEnumerable<Guid> categoryIds, CancellationToken cancellationToken = default);
     Task<IReadOnlyDictionary<Guid, int>> GetChildCountsAsync(IEnumerable<Guid> categoryIds, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Gets category suggestions matching the search prefix.
+    /// Only returns active categories.
+    /// </summary>
+    /// <param name="searchPrefix">The prefix to search for.</param>
+    /// <param name="maxResults">Maximum number of suggestions to return.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Collection of categories matching the prefix.</returns>
+    Task<IReadOnlyCollection<Category>> GetSuggestionsAsync(
+        string searchPrefix,
+        int maxResults = 5,
+        CancellationToken cancellationToken = default);
+    
     Task AddAsync(Category category, CancellationToken cancellationToken = default);
     void Update(Category category);
     void Delete(Category category);
