@@ -114,4 +114,26 @@ public class Product
         IsActive = false;
         UpdatedAt = DateTime.UtcNow;
     }
+
+    public void UpdatePrice(ValueObjects.Money price)
+    {
+        ArgumentNullException.ThrowIfNull(price);
+        Price = price;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Archives the product (soft-delete). Archived products are not visible in search or public listings.
+    /// </summary>
+    public void Archive()
+    {
+        Status = ProductStatus.Archived;
+        IsActive = false;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Checks if the product is archived.
+    /// </summary>
+    public bool IsArchived => Status == ProductStatus.Archived;
 }

@@ -24,7 +24,10 @@ public sealed class ProductRepository : IProductRepository
 
     public async Task<IReadOnlyCollection<Product>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        var results = await _context.Products.AsNoTracking().ToListAsync(cancellationToken);
+        var results = await _context.Products
+            .AsNoTracking()
+            .Where(p => p.Status != ProductStatus.Archived)
+            .ToListAsync(cancellationToken);
         return results.AsReadOnly();
     }
 
@@ -50,6 +53,11 @@ public sealed class ProductRepository : IProductRepository
     public async Task AddAsync(Product product, CancellationToken cancellationToken = default)
     {
         await _context.Products.AddAsync(product, cancellationToken);
+    }
+
+    public void Update(Product product)
+    {
+        _context.Products.Update(product);
     }
 
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)

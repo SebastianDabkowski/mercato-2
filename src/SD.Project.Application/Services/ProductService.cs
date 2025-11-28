@@ -110,6 +110,125 @@ public sealed class ProductService
             .ToArray();
     }
 
+    /// <summary>
+    /// Retrieves a single product by its ID.
+    /// </summary>
+    public async Task<ProductDto?> HandleAsync(GetProductByIdQuery query, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var product = await _repository.GetByIdAsync(query.ProductId, cancellationToken);
+        return product is null ? null : MapToDto(product);
+    }
+
+    /// <summary>
+    /// Handles a request to update an existing product.
+    /// </summary>
+    public async Task<UpdateProductResultDto> HandleAsync(UpdateProductCommand command, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+
+        // Get seller's store
+        var store = await _storeRepository.GetBySellerIdAsync(command.SellerId, cancellationToken);
+        if (store is null)
+        {
+            return UpdateProductResultDto.Failed("Store not found.");
+        }
+
+        // Get the product
+        var product = await _repository.GetByIdAsync(command.ProductId, cancellationToken);
+        if (product is null)
+        {
+            return UpdateProductResultDto.Failed("Product not found.");
+        }
+
+        // Check ownership
+        if (product.StoreId != store.Id)
+        {
+            return UpdateProductResultDto.Failed("You do not have permission to edit this product.");
+        }
+
+        // Check if product is archived
+        if (product.IsArchived)
+        {
+            return UpdateProductResultDto.Failed("Cannot edit an archived product.");
+        }
+
+        // Validate required fields
+        var validationErrors = ValidateUpdateProduct(command);
+        if (validationErrors.Count > 0)
+        {
+            return UpdateProductResultDto.Failed(validationErrors);
+        }
+
+        try
+        {
+            product.UpdateName(command.Name.Trim());
+            product.UpdatePrice(new Money(command.Amount, command.Currency.Trim().ToUpperInvariant()));
+            product.UpdateStock(command.Stock);
+            product.UpdateCategory(command.Category.Trim());
+
+            _repository.Update(product);
+            await _repository.SaveChangesAsync(cancellationToken);
+            await _notificationService.SendProductUpdatedAsync(product.Id, cancellationToken);
+
+            return UpdateProductResultDto.Succeeded(MapToDto(product));
+        }
+        catch (ArgumentException ex)
+        {
+            return UpdateProductResultDto.Failed(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Handles a request to delete (archive) a product.
+    /// </summary>
+    public async Task<DeleteProductResultDto> HandleAsync(DeleteProductCommand command, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+
+        // Get seller's store
+        var store = await _storeRepository.GetBySellerIdAsync(command.SellerId, cancellationToken);
+        if (store is null)
+        {
+            return DeleteProductResultDto.Failed("Store not found.");
+        }
+
+        // Get the product
+        var product = await _repository.GetByIdAsync(command.ProductId, cancellationToken);
+        if (product is null)
+        {
+            return DeleteProductResultDto.Failed("Product not found.");
+        }
+
+        // Check ownership
+        if (product.StoreId != store.Id)
+        {
+            return DeleteProductResultDto.Failed("You do not have permission to delete this product.");
+        }
+
+        // Check if product is already archived
+        if (product.IsArchived)
+        {
+            return DeleteProductResultDto.Failed("Product is already deleted.");
+        }
+
+        try
+        {
+            product.Archive();
+
+            _repository.Update(product);
+            await _repository.SaveChangesAsync(cancellationToken);
+            await _notificationService.SendProductDeletedAsync(product.Id, cancellationToken);
+
+            return DeleteProductResultDto.Succeeded();
+        }
+        catch (ArgumentException ex)
+        {
+            return DeleteProductResultDto.Failed(ex.Message);
+        }
+    }
+
     private static ProductDto MapToDto(Product p)
     {
         return new ProductDto(
@@ -126,6 +245,58 @@ public sealed class ProductService
     }
 
     private static IReadOnlyList<string> ValidateProduct(CreateProductCommand command)
+    {
+        var errors = new List<string>();
+
+        // Validate name
+        if (string.IsNullOrWhiteSpace(command.Name))
+        {
+            errors.Add("Product title is required.");
+        }
+        else if (command.Name.Trim().Length < 3)
+        {
+            errors.Add("Product title must be at least 3 characters long.");
+        }
+        else if (command.Name.Trim().Length > 200)
+        {
+            errors.Add("Product title cannot exceed 200 characters.");
+        }
+
+        // Validate price
+        if (command.Amount <= 0)
+        {
+            errors.Add("Price must be greater than zero.");
+        }
+
+        if (string.IsNullOrWhiteSpace(command.Currency))
+        {
+            errors.Add("Currency is required.");
+        }
+        else if (command.Currency.Trim().Length != 3)
+        {
+            errors.Add("Currency must be a valid 3-letter ISO code (e.g., USD, EUR).");
+        }
+
+        // Validate stock
+        if (command.Stock < 0)
+        {
+            errors.Add("Stock cannot be negative.");
+        }
+
+        // Validate category
+        if (string.IsNullOrWhiteSpace(command.Category))
+        {
+            errors.Add("Category is required.");
+        }
+        else if (command.Category.Trim().Length > 100)
+        {
+            errors.Add("Category cannot exceed 100 characters.");
+        }
+
+        return errors;
+    }
+
+    private static IReadOnlyList<string> ValidateUpdateProduct(UpdateProductCommand command)
     {
         var errors = new List<string>();
 
