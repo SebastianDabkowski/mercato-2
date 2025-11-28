@@ -57,7 +57,7 @@ public class SearchModel : PageModel
             var sanitizedTerm = SearchTerm.Trim();
             if (sanitizedTerm.Length > 200)
             {
-                sanitizedTerm = sanitizedTerm.Substring(0, 200);
+                sanitizedTerm = sanitizedTerm[..200];
             }
 
             var productDtos = await _productService.HandleAsync(new SearchProductsQuery(sanitizedTerm), cancellationToken);

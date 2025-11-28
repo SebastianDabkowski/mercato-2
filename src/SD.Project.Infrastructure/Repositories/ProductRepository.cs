@@ -92,12 +92,12 @@ public sealed class ProductRepository : IProductRepository
             return Array.Empty<Product>();
         }
 
-        var searchTermLower = searchTerm.Trim().ToLowerInvariant();
+        var searchPattern = $"%{searchTerm.Trim()}%";
         var results = await _context.Products
             .AsNoTracking()
             .Where(p => p.Status == ProductStatus.Active &&
-                        (p.Name.ToLower().Contains(searchTermLower) ||
-                         p.Description.ToLower().Contains(searchTermLower)))
+                        (EF.Functions.Like(p.Name, searchPattern) ||
+                         EF.Functions.Like(p.Description ?? string.Empty, searchPattern)))
             .OrderByDescending(p => p.CreatedAt)
             .ToListAsync(cancellationToken);
         return results.AsReadOnly();
