@@ -179,8 +179,10 @@ public class CheckoutPaymentModel : PageModel
             {
                 return JsonSerializer.Deserialize<Dictionary<Guid, Guid>>(storedMethods) ?? new();
             }
-            catch
+            catch (JsonException)
             {
+                // Session data was corrupted; reset to empty
+                _logger.LogDebug("Failed to deserialize shipping methods from session, resetting to empty");
                 return new();
             }
         }

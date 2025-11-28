@@ -13,6 +13,12 @@ namespace SD.Project.Application.Services;
 /// </summary>
 public sealed class CheckoutService
 {
+    /// <summary>
+    /// Prefix for simulated payment transaction IDs.
+    /// This identifies test/development transactions in logs.
+    /// </summary>
+    private const string SimulatedTransactionPrefix = "SIM-";
+
     private readonly ICartRepository _cartRepository;
     private readonly IProductRepository _productRepository;
     private readonly IStoreRepository _storeRepository;
@@ -409,7 +415,7 @@ public sealed class CheckoutService
         // and potentially return a redirect URL for 3D Secure or PayPal authorization
 
         // Simulate successful payment
-        order.ConfirmPayment($"SIM-{Guid.NewGuid():N}");
+        order.ConfirmPayment($"{SimulatedTransactionPrefix}{Guid.NewGuid():N}");
         await _orderRepository.UpdateAsync(order, cancellationToken);
 
         // Clear the cart after successful order
