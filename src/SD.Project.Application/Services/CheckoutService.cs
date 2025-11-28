@@ -27,6 +27,7 @@ public sealed class CheckoutService
     private readonly IPaymentMethodRepository _paymentMethodRepository;
     private readonly IDeliveryAddressRepository _deliveryAddressRepository;
     private readonly IOrderRepository _orderRepository;
+    private readonly IUserRepository _userRepository;
     private readonly INotificationService _notificationService;
     private readonly CheckoutValidationService _checkoutValidationService;
 
@@ -38,6 +39,7 @@ public sealed class CheckoutService
         IPaymentMethodRepository paymentMethodRepository,
         IDeliveryAddressRepository deliveryAddressRepository,
         IOrderRepository orderRepository,
+        IUserRepository userRepository,
         INotificationService notificationService,
         CheckoutValidationService checkoutValidationService)
     {
@@ -48,6 +50,7 @@ public sealed class CheckoutService
         _paymentMethodRepository = paymentMethodRepository;
         _deliveryAddressRepository = deliveryAddressRepository;
         _orderRepository = orderRepository;
+        _userRepository = userRepository;
         _notificationService = notificationService;
         _checkoutValidationService = checkoutValidationService;
     }
@@ -476,8 +479,18 @@ public sealed class CheckoutService
         await _cartRepository.UpdateAsync(cart, cancellationToken);
         await _cartRepository.SaveChangesAsync(cancellationToken);
 
-        // Send order confirmation notification
-        await _notificationService.SendOrderConfirmationAsync(order.Id, cancellationToken);
+        // Send order confirmation notification with buyer details
+        var buyer = await _userRepository.GetByIdAsync(command.BuyerId, cancellationToken);
+        if (buyer is not null)
+        {
+            await _notificationService.SendOrderConfirmationAsync(
+                order.Id,
+                buyer.Email.Value,
+                order.OrderNumber,
+                order.TotalAmount,
+                order.Currency,
+                cancellationToken);
+        }
 
         return InitiatePaymentResultDto.Succeeded(order.Id, order.OrderNumber);
     }
@@ -541,18 +554,52 @@ public sealed class CheckoutService
         var stores = await _storeRepository.GetByIdsAsync(storeIds, cancellationToken);
         var storeLookup = stores.ToDictionary(s => s.Id);
 
+        // Get shipping methods for estimated delivery
+        var shippingMethodIds = order.Items
+            .Where(i => i.ShippingMethodId.HasValue)
+            .Select(i => i.ShippingMethodId!.Value)
+            .Distinct()
+            .ToList();
+        var shippingMethods = await _shippingMethodRepository.GetByIdsAsync(shippingMethodIds, cancellationToken);
+        var shippingMethodLookup = shippingMethods.ToDictionary(m => m.Id);
+
+        // Get buyer email for confirmation
+        var buyer = await _userRepository.GetByIdAsync(order.BuyerId, cancellationToken);
+        var buyerEmail = buyer?.Email.Value;
+
         var addressSummary = $"{order.DeliveryStreet}, {order.DeliveryCity}, {order.DeliveryPostalCode}, {order.DeliveryCountry}";
 
-        var itemDtos = order.Items.Select(i => new OrderItemDto(
-            i.ProductId,
-            i.ProductName,
-            i.StoreId,
-            storeLookup.GetValueOrDefault(i.StoreId)?.Name ?? "Unknown Seller",
-            i.UnitPrice,
-            i.Quantity,
-            i.LineTotal,
-            i.ShippingMethodName,
-            i.ShippingCost)).ToList();
+        var itemDtos = order.Items.Select(i =>
+        {
+            string? estimatedDelivery = null;
+            if (i.ShippingMethodId.HasValue && shippingMethodLookup.TryGetValue(i.ShippingMethodId.Value, out var method))
+            {
+                estimatedDelivery = method.GetDeliveryTimeDisplay();
+            }
+
+            return new OrderItemDto(
+                i.ProductId,
+                i.ProductName,
+                i.StoreId,
+                storeLookup.GetValueOrDefault(i.StoreId)?.Name ?? "Unknown Seller",
+                i.UnitPrice,
+                i.Quantity,
+                i.LineTotal,
+                i.ShippingMethodName,
+                i.ShippingCost,
+                estimatedDelivery);
+        }).ToList();
+
+        // Calculate overall estimated delivery range
+        string? estimatedDeliveryRange = null;
+        if (shippingMethods.Count > 0)
+        {
+            var minDays = shippingMethods.Min(m => m.EstimatedDeliveryDaysMin);
+            var maxDays = shippingMethods.Max(m => m.EstimatedDeliveryDaysMax);
+            var minDate = order.CreatedAt.AddDays(minDays).ToString("MMM dd");
+            var maxDate = order.CreatedAt.AddDays(maxDays).ToString("MMM dd, yyyy");
+            estimatedDeliveryRange = $"{minDate} - {maxDate}";
+        }
 
         return new OrderConfirmationDto(
             order.Id,
@@ -566,7 +613,34 @@ public sealed class CheckoutService
             order.TotalShipping,
             order.TotalAmount,
             order.Currency,
-            order.CreatedAt);
+            order.CreatedAt,
+            estimatedDeliveryRange,
+            buyerEmail);
+    }
+
+    /// <summary>
+    /// Gets buyer's order history with pagination.
+    /// </summary>
+    public async Task<IReadOnlyList<OrderSummaryDto>> HandleAsync(
+        GetBuyerOrdersQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var orders = await _orderRepository.GetRecentByBuyerIdAsync(
+            query.BuyerId,
+            query.Skip,
+            query.Take,
+            cancellationToken);
+
+        return orders.Select(o => new OrderSummaryDto(
+            o.Id,
+            o.OrderNumber,
+            o.Status.ToString(),
+            o.Items.Sum(i => i.Quantity),
+            o.TotalAmount,
+            o.Currency,
+            o.CreatedAt)).ToList().AsReadOnly();
     }
 
     private async Task<Cart?> GetCartAsync(Guid? buyerId, string? sessionId, CancellationToken cancellationToken)

@@ -23,6 +23,15 @@ public sealed class ShippingMethodRepository : IShippingMethodRepository
             .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<ShippingMethod>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
+    {
+        var idList = ids.ToList();
+        return await _context.ShippingMethods
+            .Where(s => idList.Contains(s.Id))
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<ShippingMethod>> GetByStoreIdAsync(Guid storeId, CancellationToken cancellationToken = default)
     {
         return await _context.ShippingMethods

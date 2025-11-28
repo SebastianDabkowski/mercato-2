@@ -88,14 +88,27 @@ public sealed class NotificationService : INotificationService
         return Task.CompletedTask;
     }
 
-    public Task SendOrderConfirmationAsync(Guid orderId, CancellationToken cancellationToken = default)
+    public Task SendOrderConfirmationAsync(
+        Guid orderId,
+        string buyerEmail,
+        string orderNumber,
+        decimal totalAmount,
+        string currency,
+        CancellationToken cancellationToken = default)
     {
         // TODO: Replace logging with real email/notification integration.
         // In a production environment, this would send an email with order details,
-        // tracking information, and receipt to the buyer.
+        // tracking information, and receipt to the buyer using an email template.
+        // Email templates should be configurable and localized.
+        var confirmationLink = $"/Buyer/OrderConfirmation/{orderId}";
         _logger.LogInformation(
-            "Order confirmation sent for order {OrderId}",
-            orderId);
+            "Order confirmation email sent to {BuyerEmail} for order {OrderNumber}. " +
+            "Total: {Currency} {TotalAmount:N2}. Confirmation link: {ConfirmationLink}",
+            buyerEmail,
+            orderNumber,
+            currency,
+            totalAmount,
+            confirmationLink);
         return Task.CompletedTask;
     }
 }

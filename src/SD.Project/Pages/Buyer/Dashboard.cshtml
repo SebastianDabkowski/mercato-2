@@ -4,35 +4,137 @@
     ViewData["Title"] = "Buyer Dashboard";
 }
 
-<h1>Buyer Dashboard</h1>
-<p>Welcome to your buyer dashboard, @User.Identity?.Name!</p>
+<div class="container py-4">
+    <h1 class="mb-4">Buyer Dashboard</h1>
+    <p class="lead mb-4">Welcome, @User.Identity?.Name!</p>
 
-<div class="row">
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">My Orders</h5>
-                <p class="card-text">View and track your orders.</p>
-                <a href="#" class="btn btn-primary">View Orders</a>
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-bag me-2" viewBox="0 0 16 16">
+                            <path d="M8 1a2.5 2.5 0 0 1 2.5 2.5V4h-5v-.5A2.5 2.5 0 0 1 8 1m3.5 3v-.5a3.5 3.5 0 1 0-7 0V4H1v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4zM2 5h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/>
+                        </svg>
+                        My Orders
+                    </h5>
+                    <p class="card-text text-muted">View and track your orders.</p>
+                    <a asp-page="/Buyer/Search" class="btn btn-outline-primary">Browse Products</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-cart me-2" viewBox="0 0 16 16">
+                            <path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .491.592l-1.5 8A.5.5 0 0 1 13 12H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5M3.102 4l1.313 7h8.17l1.313-7zM5 12a2 2 0 1 0 0 4 2 2 0 0 0 0-4m7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4m-7 1a1 1 0 1 1 0 2 1 1 0 0 1 0-2m7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2"/>
+                        </svg>
+                        Shopping Cart
+                    </h5>
+                    <p class="card-text text-muted">View items in your cart.</p>
+                    <a asp-page="/Buyer/Cart" class="btn btn-outline-primary">View Cart</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-person-circle me-2" viewBox="0 0 16 16">
+                            <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0"/>
+                            <path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1"/>
+                        </svg>
+                        My Account
+                    </h5>
+                    <p class="card-text text-muted">Manage your account settings.</p>
+                    <a asp-page="/ChangePassword" class="btn btn-outline-primary">Account Settings</a>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Shopping Cart</h5>
-                <p class="card-text">View items in your cart.</p>
-                <a href="#" class="btn btn-primary">View Cart</a>
-            </div>
+
+    <!-- Order History Section -->
+    <div class="card">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-clock-history me-2" viewBox="0 0 16 16">
+                    <path d="M8.515 1.019A7 7 0 0 0 8 1V0a8 8 0 0 1 .589.022zm2.004.45a7 7 0 0 0-.985-.299l.219-.976q.576.129 1.126.342zm1.37.71a7 7 0 0 0-.439-.27l.493-.87a8 8 0 0 1 .979.654l-.615.789a7 7 0 0 0-.418-.302zm1.834 1.79a7 7 0 0 0-.653-.796l.724-.69q.406.429.747.91zm.744 1.352a7 7 0 0 0-.214-.468l.893-.45a8 8 0 0 1 .45 1.088l-.95.313a7 7 0 0 0-.179-.483m.53 2.507a7 7 0 0 0-.1-1.025l.985-.17q.1.58.116 1.17zm-.131 1.538q.05-.254.081-.51l.993.123a8 8 0 0 1-.23 1.155l-.964-.267q.069-.247.12-.501m-.952 2.379q.276-.436.486-.908l.914.405q-.24.54-.555 1.038zm-.964 1.205q.183-.183.35-.378l.758.653a8 8 0 0 1-.401.432z"/>
+                    <path d="M8 1a7 7 0 1 0 4.95 11.95l.707.707A8.001 8.001 0 1 1 8 0z"/>
+                    <path d="M7.5 3a.5.5 0 0 1 .5.5v5.21l3.248 1.856a.5.5 0 0 1-.496.868l-3.5-2A.5.5 0 0 1 7 9V3.5a.5.5 0 0 1 .5-.5"/>
+                </svg>
+                Recent Orders
+            </h5>
         </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">My Account</h5>
-                <p class="card-text">Manage your account settings.</p>
-                <a href="#" class="btn btn-primary">Account Settings</a>
-            </div>
+        <div class="card-body p-0">
+            @if (Model.RecentOrders.Count == 0)
+            {
+                <div class="text-center py-5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-bag-x text-muted mb-3" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd" d="M6.146 8.146a.5.5 0 0 1 .708 0L8 9.293l1.146-1.147a.5.5 0 1 1 .708.708L8.707 10l1.147 1.146a.5.5 0 0 1-.708.708L8 10.707l-1.146 1.147a.5.5 0 0 1-.708-.708L7.293 10 6.146 8.854a.5.5 0 0 1 0-.708"/>
+                        <path d="M8 1a2.5 2.5 0 0 1 2.5 2.5V4h-5v-.5A2.5 2.5 0 0 1 8 1m3.5 3v-.5a3.5 3.5 0 1 0-7 0V4H1v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4zM2 5h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/>
+                    </svg>
+                    <h5 class="text-muted">No orders yet</h5>
+                    <p class="text-muted mb-3">Start shopping to see your orders here.</p>
+                    <a asp-page="/Buyer/Search" class="btn btn-primary">Browse Products</a>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col">Order Number</th>
+                                <th scope="col">Date</th>
+                                <th scope="col" class="text-center">Items</th>
+                                <th scope="col" class="text-center">Status</th>
+                                <th scope="col" class="text-end">Total</th>
+                                <th scope="col" class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var order in Model.RecentOrders)
+                            {
+                                var statusClass = order.Status switch
+                                {
+                                    "PaymentConfirmed" => "bg-success",
+                                    "Processing" => "bg-info",
+                                    "Shipped" => "bg-primary",
+                                    "Delivered" => "bg-success",
+                                    "Cancelled" => "bg-secondary",
+                                    "PaymentFailed" => "bg-danger",
+                                    _ => "bg-warning"
+                                };
+                                var statusDisplay = order.Status switch
+                                {
+                                    "PaymentConfirmed" => "Confirmed",
+                                    "PaymentFailed" => "Failed",
+                                    _ => order.Status
+                                };
+                                <tr>
+                                    <td>
+                                        <a asp-page="/Buyer/OrderConfirmation" asp-route-orderId="@order.OrderId" class="fw-bold text-decoration-none">
+                                            @order.OrderNumber
+                                        </a>
+                                    </td>
+                                    <td>@order.CreatedAt.ToString("MMM dd, yyyy")</td>
+                                    <td class="text-center">@order.ItemCount</td>
+                                    <td class="text-center">
+                                        <span class="badge @statusClass">@statusDisplay</span>
+                                    </td>
+                                    <td class="text-end fw-bold">@order.Currency @order.TotalAmount.ToString("N2")</td>
+                                    <td class="text-end">
+                                        <a asp-page="/Buyer/OrderConfirmation" asp-route-orderId="@order.OrderId" class="btn btn-sm btn-outline-primary">
+                                            View Details
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
         </div>
     </div>
 </div>
