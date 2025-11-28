@@ -1,0 +1,58 @@
+using Microsoft.Extensions.DependencyInjection;
+using SD.Project.Domain.Entities;
+using SD.Project.Domain.Repositories;
+using SD.Project.Domain.ValueObjects;
+
+namespace SD.Project.Infrastructure;
+
+/// <summary>
+/// Provides development seed data for the application.
+/// </summary>
+public static class SeedDataExtensions
+{
+    /// <summary>
+    /// Seeds development data for testing the public store page functionality.
+    /// </summary>
+    public static async Task SeedDevelopmentDataAsync(this IServiceProvider services)
+    {
+        using var scope = services.CreateScope();
+        var storeRepo = scope.ServiceProvider.GetRequiredService<IStoreRepository>();
+        var productRepo = scope.ServiceProvider.GetRequiredService<IProductRepository>();
+
+        // Create a test seller user ID
+        var sellerId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+
+        // Create an active store
+        var existingStore = await storeRepo.GetBySlugAsync("demo-store");
+        if (existingStore is null)
+        {
+            var store = new Store(sellerId, "Demo Store", "contact@demostore.com");
+            store.UpdateDescription("Welcome to our demo store! We offer a wide range of quality products.");
+            store.UpdateLogoUrl(null);
+            store.Activate(); // Make it publicly visible
+            await storeRepo.AddAsync(store);
+            await storeRepo.SaveChangesAsync();
+
+            // Add some products to the store
+            var product1 = new Product(Guid.NewGuid(), "Sample Product 1", new Money(29.99m, "USD"), store.Id);
+            var product2 = new Product(Guid.NewGuid(), "Sample Product 2", new Money(49.99m, "USD"), store.Id);
+            var product3 = new Product(Guid.NewGuid(), "Sample Product 3", new Money(19.99m, "USD"), store.Id);
+            await productRepo.AddAsync(product1);
+            await productRepo.AddAsync(product2);
+            await productRepo.AddAsync(product3);
+            await productRepo.SaveChangesAsync();
+        }
+
+        // Create a pending verification store
+        var pendingSellerId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+        var pendingStore = await storeRepo.GetBySlugAsync("pending-store");
+        if (pendingStore is null)
+        {
+            var store = new Store(pendingSellerId, "Pending Store", "pending@store.com");
+            store.UpdateDescription("This store is pending verification.");
+            // Don't activate - leave as PendingVerification
+            await storeRepo.AddAsync(store);
+            await storeRepo.SaveChangesAsync();
+        }
+    }
+}

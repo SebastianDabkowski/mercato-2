@@ -45,6 +45,22 @@ public sealed class StoreService
     }
 
     /// <summary>
+    /// Gets a store by its URL slug.
+    /// </summary>
+    public async Task<StoreDto?> HandleAsync(GetStoreBySlugQuery query, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        if (string.IsNullOrWhiteSpace(query.Slug))
+        {
+            return null;
+        }
+
+        var store = await _storeRepository.GetBySlugAsync(query.Slug, cancellationToken);
+        return store is null ? null : MapToDto(store);
+    }
+
+    /// <summary>
     /// Creates a new store for a seller.
     /// </summary>
     public async Task<StoreResultDto> HandleAsync(CreateStoreCommand command, CancellationToken cancellationToken = default)
@@ -76,6 +92,13 @@ public sealed class StoreService
         if (await _storeRepository.NameExistsAsync(command.Name, null, cancellationToken))
         {
             return StoreResultDto.Failed("A store with this name already exists. Please choose a different name.");
+        }
+
+        // Check for slug uniqueness
+        var slug = Store.CreateSlugFromName(command.Name);
+        if (await _storeRepository.SlugExistsAsync(slug, null, cancellationToken))
+        {
+            return StoreResultDto.Failed("A store with a similar URL already exists. Please choose a different name.");
         }
 
         // Validate contact email
@@ -137,6 +160,13 @@ public sealed class StoreService
             return StoreResultDto.Failed("A store with this name already exists. Please choose a different name.");
         }
 
+        // Check for slug uniqueness (excluding current store)
+        var slug = Store.CreateSlugFromName(command.Name);
+        if (await _storeRepository.SlugExistsAsync(slug, store.Id, cancellationToken))
+        {
+            return StoreResultDto.Failed("A store with a similar URL already exists. Please choose a different name.");
+        }
+
         // Validate contact email
         if (!IsValidEmail(command.ContactEmail))
         {
@@ -193,11 +223,13 @@ public sealed class StoreService
             store.Id,
             store.SellerId,
             store.Name,
+            store.Slug,
             store.LogoUrl,
             store.Description,
             store.ContactEmail,
             store.PhoneNumber,
             store.WebsiteUrl,
+            store.Status,
             store.CreatedAt,
             store.UpdatedAt);
     }

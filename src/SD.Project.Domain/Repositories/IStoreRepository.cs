@@ -23,9 +23,19 @@ public interface IStoreRepository
     Task<Store?> GetByNameAsync(string name, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets a store by its slug (case-insensitive).
+    /// </summary>
+    Task<Store?> GetBySlugAsync(string slug, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Checks if a store name already exists.
     /// </summary>
     Task<bool> NameExistsAsync(string name, Guid? excludeStoreId = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Checks if a store slug already exists.
+    /// </summary>
+    Task<bool> SlugExistsAsync(string slug, Guid? excludeStoreId = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Adds a new store.

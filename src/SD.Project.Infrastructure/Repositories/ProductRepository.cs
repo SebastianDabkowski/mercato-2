@@ -28,6 +28,15 @@ public sealed class ProductRepository : IProductRepository
         return results.AsReadOnly();
     }
 
+    public async Task<IReadOnlyCollection<Product>> GetByStoreIdAsync(Guid storeId, CancellationToken cancellationToken = default)
+    {
+        var results = await _context.Products
+            .AsNoTracking()
+            .Where(p => p.StoreId == storeId && p.IsActive)
+            .ToListAsync(cancellationToken);
+        return results.AsReadOnly();
+    }
+
     public async Task AddAsync(Product product, CancellationToken cancellationToken = default)
     {
         await _context.Products.AddAsync(product, cancellationToken);

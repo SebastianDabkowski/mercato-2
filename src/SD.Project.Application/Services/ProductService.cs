@@ -50,4 +50,17 @@ public sealed class ProductService
             .Select(p => new ProductDto(p.Id, p.Name, p.Price.Amount, p.Price.Currency, p.IsActive))
             .ToArray();
     }
+
+    /// <summary>
+    /// Retrieves products for a specific store.
+    /// </summary>
+    public async Task<IReadOnlyCollection<ProductDto>> HandleAsync(GetProductsByStoreIdQuery query, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var products = await _repository.GetByStoreIdAsync(query.StoreId, cancellationToken);
+        return products
+            .Select(p => new ProductDto(p.Id, p.Name, p.Price.Amount, p.Price.Currency, p.IsActive))
+            .ToArray();
+    }
 }
