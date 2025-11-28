@@ -13,17 +13,21 @@ namespace SD.Project.Pages.Seller
     {
         private readonly ILogger<OnboardingCompleteModel> _logger;
         private readonly SellerOnboardingService _onboardingService;
+        private readonly IConfiguration _configuration;
 
         public OnboardingStatus Status { get; private set; }
         public string? StoreName { get; private set; }
         public DateTime? SubmittedAt { get; private set; }
+        public string SupportEmail { get; private set; } = "support@example.com";
 
         public OnboardingCompleteModel(
             ILogger<OnboardingCompleteModel> logger,
-            SellerOnboardingService onboardingService)
+            SellerOnboardingService onboardingService,
+            IConfiguration configuration)
         {
             _logger = logger;
             _onboardingService = onboardingService;
+            _configuration = configuration;
         }
 
         public async Task<IActionResult> OnGetAsync()
@@ -33,6 +37,8 @@ namespace SD.Project.Pages.Seller
             {
                 return RedirectToPage("/Login");
             }
+
+            SupportEmail = _configuration["SupportEmail"] ?? "support@example.com";
 
             var onboarding = await _onboardingService.HandleAsync(new GetSellerOnboardingQuery(userId));
             if (onboarding is null)
