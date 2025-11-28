@@ -1,12 +1,24 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using SD.Project.Application;
+using SD.Project.Application.Services;
 using SD.Project.Infrastructure;
+using SD.Project.Pages;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// Add antiforgery protection for CSRF
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "X-CSRF-TOKEN";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.SameSite = SameSiteMode.Strict;
+});
 
 // Configure cookie authentication with OAuth providers
 var authBuilder = builder.Services.AddAuthentication(options =>
@@ -24,6 +36,40 @@ var authBuilder = builder.Services.AddAuthentication(options =>
     options.Cookie.HttpOnly = true;
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     options.Cookie.SameSite = SameSiteMode.Lax; // Changed to Lax for OAuth redirects
+
+    // Validate session token on each request
+    options.Events = new CookieAuthenticationEvents
+    {
+        OnValidatePrincipal = async context =>
+        {
+            var sessionToken = context.Principal?.FindFirst(LoginModel.SessionTokenClaimType)?.Value;
+            if (string.IsNullOrEmpty(sessionToken))
+            {
+                // No session token in cookie - reject the session for authenticated users
+                if (context.Principal?.Identity?.IsAuthenticated == true)
+                {
+                    context.RejectPrincipal();
+                    await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                }
+                return;
+            }
+
+            // Validate the session token against the database
+            var sessionService = context.HttpContext.RequestServices.GetRequiredService<SessionService>();
+            var session = await sessionService.ValidateSessionAsync(sessionToken);
+
+            if (session is null)
+            {
+                // Session is invalid (expired or revoked) - reject and sign out
+                context.RejectPrincipal();
+                await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                return;
+            }
+
+            // Update session activity for activity tracking
+            await sessionService.UpdateSessionActivityAsync(sessionToken);
+        }
+    };
 });
 
 // Configure Google OAuth if credentials are provided

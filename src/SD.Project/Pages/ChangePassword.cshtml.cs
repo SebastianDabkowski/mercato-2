@@ -1,4 +1,6 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -13,6 +15,7 @@ namespace SD.Project.Pages
     {
         private readonly ILogger<ChangePasswordModel> _logger;
         private readonly PasswordResetService _passwordResetService;
+        private readonly SessionService _sessionService;
 
         [BindProperty]
         public ChangePasswordViewModel Input { get; set; } = new();
@@ -23,10 +26,12 @@ namespace SD.Project.Pages
 
         public ChangePasswordModel(
             ILogger<ChangePasswordModel> logger,
-            PasswordResetService passwordResetService)
+            PasswordResetService passwordResetService,
+            SessionService sessionService)
         {
             _logger = logger;
             _passwordResetService = passwordResetService;
+            _sessionService = sessionService;
         }
 
         public void OnGet()
@@ -53,8 +58,17 @@ namespace SD.Project.Pages
             if (result.Success)
             {
                 _logger.LogInformation("Password changed successfully for user {UserId}", userId);
-                ShowSuccess = true;
-                return Page();
+
+                // Revoke all sessions for security when password is changed
+                var revokedCount = await _sessionService.RevokeAllUserSessionsAsync(userId);
+                _logger.LogInformation("Revoked {Count} sessions for user {UserId} after password change", revokedCount, userId);
+
+                // Sign out the current session - user will need to re-authenticate
+                await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+                // Redirect to login with a success message
+                TempData["StatusMessage"] = "Your password has been changed successfully. Please sign in with your new password.";
+                return RedirectToPage("/Login");
             }
 
             ErrorMessage = result.Message;
