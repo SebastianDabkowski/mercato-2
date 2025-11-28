@@ -424,6 +424,16 @@ public sealed class CheckoutService
                 var product = productLookup.GetValueOrDefault(item.ProductId);
                 if (product is not null)
                 {
+                    // Calculate new stock level with protection against negative values
+                    var newStock = product.Stock - item.Quantity;
+                    if (newStock < 0)
+                    {
+                        // Stock was modified by another concurrent transaction
+                        // Return a validation error instead of creating an invalid order
+                        return InitiatePaymentResultDto.Failed(
+                            $"Unable to complete order: '{product.Name}' has insufficient stock. Please refresh your cart and try again.");
+                    }
+
                     // Store snapshot of current price with the order
                     order.AddItem(
                         item.ProductId,
@@ -436,7 +446,7 @@ public sealed class CheckoutService
                         shippingPerItem * item.Quantity);
 
                     // Reduce stock for the product
-                    product.UpdateStock(product.Stock - item.Quantity);
+                    product.UpdateStock(newStock);
                     _productRepository.Update(product);
                 }
             }

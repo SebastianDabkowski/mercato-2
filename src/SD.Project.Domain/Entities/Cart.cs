@@ -64,6 +64,7 @@ public class Cart
 
     /// <summary>
     /// Adds a product to the cart. If the product already exists, quantity is increased.
+    /// The price snapshot is updated to reflect the current price when adding more quantity.
     /// </summary>
     /// <param name="productId">The product ID.</param>
     /// <param name="storeId">The seller's store ID.</param>
@@ -92,6 +93,8 @@ public class Cart
         if (existingItem is not null)
         {
             existingItem.IncreaseQuantity(quantity);
+            // Update the price snapshot to the current price when adding more items
+            existingItem.UpdateCapturedPrice(unitPrice, currency);
             UpdatedAt = DateTime.UtcNow;
             return existingItem;
         }

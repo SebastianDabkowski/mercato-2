@@ -123,21 +123,29 @@ public sealed class CartItemValidationResult
             stockMessage, priceMessage);
     }
 
-    public static CartItemValidationResult ProductNotFound(Guid productId, string productName, int requestedQuantity)
+    public static CartItemValidationResult ProductNotFound(
+        Guid productId,
+        string productName,
+        int requestedQuantity,
+        string currency)
     {
         return new CartItemValidationResult(
             productId, productName, false, true,
             requestedQuantity, 0,
-            0m, 0m, "USD",
+            0m, 0m, currency,
             $"'{productName}' is no longer available.", null);
     }
 
-    public static CartItemValidationResult ProductInactive(Guid productId, string productName, int requestedQuantity)
+    public static CartItemValidationResult ProductInactive(
+        Guid productId,
+        string productName,
+        int requestedQuantity,
+        string currency)
     {
         return new CartItemValidationResult(
             productId, productName, false, true,
             requestedQuantity, 0,
-            0m, 0m, "USD",
+            0m, 0m, currency,
             $"'{productName}' is no longer available for purchase.", null);
     }
 }
@@ -239,7 +247,8 @@ public sealed class CheckoutValidationService
             return CartItemValidationResult.ProductNotFound(
                 item.ProductId,
                 "Unknown Product",
-                item.Quantity);
+                item.Quantity,
+                item.CurrencyAtAddition);
         }
 
         // Check if product is still active
@@ -248,7 +257,8 @@ public sealed class CheckoutValidationService
             return CartItemValidationResult.ProductInactive(
                 item.ProductId,
                 product.Name,
-                item.Quantity);
+                item.Quantity,
+                item.CurrencyAtAddition);
         }
 
         var currentPrice = product.Price.Amount;
