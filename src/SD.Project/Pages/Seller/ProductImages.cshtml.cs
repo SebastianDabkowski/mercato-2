@@ -187,20 +187,7 @@ namespace SD.Project.Pages.Seller
         private async Task LoadImagesAsync(Guid productId)
         {
             var images = await _productImageService.HandleAsync(new GetProductImagesQuery(productId));
-            Images = images.Select(MapToViewModel).ToArray();
-        }
-
-        private static ProductImageViewModel MapToViewModel(ProductImageDto dto)
-        {
-            return new ProductImageViewModel(
-                dto.Id,
-                dto.ProductId,
-                dto.FileName,
-                dto.ImageUrl,
-                dto.ThumbnailUrl,
-                dto.IsMain,
-                dto.DisplayOrder,
-                dto.CreatedAt);
+            Images = images.ToViewModels();
         }
 
         private Guid GetUserId()

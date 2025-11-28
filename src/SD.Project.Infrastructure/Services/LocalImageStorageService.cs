@@ -27,8 +27,8 @@ public sealed class LocalImageStorageService : IImageStorageService
     {
         _logger = logger;
         var webRootPath = Path.Combine(environment.ContentRootPath, "wwwroot");
-        _uploadsPath = Path.Combine(webRootPath, "uploads", "products");
-        _thumbnailsPath = Path.Combine(webRootPath, "uploads", "products", "thumbnails");
+        _uploadsPath = Path.GetFullPath(Path.Combine(webRootPath, "uploads", "products"));
+        _thumbnailsPath = Path.GetFullPath(Path.Combine(webRootPath, "uploads", "products", "thumbnails"));
 
         // Ensure directories exist
         Directory.CreateDirectory(_uploadsPath);
@@ -45,20 +45,38 @@ public sealed class LocalImageStorageService : IImageStorageService
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
         ArgumentException.ThrowIfNullOrWhiteSpace(contentType);
 
-        // Generate unique file name
-        var extension = Path.GetExtension(fileName).ToLowerInvariant();
+        // Reset stream position to ensure we read from the beginning
+        if (imageStream.CanSeek)
+        {
+            imageStream.Position = 0;
+        }
+
+        // Generate unique file name with safe extension
+        var extension = GetSafeExtension(fileName);
         var storedFileName = $"{Guid.NewGuid()}{extension}";
 
-        var imagePath = Path.Combine(_uploadsPath, storedFileName);
-        var thumbnailPath = Path.Combine(_thumbnailsPath, storedFileName);
+        // Validate the stored file name to prevent path traversal
+        if (!IsValidFileName(storedFileName))
+        {
+            throw new InvalidOperationException("Invalid file name generated.");
+        }
+
+        var imagePath = GetSafePath(_uploadsPath, storedFileName);
+        var thumbnailPath = GetSafePath(_thumbnailsPath, storedFileName);
 
         try
         {
-            // Read the original image
+            // Read the original image with validation
             using var originalBitmap = SKBitmap.Decode(imageStream);
-            if (originalBitmap == null)
+            if (originalBitmap == null || originalBitmap.Width <= 0 || originalBitmap.Height <= 0)
             {
-                throw new InvalidOperationException("Failed to decode image.");
+                throw new InvalidOperationException("Failed to decode image or image has invalid dimensions.");
+            }
+
+            // Additional validation: check for reasonable image dimensions
+            if (originalBitmap.Width > 10000 || originalBitmap.Height > 10000)
+            {
+                throw new InvalidOperationException("Image dimensions exceed maximum allowed size.");
             }
 
             // Resize and save the main image (if larger than max dimensions)
@@ -92,8 +110,15 @@ public sealed class LocalImageStorageService : IImageStorageService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(storedFileName);
 
-        var imagePath = Path.Combine(_uploadsPath, storedFileName);
-        var thumbnailPath = Path.Combine(_thumbnailsPath, storedFileName);
+        // Validate the file name to prevent path traversal
+        if (!IsValidFileName(storedFileName))
+        {
+            _logger.LogWarning("Attempted to delete file with invalid name: {FileName}", storedFileName);
+            return Task.CompletedTask;
+        }
+
+        var imagePath = GetSafePath(_uploadsPath, storedFileName);
+        var thumbnailPath = GetSafePath(_thumbnailsPath, storedFileName);
 
         TryDeleteFile(imagePath);
         TryDeleteFile(thumbnailPath);
@@ -101,6 +126,68 @@ public sealed class LocalImageStorageService : IImageStorageService
         _logger.LogInformation("Deleted image {StoredFileName}", storedFileName);
 
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Gets a safe file extension from the file name.
+    /// </summary>
+    private static string GetSafeExtension(string fileName)
+    {
+        var extension = Path.GetExtension(fileName)?.ToLowerInvariant() ?? ".jpg";
+
+        // Only allow known safe extensions
+        return extension switch
+        {
+            ".jpg" or ".jpeg" => ".jpg",
+            ".png" => ".png",
+            ".webp" => ".webp",
+            _ => ".jpg"
+        };
+    }
+
+    /// <summary>
+    /// Validates that a file name is safe and does not contain path traversal characters.
+    /// </summary>
+    private static bool IsValidFileName(string fileName)
+    {
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            return false;
+        }
+
+        // Check for path traversal attempts
+        if (fileName.Contains("..") ||
+            fileName.Contains('/') ||
+            fileName.Contains('\\') ||
+            fileName.Contains(':'))
+        {
+            return false;
+        }
+
+        // Check for invalid path characters
+        var invalidChars = Path.GetInvalidFileNameChars();
+        if (fileName.IndexOfAny(invalidChars) >= 0)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Constructs a safe file path ensuring the result is within the expected directory.
+    /// </summary>
+    private static string GetSafePath(string basePath, string fileName)
+    {
+        var fullPath = Path.GetFullPath(Path.Combine(basePath, fileName));
+
+        // Ensure the resulting path is within the base path (prevents path traversal)
+        if (!fullPath.StartsWith(basePath, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Invalid file path detected.");
+        }
+
+        return fullPath;
     }
 
     private static SKBitmap ResizeImage(SKBitmap original, int maxWidth, int maxHeight)
