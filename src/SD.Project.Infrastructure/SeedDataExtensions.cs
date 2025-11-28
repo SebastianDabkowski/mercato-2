@@ -20,7 +20,28 @@ public static class SeedDataExtensions
         var storeRepo = scope.ServiceProvider.GetRequiredService<IStoreRepository>();
         var productRepo = scope.ServiceProvider.GetRequiredService<IProductRepository>();
         var userRepo = scope.ServiceProvider.GetRequiredService<IUserRepository>();
+        var categoryRepo = scope.ServiceProvider.GetRequiredService<ICategoryRepository>();
         var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+
+        // Create an admin user for development
+        var adminId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+        var existingAdmin = await userRepo.GetByIdAsync(adminId);
+        if (existingAdmin is null)
+        {
+            var adminEmail = Email.Create("admin@demo.com");
+            var passwordHash = passwordHasher.HashPassword("Admin123!");
+            var admin = new User(
+                adminId,
+                adminEmail,
+                passwordHash,
+                UserRole.Admin,
+                "Platform",
+                "Admin",
+                acceptedTerms: true);
+            admin.VerifyEmail();
+            await userRepo.AddAsync(admin);
+            await userRepo.SaveChangesAsync();
+        }
 
         // Create a test seller user ID
         var sellerId = Guid.Parse("11111111-1111-1111-1111-111111111111");
@@ -78,6 +99,41 @@ public static class SeedDataExtensions
             // Don't activate - leave as PendingVerification
             await storeRepo.AddAsync(store);
             await storeRepo.SaveChangesAsync();
+        }
+
+        // Create sample categories for the category tree
+        var existingCategories = await categoryRepo.GetAllAsync();
+        if (existingCategories.Count == 0)
+        {
+            // Root categories
+            var electronicsId = Guid.NewGuid();
+            var clothingId = Guid.NewGuid();
+            var homeGardenId = Guid.NewGuid();
+
+            var electronics = new Category(electronicsId, "Electronics", null, 1);
+            var clothing = new Category(clothingId, "Clothing", null, 2);
+            var homeGarden = new Category(homeGardenId, "Home & Garden", null, 3);
+
+            await categoryRepo.AddAsync(electronics);
+            await categoryRepo.AddAsync(clothing);
+            await categoryRepo.AddAsync(homeGarden);
+
+            // Subcategories for Electronics
+            await categoryRepo.AddAsync(new Category(Guid.NewGuid(), "Computers", electronicsId, 1));
+            await categoryRepo.AddAsync(new Category(Guid.NewGuid(), "Mobile Phones", electronicsId, 2));
+            await categoryRepo.AddAsync(new Category(Guid.NewGuid(), "Audio & Video", electronicsId, 3));
+
+            // Subcategories for Clothing
+            await categoryRepo.AddAsync(new Category(Guid.NewGuid(), "Men's Wear", clothingId, 1));
+            await categoryRepo.AddAsync(new Category(Guid.NewGuid(), "Women's Wear", clothingId, 2));
+            await categoryRepo.AddAsync(new Category(Guid.NewGuid(), "Children's Wear", clothingId, 3));
+
+            // Subcategories for Home & Garden
+            await categoryRepo.AddAsync(new Category(Guid.NewGuid(), "Furniture", homeGardenId, 1));
+            await categoryRepo.AddAsync(new Category(Guid.NewGuid(), "Kitchen", homeGardenId, 2));
+            await categoryRepo.AddAsync(new Category(Guid.NewGuid(), "Garden Tools", homeGardenId, 3));
+
+            await categoryRepo.SaveChangesAsync();
         }
     }
 }
