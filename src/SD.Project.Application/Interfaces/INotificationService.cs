@@ -57,4 +57,13 @@ public interface INotificationService
     /// <param name="invitationToken">The unique invitation token to include in the link.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     Task SendInternalUserInvitationAsync(string email, string storeName, string role, string invitationToken, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Logs a bulk update operation for audit purposes.
+    /// </summary>
+    /// <param name="sellerId">The ID of the seller performing the update.</param>
+    /// <param name="successCount">Number of products successfully updated.</param>
+    /// <param name="failureCount">Number of products that failed to update.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendBulkUpdateCompletedAsync(Guid sellerId, int successCount, int failureCount, CancellationToken cancellationToken = default);
 }

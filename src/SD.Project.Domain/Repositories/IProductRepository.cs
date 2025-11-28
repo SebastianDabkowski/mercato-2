@@ -11,6 +11,7 @@ public interface IProductRepository
     Task<IReadOnlyCollection<Product>> GetAllAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyCollection<Product>> GetByStoreIdAsync(Guid storeId, CancellationToken cancellationToken = default);
     Task<IReadOnlyCollection<Product>> GetAllByStoreIdAsync(Guid storeId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyCollection<Product>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
     Task AddAsync(Product product, CancellationToken cancellationToken = default);
     void Update(Product product);
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
