@@ -38,6 +38,31 @@ public interface IProductRepository
         ProductSortOrder sortOrder = ProductSortOrder.Newest,
         CancellationToken cancellationToken = default);
     
+    /// <summary>
+    /// Filters active products with pagination support.
+    /// Only returns Active products for public views.
+    /// </summary>
+    /// <param name="searchTerm">Optional text to search in name and description.</param>
+    /// <param name="category">Optional category name filter.</param>
+    /// <param name="minPrice">Optional minimum price (inclusive).</param>
+    /// <param name="maxPrice">Optional maximum price (inclusive).</param>
+    /// <param name="storeId">Optional store ID filter.</param>
+    /// <param name="sortOrder">Sort order for results. Defaults to Newest.</param>
+    /// <param name="pageNumber">Page number (1-based).</param>
+    /// <param name="pageSize">Number of items per page.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tuple of (items on current page, total count of matching products).</returns>
+    Task<(IReadOnlyCollection<Product> Items, int TotalCount)> FilterPagedAsync(
+        string? searchTerm = null,
+        string? category = null,
+        decimal? minPrice = null,
+        decimal? maxPrice = null,
+        Guid? storeId = null,
+        ProductSortOrder sortOrder = ProductSortOrder.Newest,
+        int pageNumber = 1,
+        int pageSize = 12,
+        CancellationToken cancellationToken = default);
+    
     Task AddAsync(Product product, CancellationToken cancellationToken = default);
     Task AddRangeAsync(IEnumerable<Product> products, CancellationToken cancellationToken = default);
     void Update(Product product);

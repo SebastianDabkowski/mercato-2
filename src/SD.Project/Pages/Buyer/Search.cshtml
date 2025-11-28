@@ -100,15 +100,43 @@
 @{
     var hasSearchOrFilters = !string.IsNullOrEmpty(Model.SearchTerm) || Model.HasActiveFilters;
     var currentSort = Model.SortBy ?? ProductSortOption.Relevance;
+
+    // Helper function to generate page URLs preserving current query parameters
+    string GetPageUrl(int pageNumber)
+    {
+        var queryParams = new List<string>();
+        
+        if (!string.IsNullOrEmpty(Model.SearchTerm))
+            queryParams.Add($"q={Uri.EscapeDataString(Model.SearchTerm)}");
+        
+        if (Model.Filters.Category != null)
+            queryParams.Add($"CategoryFilter={Uri.EscapeDataString(Model.Filters.Category)}");
+        
+        if (Model.Filters.MinPrice.HasValue)
+            queryParams.Add($"MinPrice={Model.Filters.MinPrice.Value}");
+        
+        if (Model.Filters.MaxPrice.HasValue)
+            queryParams.Add($"MaxPrice={Model.Filters.MaxPrice.Value}");
+        
+        if (Model.Filters.StoreId.HasValue)
+            queryParams.Add($"StoreId={Model.Filters.StoreId.Value}");
+        
+        if (Model.SortBy.HasValue)
+            queryParams.Add($"SortBy={Model.SortBy.Value}");
+        
+        queryParams.Add($"PageNumber={pageNumber}");
+        
+        return $"/Buyer/Search?{string.Join("&", queryParams)}";
+    }
 }
 
 @if (hasSearchOrFilters)
 {
     <div class="d-flex justify-content-between align-items-center mb-3">
         <p class="text-muted mb-0">
-            @if (Model.Products.Any())
+            @if (Model.TotalCount > 0)
             {
-                <text>Found @Model.Products.Count result(s)</text>
+                <text>Found @Model.TotalCount result(s)</text>
                 if (!string.IsNullOrEmpty(Model.SearchTerm))
                 {
                     <text> for "<strong>@Model.SearchTerm</strong>"</text>
@@ -116,6 +144,10 @@
                 if (Model.HasActiveFilters)
                 {
                     <text> with filters applied</text>
+                }
+                if (Model.TotalPages > 1)
+                {
+                    <text> (showing page @Model.PageNumber of @Model.TotalPages)</text>
                 }
             }
             else
@@ -188,6 +220,83 @@
                     </div>
                 }
             </div>
+
+            <!-- Pagination Controls -->
+            @if (Model.TotalPages > 1)
+            {
+                <nav aria-label="Search results pagination" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        <!-- Previous button -->
+                        <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
+                            <a class="page-link" href="@GetPageUrl(Model.PageNumber - 1)" aria-label="Previous" tabindex="@(Model.HasPreviousPage ? 0 : -1)">
+                                <span aria-hidden="true">&laquo;</span>
+                                <span class="visually-hidden">Previous</span>
+                            </a>
+                        </li>
+
+                        @{
+                            // Show at most 5 page numbers centered around current page
+                            int startPage = Math.Max(1, Model.PageNumber - 2);
+                            int endPage = Math.Min(Model.TotalPages, startPage + 4);
+                            if (endPage - startPage < 4)
+                            {
+                                startPage = Math.Max(1, endPage - 4);
+                            }
+                        }
+
+                        @if (startPage > 1)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" href="@GetPageUrl(1)">1</a>
+                            </li>
+                            @if (startPage > 2)
+                            {
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            }
+                        }
+
+                        @for (int i = startPage; i <= endPage; i++)
+                        {
+                            <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                                <a class="page-link" href="@GetPageUrl(i)">@i</a>
+                            </li>
+                        }
+
+                        @if (endPage < Model.TotalPages)
+                        {
+                            @if (endPage < Model.TotalPages - 1)
+                            {
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            }
+                            <li class="page-item">
+                                <a class="page-link" href="@GetPageUrl(Model.TotalPages)">@Model.TotalPages</a>
+                            </li>
+                        }
+
+                        <!-- Next button -->
+                        <li class="page-item @(Model.HasNextPage ? "" : "disabled")">
+                            <a class="page-link" href="@GetPageUrl(Model.PageNumber + 1)" aria-label="Next" tabindex="@(Model.HasNextPage ? 0 : -1)">
+                                <span aria-hidden="true">&raquo;</span>
+                                <span class="visually-hidden">Next</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+
+                <p class="text-center text-muted">
+                    Showing @((Model.PageNumber - 1) * Model.PageSize + 1) - @Math.Min(Model.PageNumber * Model.PageSize, Model.TotalCount) of @Model.TotalCount results
+                </p>
+            }
+            else if (Model.TotalCount > 0)
+            {
+                <p class="text-center text-muted mt-4">
+                    Showing all @Model.TotalCount result(s)
+                </p>
+            }
         </section>
     }
     else

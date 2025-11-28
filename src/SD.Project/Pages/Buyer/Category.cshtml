@@ -3,6 +3,31 @@
 @using SD.Project.Application.Queries
 @{
     ViewData["Title"] = Model.CurrentCategory?.Name ?? "Browse Categories";
+    
+    // Helper function to generate page URLs preserving current query parameters
+    string GetPageUrl(int pageNumber)
+    {
+        var queryParams = new List<string>();
+        
+        if (Model.CurrentCategory != null)
+            queryParams.Add($"id={Model.CurrentCategory.Id}");
+        
+        if (Model.Filters.MinPrice.HasValue)
+            queryParams.Add($"MinPrice={Model.Filters.MinPrice.Value}");
+        
+        if (Model.Filters.MaxPrice.HasValue)
+            queryParams.Add($"MaxPrice={Model.Filters.MaxPrice.Value}");
+        
+        if (Model.Filters.StoreId.HasValue)
+            queryParams.Add($"StoreId={Model.Filters.StoreId.Value}");
+        
+        if (Model.SortBy.HasValue)
+            queryParams.Add($"SortBy={Model.SortBy.Value}");
+        
+        queryParams.Add($"PageNumber={pageNumber}");
+        
+        return $"/Buyer/Category?{string.Join("&", queryParams)}";
+    }
 }
 
 <nav aria-label="breadcrumb" class="mb-3">
@@ -153,10 +178,14 @@ else
                 <div>
                     <h5 class="mb-0 d-inline">Products</h5>
                     <span class="text-muted ms-2">
-                        @Model.Products.Count result(s)
+                        @Model.TotalCount result(s)
                         @if (Model.HasActiveFilters)
                         {
                             <text>with filters applied</text>
+                        }
+                        @if (Model.TotalPages > 1)
+                        {
+                            <text>(page @Model.PageNumber of @Model.TotalPages)</text>
                         }
                     </span>
                 </div>
@@ -206,6 +235,83 @@ else
                     </div>
                 }
             </div>
+
+            <!-- Pagination Controls -->
+            @if (Model.TotalPages > 1)
+            {
+                <nav aria-label="Category results pagination" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        <!-- Previous button -->
+                        <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
+                            <a class="page-link" href="@GetPageUrl(Model.PageNumber - 1)" aria-label="Previous" tabindex="@(Model.HasPreviousPage ? 0 : -1)">
+                                <span aria-hidden="true">&laquo;</span>
+                                <span class="visually-hidden">Previous</span>
+                            </a>
+                        </li>
+
+                        @{
+                            // Show at most 5 page numbers centered around current page
+                            int startPage = Math.Max(1, Model.PageNumber - 2);
+                            int endPage = Math.Min(Model.TotalPages, startPage + 4);
+                            if (endPage - startPage < 4)
+                            {
+                                startPage = Math.Max(1, endPage - 4);
+                            }
+                        }
+
+                        @if (startPage > 1)
+                        {
+                            <li class="page-item">
+                                <a class="page-link" href="@GetPageUrl(1)">1</a>
+                            </li>
+                            @if (startPage > 2)
+                            {
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            }
+                        }
+
+                        @for (int i = startPage; i <= endPage; i++)
+                        {
+                            <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                                <a class="page-link" href="@GetPageUrl(i)">@i</a>
+                            </li>
+                        }
+
+                        @if (endPage < Model.TotalPages)
+                        {
+                            @if (endPage < Model.TotalPages - 1)
+                            {
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            }
+                            <li class="page-item">
+                                <a class="page-link" href="@GetPageUrl(Model.TotalPages)">@Model.TotalPages</a>
+                            </li>
+                        }
+
+                        <!-- Next button -->
+                        <li class="page-item @(Model.HasNextPage ? "" : "disabled")">
+                            <a class="page-link" href="@GetPageUrl(Model.PageNumber + 1)" aria-label="Next" tabindex="@(Model.HasNextPage ? 0 : -1)">
+                                <span aria-hidden="true">&raquo;</span>
+                                <span class="visually-hidden">Next</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+
+                <p class="text-center text-muted">
+                    Showing @((Model.PageNumber - 1) * Model.PageSize + 1) - @Math.Min(Model.PageNumber * Model.PageSize, Model.TotalCount) of @Model.TotalCount results
+                </p>
+            }
+            else if (Model.TotalCount > 0)
+            {
+                <p class="text-center text-muted mt-4">
+                    Showing all @Model.TotalCount result(s)
+                </p>
+            }
         </section>
     }
     else

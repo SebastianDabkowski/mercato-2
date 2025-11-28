@@ -76,6 +76,37 @@ public class CategoryModel : PageModel
     public ProductSortOption? SortBy { get; set; }
 
     /// <summary>
+    /// Current page number (1-based).
+    /// </summary>
+    [BindProperty(SupportsGet = true)]
+    public int PageNumber { get; set; } = 1;
+
+    /// <summary>
+    /// Number of items per page.
+    /// </summary>
+    public int PageSize { get; private set; } = 12;
+
+    /// <summary>
+    /// Total count of products matching the search criteria.
+    /// </summary>
+    public int TotalCount { get; private set; }
+
+    /// <summary>
+    /// Total number of pages.
+    /// </summary>
+    public int TotalPages { get; private set; }
+
+    /// <summary>
+    /// Whether there is a previous page available.
+    /// </summary>
+    public bool HasPreviousPage => PageNumber > 1;
+
+    /// <summary>
+    /// Whether there is a next page available.
+    /// </summary>
+    public bool HasNextPage => PageNumber < TotalPages;
+
+    /// <summary>
     /// Available stores for filter dropdown.
     /// </summary>
     public IReadOnlyCollection<StoreViewModel> AvailableStores { get; private set; } = Array.Empty<StoreViewModel>();
@@ -181,16 +212,23 @@ public class CategoryModel : PageModel
                 MaxPrice: Filters.MaxPrice,
                 StoreId: Filters.StoreId);
 
-            var productDtos = await _productService.HandleAsync(
-                new FilterProductsQuery(Filters: filterCriteria, SortBy: effectiveSortBy),
+            var pagedResult = await _productService.HandleAsync(
+                new FilterProductsQuery(
+                    Filters: filterCriteria, 
+                    SortBy: effectiveSortBy,
+                    PageNumber: PageNumber,
+                    PageSize: PageSize),
                 cancellationToken);
 
-            Products = productDtos
+            Products = pagedResult.Items
                 .Select(MapToProductViewModel)
                 .ToArray();
+            TotalCount = pagedResult.TotalCount;
+            TotalPages = pagedResult.TotalPages;
+            PageSize = pagedResult.PageSize;
 
-            _logger.LogDebug("Loaded category {CategoryName} with {ProductCount} products and {SubcategoryCount} subcategories",
-                categoryDto.Name, Products.Count, Subcategories.Count);
+            _logger.LogDebug("Loaded category {CategoryName} with {ProductCount} products and {SubcategoryCount} subcategories (page {Page} of {TotalPages})",
+                categoryDto.Name, TotalCount, Subcategories.Count, PageNumber, TotalPages);
         }
 
         return Page();

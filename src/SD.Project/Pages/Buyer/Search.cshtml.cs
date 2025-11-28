@@ -63,9 +63,40 @@ public class SearchModel : PageModel
     public ProductSortOption? SortBy { get; set; }
 
     /// <summary>
+    /// Current page number (1-based).
+    /// </summary>
+    [BindProperty(SupportsGet = true)]
+    public int PageNumber { get; set; } = 1;
+
+    /// <summary>
+    /// Number of items per page.
+    /// </summary>
+    public int PageSize { get; private set; } = 12;
+
+    /// <summary>
     /// Products matching the search term and filters.
     /// </summary>
     public IReadOnlyCollection<ProductViewModel> Products { get; private set; } = Array.Empty<ProductViewModel>();
+
+    /// <summary>
+    /// Total count of products matching the search criteria.
+    /// </summary>
+    public int TotalCount { get; private set; }
+
+    /// <summary>
+    /// Total number of pages.
+    /// </summary>
+    public int TotalPages { get; private set; }
+
+    /// <summary>
+    /// Whether there is a previous page available.
+    /// </summary>
+    public bool HasPreviousPage => PageNumber > 1;
+
+    /// <summary>
+    /// Whether there is a next page available.
+    /// </summary>
+    public bool HasNextPage => PageNumber < TotalPages;
 
     /// <summary>
     /// Root categories for navigation when no search term is provided.
@@ -154,18 +185,24 @@ public class SearchModel : PageModel
                 MaxPrice: Filters.MaxPrice,
                 StoreId: Filters.StoreId);
 
-            var productDtos = await _productService.HandleAsync(
+            var pagedResult = await _productService.HandleAsync(
                 new FilterProductsQuery(
                     SearchTerm: string.IsNullOrWhiteSpace(sanitizedTerm) ? null : sanitizedTerm,
                     Filters: filterCriteria,
-                    SortBy: effectiveSortBy),
+                    SortBy: effectiveSortBy,
+                    PageNumber: PageNumber,
+                    PageSize: PageSize),
                 cancellationToken);
 
-            Products = productDtos
+            Products = pagedResult.Items
                 .Select(MapToProductViewModel)
                 .ToArray();
+            TotalCount = pagedResult.TotalCount;
+            TotalPages = pagedResult.TotalPages;
+            PageSize = pagedResult.PageSize;
 
-            _logger.LogDebug("Search for '{SearchTerm}' with filters returned {Count} results", sanitizedTerm, Products.Count);
+            _logger.LogDebug("Search for '{SearchTerm}' with filters returned {Count} results (page {Page} of {TotalPages})", 
+                sanitizedTerm, TotalCount, PageNumber, TotalPages);
         }
 
         return Page();
