@@ -209,7 +209,10 @@ public sealed class InternalUserService
                     session.Revoke();
                     await _userSessionRepository.UpdateAsync(session, cancellationToken);
                 }
-                await _userSessionRepository.SaveChangesAsync(cancellationToken);
+                if (sessions.Count > 0)
+                {
+                    await _userSessionRepository.SaveChangesAsync(cancellationToken);
+                }
             }
 
             return InternalUserResultDto.Succeeded(internalUser.Id, "User deactivated successfully.");
