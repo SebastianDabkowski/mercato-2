@@ -1,0 +1,142 @@
+@page
+@model SD.Project.Pages.Seller.ExportProductsModel
+@{
+    ViewData["Title"] = "Export Products";
+}
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>Export Products</h1>
+            <p class="text-muted mb-0">Export your product catalog to CSV or Excel format.</p>
+        </div>
+        <a asp-page="/Seller/Products" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Back to Products
+        </a>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>@Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-download me-2"></i>Export Options</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Export Format</label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check card p-3 @(Model.Format == "csv" ? "border-primary" : "")">
+                                        <input class="form-check-input" type="radio" name="Format" id="formatCsv" value="csv" @(Model.Format == "csv" ? "checked" : "")>
+                                        <label class="form-check-label w-100" for="formatCsv">
+                                            <strong><i class="bi bi-filetype-csv me-2"></i>CSV</strong>
+                                            <br>
+                                            <small class="text-muted">Comma-separated values, compatible with Excel, Google Sheets, and import tools.</small>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check card p-3 @(Model.Format == "xlsx" ? "border-primary" : "")">
+                                        <input class="form-check-input" type="radio" name="Format" id="formatXlsx" value="xlsx" @(Model.Format == "xlsx" ? "checked" : "")>
+                                        <label class="form-check-label w-100" for="formatXlsx">
+                                            <strong><i class="bi bi-file-earmark-excel me-2"></i>Excel (XLSX)</strong>
+                                            <br>
+                                            <small class="text-muted">Native Excel format with formatted columns.</small>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Filter Options</label>
+                            <p class="text-muted small">Optionally filter which products to include in the export.</p>
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="searchTerm" class="form-label">Search</label>
+                                    <input type="text" class="form-control" id="searchTerm" name="SearchTerm" value="@Model.SearchTerm" placeholder="Search by name or SKU...">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="categoryFilter" class="form-label">Category</label>
+                                    <select class="form-select" id="categoryFilter" name="CategoryFilter">
+                                        <option value="">All Categories</option>
+                                        @foreach (var category in Model.Categories)
+                                        {
+                                            <option value="@category" selected="@(Model.CategoryFilter == category)">@category</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="mt-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="activeOnly" name="ActiveOnly" value="true" @(Model.ActiveOnly ? "checked" : "")>
+                                    <label class="form-check-label" for="activeOnly">
+                                        Export only active products
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-download me-2"></i>Export Products
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>About Export</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">The export file includes the following columns:</p>
+                    <ul class="list-unstyled mb-0 small">
+                        <li class="mb-1"><strong>SKU</strong> - Product identifier</li>
+                        <li class="mb-1"><strong>Name</strong> - Product title</li>
+                        <li class="mb-1"><strong>Description</strong> - Product description</li>
+                        <li class="mb-1"><strong>Price</strong> - Product price</li>
+                        <li class="mb-1"><strong>Currency</strong> - Price currency code</li>
+                        <li class="mb-1"><strong>Stock</strong> - Available quantity</li>
+                        <li class="mb-1"><strong>Category</strong> - Product category</li>
+                        <li class="mb-1"><strong>Status</strong> - Product status</li>
+                        <li class="mb-1"><strong>WeightKg</strong> - Weight in kg</li>
+                        <li class="mb-1"><strong>LengthCm</strong> - Length in cm</li>
+                        <li class="mb-1"><strong>WidthCm</strong> - Width in cm</li>
+                        <li class="mb-1"><strong>HeightCm</strong> - Height in cm</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-arrow-repeat me-2"></i>Round-Trip Editing</h5>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted mb-0">
+                        The CSV export format is compatible with the import function. You can export your products, 
+                        make changes in a spreadsheet editor, and then import the modified file back to update your catalog.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
