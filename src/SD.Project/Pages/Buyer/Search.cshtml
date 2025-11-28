@@ -185,38 +185,40 @@
                 @foreach (var product in Model.Products)
                 {
                     <div class="col">
-                        <div class="card h-100">
-                            @if (!string.IsNullOrEmpty(product.MainImageThumbnailUrl))
-                            {
-                                <img src="@product.MainImageThumbnailUrl" class="card-img-top" alt="@product.Name">
-                            }
-                            else
-                            {
-                                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 180px;">
-                                    <span class="text-muted">No Image</span>
-                                </div>
-                            }
-                            <div class="card-body">
-                                <h5 class="card-title">@product.Name</h5>
-                                <p class="card-text text-muted">@(string.IsNullOrEmpty(product.Description) ? "" : (product.Description.Length > 100 ? product.Description.Substring(0, 100) + "..." : product.Description))</p>
-                                <p class="card-text">
-                                    <strong>@product.Currency @product.Amount.ToString("N2")</strong>
-                                </p>
-                                <p class="card-text">
-                                    <small class="text-muted">Category: @product.Category</small>
-                                </p>
-                            </div>
-                            <div class="card-footer bg-transparent">
-                                @if (product.Stock > 0)
+                        <a asp-page="/Buyer/Product" asp-route-id="@product.Id" class="text-decoration-none">
+                            <div class="card h-100">
+                                @if (!string.IsNullOrEmpty(product.MainImageThumbnailUrl))
                                 {
-                                    <span class="badge bg-success">In Stock</span>
+                                    <img src="@product.MainImageThumbnailUrl" class="card-img-top" alt="@product.Name">
                                 }
                                 else
                                 {
-                                    <span class="badge bg-danger">Out of Stock</span>
+                                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 180px;">
+                                        <span class="text-muted">No Image</span>
+                                    </div>
                                 }
+                                <div class="card-body">
+                                    <h5 class="card-title text-dark">@product.Name</h5>
+                                    <p class="card-text text-muted">@(string.IsNullOrEmpty(product.Description) ? "" : (product.Description.Length > 100 ? product.Description.Substring(0, 100) + "..." : product.Description))</p>
+                                    <p class="card-text">
+                                        <strong class="text-primary">@product.Currency @product.Amount.ToString("N2")</strong>
+                                    </p>
+                                    <p class="card-text">
+                                        <small class="text-muted">Category: @product.Category</small>
+                                    </p>
+                                </div>
+                                <div class="card-footer bg-transparent">
+                                    @if (product.Stock > 0)
+                                    {
+                                        <span class="badge bg-success">In Stock</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">Out of Stock</span>
+                                    }
+                                </div>
                             </div>
-                        </div>
+                        </a>
                     </div>
                 }
             </div>

@@ -81,3 +81,15 @@ body {
   flex-shrink: 0;
   font-size: 0.75rem;
 }
+
+/* Product Card Hover Effect */
+.card.hover-shadow,
+a .card {
+  transition: box-shadow 0.2s ease-in-out, transform 0.2s ease-in-out;
+}
+
+.card.hover-shadow:hover,
+a:hover .card {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}

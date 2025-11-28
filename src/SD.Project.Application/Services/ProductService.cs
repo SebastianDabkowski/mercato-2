@@ -127,6 +127,33 @@ public sealed class ProductService
     }
 
     /// <summary>
+    /// Retrieves recently viewed products by their IDs.
+    /// Returns only active products, preserving the order of the input IDs.
+    /// Products that are no longer active or don't exist are excluded.
+    /// </summary>
+    public async Task<IReadOnlyCollection<ProductDto>> HandleAsync(GetRecentlyViewedProductsQuery query, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        if (query.ProductIds.Count == 0)
+        {
+            return Array.Empty<ProductDto>();
+        }
+
+        var products = await _repository.GetByIdsAsync(query.ProductIds, cancellationToken);
+
+        // Filter to only active products and preserve the original order from the query
+        var productLookup = products
+            .Where(p => p.IsActive && p.Status == ProductStatus.Active)
+            .ToDictionary(p => p.Id);
+
+        return query.ProductIds
+            .Where(id => productLookup.ContainsKey(id))
+            .Select(id => MapToDto(productLookup[id]))
+            .ToArray();
+    }
+
+    /// <summary>
     /// Retrieves active products for a specific category (public view).
     /// </summary>
     public async Task<IReadOnlyCollection<ProductDto>> HandleAsync(GetProductsByCategoryQuery query, CancellationToken cancellationToken = default)

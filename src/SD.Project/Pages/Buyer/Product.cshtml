@@ -1,0 +1,142 @@
+@page
+@model SD.Project.Pages.Buyer.ProductModel
+@{
+    ViewData["Title"] = Model.Product?.Name ?? "Product Not Found";
+}
+
+@if (Model.Product is null)
+{
+    <div class="alert alert-warning" role="alert">
+        <h4 class="alert-heading">Product Not Found</h4>
+        <p>The product you're looking for doesn't exist or is no longer available.</p>
+        <hr>
+        <p class="mb-0">
+            <a asp-page="/Buyer/Search" class="alert-link">Search for products</a> or
+            <a asp-page="/Buyer/Category" asp-route-id="" class="alert-link">browse categories</a>.
+        </p>
+    </div>
+}
+else
+{
+    <div data-product-id="@Model.Product.Id" data-max-recent-items="10">
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-page="/Index">Home</a></li>
+                <li class="breadcrumb-item"><a asp-page="/Buyer/Category" asp-route-id="">Categories</a></li>
+                @if (!string.IsNullOrEmpty(Model.Product.Category))
+                {
+                    <li class="breadcrumb-item"><a asp-page="/Buyer/Search" asp-route-q="" asp-route-CategoryFilter="@Model.Product.Category">@Model.Product.Category</a></li>
+                }
+                <li class="breadcrumb-item active" aria-current="page">@Model.Product.Name</li>
+            </ol>
+        </nav>
+
+        <div class="row">
+            <!-- Product Image -->
+            <div class="col-md-6 mb-4">
+                @if (!string.IsNullOrEmpty(Model.Product.MainImageUrl))
+                {
+                    <img src="@Model.Product.MainImageUrl" class="img-fluid rounded" alt="@Model.Product.Name">
+                }
+                else
+                {
+                    <div class="bg-light d-flex align-items-center justify-content-center rounded" style="height: 400px;">
+                        <span class="text-muted">No Image Available</span>
+                    </div>
+                }
+            </div>
+
+            <!-- Product Details -->
+            <div class="col-md-6">
+                <h1 class="mb-3">@Model.Product.Name</h1>
+
+                <p class="lead mb-3">
+                    <strong class="text-primary">@Model.Product.Currency @Model.Product.Amount.ToString("N2")</strong>
+                </p>
+
+                <div class="mb-3">
+                    @if (Model.Product.Stock > 0)
+                    {
+                        <span class="badge bg-success fs-6">In Stock</span>
+                        <span class="text-muted ms-2">(@Model.Product.Stock available)</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger fs-6">Out of Stock</span>
+                    }
+                </div>
+
+                @if (!string.IsNullOrEmpty(Model.Product.Category))
+                {
+                    <p class="mb-2">
+                        <strong>Category:</strong>
+                        <a asp-page="/Buyer/Search" asp-route-q="" asp-route-CategoryFilter="@Model.Product.Category">@Model.Product.Category</a>
+                    </p>
+                }
+
+                @if (!string.IsNullOrEmpty(Model.Product.Description))
+                {
+                    <div class="mb-4">
+                        <h5>Description</h5>
+                        <p>@Model.Product.Description</p>
+                    </div>
+                }
+
+                <!-- Shipping Information -->
+                @if (Model.Product.WeightKg.HasValue || Model.Product.LengthCm.HasValue || Model.Product.WidthCm.HasValue || Model.Product.HeightCm.HasValue)
+                {
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="mb-0">Shipping Information</h6>
+                        </div>
+                        <div class="card-body">
+                            <dl class="row mb-0">
+                                @if (Model.Product.WeightKg.HasValue)
+                                {
+                                    <dt class="col-sm-4">Weight</dt>
+                                    <dd class="col-sm-8">@Model.Product.WeightKg.Value.ToString("N2") kg</dd>
+                                }
+                                @if (Model.Product.LengthCm.HasValue && Model.Product.WidthCm.HasValue && Model.Product.HeightCm.HasValue)
+                                {
+                                    <dt class="col-sm-4">Dimensions</dt>
+                                    <dd class="col-sm-8">@Model.Product.LengthCm.Value.ToString("N1") × @Model.Product.WidthCm.Value.ToString("N1") × @Model.Product.HeightCm.Value.ToString("N1") cm</dd>
+                                }
+                            </dl>
+                        </div>
+                    </div>
+                }
+
+                <div class="d-grid gap-2">
+                    @if (Model.Product.Stock > 0)
+                    {
+                        <button type="button" class="btn btn-primary btn-lg" disabled>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-cart-plus me-2" viewBox="0 0 16 16">
+                                <path d="M9 5.5a.5.5 0 0 0-1 0V7H6.5a.5.5 0 0 0 0 1H8v1.5a.5.5 0 0 0 1 0V8h1.5a.5.5 0 0 0 0-1H9z" />
+                                <path d="M.5 1a.5.5 0 0 0 0 1h1.11l.401 1.607 1.498 7.985A.5.5 0 0 0 4 12h1a2 2 0 1 0 0 4 2 2 0 0 0 0-4h7a2 2 0 1 0 0 4 2 2 0 0 0 0-4h1a.5.5 0 0 0 .491-.408l1.5-8A.5.5 0 0 0 14.5 3H2.89l-.405-1.621A.5.5 0 0 0 2 1zm3.915 10L3.102 4h10.796l-1.313 7zM6 14a1 1 0 1 1-2 0 1 1 0 0 1 2 0m7 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0" />
+                            </svg>
+                            Add to Cart (Coming Soon)
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-secondary btn-lg" disabled>
+                            Out of Stock
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Recently Viewed Products Section -->
+        <section class="mt-5" data-recently-viewed data-current-product-id="@Model.Product.Id" data-max-display="5" style="display: none;">
+            <h4 class="mb-3">Recently Viewed</h4>
+            <div class="row row-cols-2 row-cols-md-5 g-3" data-recently-viewed-list>
+                <!-- Products loaded via JavaScript -->
+            </div>
+        </section>
+    </div>
+}
+
+@section Scripts {
+    <script src="~/js/recently-viewed.js" asp-append-version="true"></script>
+}
