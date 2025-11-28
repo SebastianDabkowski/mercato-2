@@ -174,6 +174,7 @@ public class SellerOnboarding
 
     /// <summary>
     /// Updates the verification step data (legacy - for backwards compatibility).
+    /// Only works for Company seller type.
     /// </summary>
     [Obsolete("Use UpdateCompanyVerification or UpdateIndividualVerification instead.")]
     public void UpdateVerification(
@@ -182,14 +183,19 @@ public class SellerOnboarding
         string taxIdentificationNumber,
         string businessAddress)
     {
+        if (SellerType == SellerType.Individual)
+        {
+            throw new InvalidOperationException("Cannot use legacy UpdateVerification for Individual sellers. Use UpdateIndividualVerification instead.");
+        }
+
         UpdateCompanyVerification(
             businessName,
             businessRegistrationNumber,
             taxIdentificationNumber,
             businessAddress,
-            string.Empty,
-            string.Empty,
-            string.Empty);
+            ContactPersonName ?? string.Empty,
+            ContactPersonEmail ?? string.Empty,
+            ContactPersonPhone ?? string.Empty);
     }
 
     /// <summary>
