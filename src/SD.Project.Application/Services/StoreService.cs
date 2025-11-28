@@ -94,7 +94,11 @@ public sealed class StoreService
         {
             var store = new Store(command.SellerId, command.Name, command.ContactEmail);
             store.UpdateDescription(command.Description);
-            store.UpdateContactDetails(command.ContactEmail, command.PhoneNumber, command.WebsiteUrl);
+            // Only update phone and website since contact email is already set in constructor
+            if (!string.IsNullOrWhiteSpace(command.PhoneNumber) || !string.IsNullOrWhiteSpace(command.WebsiteUrl))
+            {
+                store.UpdateContactDetails(command.ContactEmail, command.PhoneNumber, command.WebsiteUrl);
+            }
 
             await _storeRepository.AddAsync(store, cancellationToken);
             await _storeRepository.SaveChangesAsync(cancellationToken);

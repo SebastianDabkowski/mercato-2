@@ -31,13 +31,15 @@ public sealed class StoreRepository : IStoreRepository
 
     public async Task<Store?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
     {
+        var normalizedName = name.Trim();
         return await _context.Stores
-            .FirstOrDefaultAsync(s => s.Name.ToLower() == name.ToLower(), cancellationToken);
+            .FirstOrDefaultAsync(s => EF.Functions.Like(s.Name, normalizedName), cancellationToken);
     }
 
     public async Task<bool> NameExistsAsync(string name, Guid? excludeStoreId = null, CancellationToken cancellationToken = default)
     {
-        var query = _context.Stores.Where(s => s.Name.ToLower() == name.ToLower());
+        var normalizedName = name.Trim();
+        var query = _context.Stores.Where(s => EF.Functions.Like(s.Name, normalizedName));
 
         if (excludeStoreId.HasValue)
         {
