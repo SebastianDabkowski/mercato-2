@@ -523,7 +523,8 @@ public sealed class ProductService
             p.WeightKg,
             p.LengthCm,
             p.WidthCm,
-            p.HeightCm);
+            p.HeightCm,
+            p.Sku);
     }
 
     private static IReadOnlyList<string> ValidateProduct(CreateProductCommand command)

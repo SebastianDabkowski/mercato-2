@@ -25,6 +25,7 @@ public class AppDbContext : DbContext
     public DbSet<PayoutSettings> PayoutSettings => Set<PayoutSettings>();
     public DbSet<InternalUser> InternalUsers => Set<InternalUser>();
     public DbSet<InternalUserInvitation> InternalUserInvitations => Set<InternalUserInvitation>();
+    public DbSet<ProductImportJob> ProductImportJobs => Set<ProductImportJob>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
