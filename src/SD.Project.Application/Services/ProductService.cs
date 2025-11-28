@@ -246,101 +246,59 @@ public sealed class ProductService
 
     private static IReadOnlyList<string> ValidateProduct(CreateProductCommand command)
     {
-        var errors = new List<string>();
-
-        // Validate name
-        if (string.IsNullOrWhiteSpace(command.Name))
-        {
-            errors.Add("Product title is required.");
-        }
-        else if (command.Name.Trim().Length < 3)
-        {
-            errors.Add("Product title must be at least 3 characters long.");
-        }
-        else if (command.Name.Trim().Length > 200)
-        {
-            errors.Add("Product title cannot exceed 200 characters.");
-        }
-
-        // Validate price
-        if (command.Amount <= 0)
-        {
-            errors.Add("Price must be greater than zero.");
-        }
-
-        if (string.IsNullOrWhiteSpace(command.Currency))
-        {
-            errors.Add("Currency is required.");
-        }
-        else if (command.Currency.Trim().Length != 3)
-        {
-            errors.Add("Currency must be a valid 3-letter ISO code (e.g., USD, EUR).");
-        }
-
-        // Validate stock
-        if (command.Stock < 0)
-        {
-            errors.Add("Stock cannot be negative.");
-        }
-
-        // Validate category
-        if (string.IsNullOrWhiteSpace(command.Category))
-        {
-            errors.Add("Category is required.");
-        }
-        else if (command.Category.Trim().Length > 100)
-        {
-            errors.Add("Category cannot exceed 100 characters.");
-        }
-
-        return errors;
+        return ValidateProductFields(command.Name, command.Amount, command.Currency, command.Stock, command.Category);
     }
 
     private static IReadOnlyList<string> ValidateUpdateProduct(UpdateProductCommand command)
     {
+        return ValidateProductFields(command.Name, command.Amount, command.Currency, command.Stock, command.Category);
+    }
+
+    private static IReadOnlyList<string> ValidateProductFields(string name, decimal amount, string currency, int stock, string category)
+    {
         var errors = new List<string>();
 
         // Validate name
-        if (string.IsNullOrWhiteSpace(command.Name))
+        if (string.IsNullOrWhiteSpace(name))
         {
             errors.Add("Product title is required.");
         }
-        else if (command.Name.Trim().Length < 3)
+        else if (name.Trim().Length < 3)
         {
             errors.Add("Product title must be at least 3 characters long.");
         }
-        else if (command.Name.Trim().Length > 200)
+        else if (name.Trim().Length > 200)
         {
             errors.Add("Product title cannot exceed 200 characters.");
         }
 
         // Validate price
-        if (command.Amount <= 0)
+        if (amount <= 0)
         {
             errors.Add("Price must be greater than zero.");
         }
 
-        if (string.IsNullOrWhiteSpace(command.Currency))
+        if (string.IsNullOrWhiteSpace(currency))
         {
             errors.Add("Currency is required.");
         }
-        else if (command.Currency.Trim().Length != 3)
+        else if (currency.Trim().Length != 3)
         {
             errors.Add("Currency must be a valid 3-letter ISO code (e.g., USD, EUR).");
         }
 
         // Validate stock
-        if (command.Stock < 0)
+        if (stock < 0)
         {
             errors.Add("Stock cannot be negative.");
         }
 
         // Validate category
-        if (string.IsNullOrWhiteSpace(command.Category))
+        if (string.IsNullOrWhiteSpace(category))
         {
             errors.Add("Category is required.");
         }
-        else if (command.Category.Trim().Length > 100)
+        else if (category.Trim().Length > 100)
         {
             errors.Add("Category cannot exceed 100 characters.");
         }
