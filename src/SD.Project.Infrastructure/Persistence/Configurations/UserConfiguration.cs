@@ -68,5 +68,16 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(u => u.CreatedAt)
             .IsRequired();
+
+        // KYC fields
+        builder.Property(u => u.KycStatus)
+            .IsRequired();
+
+        builder.Property(u => u.KycSubmittedAt);
+
+        builder.Property(u => u.KycReviewedAt);
+
+        // Email verification timestamp
+        builder.Property(u => u.EmailVerifiedAt);
     }
 }

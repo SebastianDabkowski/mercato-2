@@ -15,18 +15,18 @@ public sealed class RegistrationService
     private readonly IUserRepository _userRepository;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IPasswordValidator _passwordValidator;
-    private readonly INotificationService _notificationService;
+    private readonly EmailVerificationService _emailVerificationService;
 
     public RegistrationService(
         IUserRepository userRepository,
         IPasswordHasher passwordHasher,
         IPasswordValidator passwordValidator,
-        INotificationService notificationService)
+        EmailVerificationService emailVerificationService)
     {
         _userRepository = userRepository;
         _passwordHasher = passwordHasher;
         _passwordValidator = passwordValidator;
-        _notificationService = notificationService;
+        _emailVerificationService = emailVerificationService;
     }
 
     /// <summary>
@@ -125,8 +125,8 @@ public sealed class RegistrationService
         await _userRepository.AddAsync(user, cancellationToken);
         await _userRepository.SaveChangesAsync(cancellationToken);
 
-        // Send verification email
-        await _notificationService.SendEmailVerificationAsync(user.Id, user.Email.Value, cancellationToken);
+        // Send verification email with unique token
+        await _emailVerificationService.CreateVerificationTokenAndSendEmailAsync(user.Id, user.Email.Value, cancellationToken);
 
         return RegistrationResultDto.Succeeded(
             user.Id,

@@ -28,6 +28,14 @@ public class User
     public DateTime AcceptedTermsAt { get; private set; }
     public DateTime CreatedAt { get; private set; }
 
+    // KYC status for sellers
+    public KycStatus KycStatus { get; private set; }
+    public DateTime? KycSubmittedAt { get; private set; }
+    public DateTime? KycReviewedAt { get; private set; }
+
+    // Email verification timestamp
+    public DateTime? EmailVerifiedAt { get; private set; }
+
     private User()
     {
         // EF Core constructor
@@ -80,6 +88,10 @@ public class User
         AcceptedTerms = acceptedTerms;
         AcceptedTermsAt = DateTime.UtcNow;
         CreatedAt = DateTime.UtcNow;
+        KycStatus = KycStatus.NotStarted;
+        KycSubmittedAt = null;
+        KycReviewedAt = null;
+        EmailVerifiedAt = null;
     }
 
     /// <summary>
@@ -129,7 +141,11 @@ public class User
             PhoneNumber = null,
             AcceptedTerms = true, // By using social login, user implicitly accepts terms
             AcceptedTermsAt = DateTime.UtcNow,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            KycStatus = KycStatus.NotStarted,
+            KycSubmittedAt = null,
+            KycReviewedAt = null,
+            EmailVerifiedAt = DateTime.UtcNow // Social login users are automatically email verified
         };
 
         return user;
@@ -146,7 +162,65 @@ public class User
         }
 
         Status = UserStatus.Verified;
+        EmailVerifiedAt = DateTime.UtcNow;
     }
+
+    /// <summary>
+    /// Initiates the KYC process for the user.
+    /// </summary>
+    public void StartKyc()
+    {
+        if (Role != UserRole.Seller)
+        {
+            throw new InvalidOperationException("KYC is only required for sellers.");
+        }
+
+        if (KycStatus != KycStatus.NotStarted && KycStatus != KycStatus.Rejected)
+        {
+            throw new InvalidOperationException("KYC has already been started or completed.");
+        }
+
+        KycStatus = KycStatus.Pending;
+        KycSubmittedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Approves the user's KYC verification.
+    /// </summary>
+    public void ApproveKyc()
+    {
+        if (KycStatus != KycStatus.Pending)
+        {
+            throw new InvalidOperationException("KYC must be pending to approve.");
+        }
+
+        KycStatus = KycStatus.Approved;
+        KycReviewedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Rejects the user's KYC verification.
+    /// </summary>
+    public void RejectKyc()
+    {
+        if (KycStatus != KycStatus.Pending)
+        {
+            throw new InvalidOperationException("KYC must be pending to reject.");
+        }
+
+        KycStatus = KycStatus.Rejected;
+        KycReviewedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Indicates whether this seller user requires KYC verification.
+    /// </summary>
+    public bool RequiresKyc => Role == UserRole.Seller && KycStatus != KycStatus.Approved;
+
+    /// <summary>
+    /// Indicates whether the user's email has been verified.
+    /// </summary>
+    public bool IsEmailVerified => EmailVerifiedAt is not null;
 
     /// <summary>
     /// Suspends the user account.
