@@ -99,12 +99,20 @@ public sealed class SessionService
             return;
         }
 
-        // Check if we need to apply sliding expiration
+        // Check if we need to apply sliding expiration for persistent sessions
         var timeSinceLastActivity = DateTime.UtcNow - session.LastActivityAt;
         if (timeSinceLastActivity >= SlidingExpirationWindow && session.IsPersistent)
         {
-            // Extend the session for persistent sessions
+            // Extend the session for persistent sessions (also updates LastActivityAt)
             session.ExtendExpiration(PersistentSessionDuration);
+            await _sessionRepository.UpdateAsync(session, cancellationToken);
+            await _sessionRepository.SaveChangesAsync(cancellationToken);
+        }
+        else if (timeSinceLastActivity >= TimeSpan.FromMinutes(5))
+        {
+            // Update activity timestamp periodically for all sessions (every 5 minutes)
+            // This avoids excessive database writes on every request
+            session.UpdateActivity();
             await _sessionRepository.UpdateAsync(session, cancellationToken);
             await _sessionRepository.SaveChangesAsync(cancellationToken);
         }
