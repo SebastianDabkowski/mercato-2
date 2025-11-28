@@ -526,7 +526,8 @@ public sealed class ProductService
             p.HeightCm,
             p.Sku,
             mainImageUrl,
-            mainImageThumbnailUrl);
+            mainImageThumbnailUrl,
+            p.HasVariants);
     }
 
     private static IReadOnlyList<string> ValidateProduct(CreateProductCommand command)
