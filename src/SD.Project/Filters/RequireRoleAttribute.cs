@@ -13,6 +13,9 @@ namespace SD.Project.Filters;
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false)]
 public sealed class RequireRoleAttribute : Attribute, IAsyncPageFilter
 {
+    private const string LoginPagePath = "/Login";
+    private const string ErrorPagePath = "/Error";
+
     private readonly UserRole[] _requiredRoles;
 
     /// <summary>
@@ -24,9 +27,9 @@ public sealed class RequireRoleAttribute : Attribute, IAsyncPageFilter
         _requiredRoles = roles ?? throw new ArgumentNullException(nameof(roles));
     }
 
-    public async Task OnPageHandlerSelectionAsync(PageHandlerSelectedContext context)
+    public Task OnPageHandlerSelectionAsync(PageHandlerSelectedContext context)
     {
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 
     public async Task OnPageHandlerExecutionAsync(PageHandlerExecutingContext context, PageHandlerExecutionDelegate next)
@@ -41,7 +44,7 @@ public sealed class RequireRoleAttribute : Attribute, IAsyncPageFilter
             logger.LogWarning("Authorization failure: Unauthenticated user attempted to access {PagePath}",
                 context.ActionDescriptor.RelativePath);
 
-            context.Result = new RedirectToPageResult("/Login", new { returnUrl = httpContext.Request.Path });
+            context.Result = new RedirectToPageResult(LoginPagePath, new { returnUrl = httpContext.Request.Path });
             return;
         }
 
@@ -76,6 +79,6 @@ public sealed class RequireRoleAttribute : Attribute, IAsyncPageFilter
 
     private static IActionResult CreateAccessDeniedResult(string message)
     {
-        return new RedirectToPageResult("/Error", new { message });
+        return new RedirectToPageResult(ErrorPagePath, new { message });
     }
 }
