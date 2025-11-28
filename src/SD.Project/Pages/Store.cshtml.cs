@@ -10,35 +10,78 @@ namespace SD.Project.Pages
     {
         private readonly ILogger<StoreModel> _logger;
         private readonly StoreService _storeService;
+        private readonly ProductService _productService;
 
         public StoreDto? Store { get; private set; }
+        public IReadOnlyCollection<ProductDto> Products { get; private set; } = Array.Empty<ProductDto>();
         public bool StoreNotFound { get; private set; }
+        public bool StoreNotAccessible { get; private set; }
+        public string? AccessibilityMessage { get; private set; }
 
         public StoreModel(
             ILogger<StoreModel> logger,
-            StoreService storeService)
+            StoreService storeService,
+            ProductService productService)
         {
             _logger = logger;
             _storeService = storeService;
+            _productService = productService;
         }
 
-        public async Task<IActionResult> OnGetAsync(Guid id)
+        public async Task<IActionResult> OnGetAsync(string slug)
         {
-            if (id == Guid.Empty)
+            if (string.IsNullOrWhiteSpace(slug))
             {
                 StoreNotFound = true;
                 return Page();
             }
 
-            Store = await _storeService.HandleAsync(new GetStoreByIdQuery(id));
+            // Try to find store by slug first
+            Store = await _storeService.HandleAsync(new GetStoreBySlugQuery(slug));
+
+            // If not found by slug, try parsing as GUID for backward compatibility
+            if (Store is null && Guid.TryParse(slug, out var id))
+            {
+                Store = await _storeService.HandleAsync(new GetStoreByIdQuery(id));
+                
+                // If found by GUID, redirect to the slug-based URL for SEO
+                if (Store is not null)
+                {
+                    return RedirectToPage("/Store", new { slug = Store.Slug });
+                }
+            }
 
             if (Store is null)
             {
-                _logger.LogWarning("Store not found: {StoreId}", id);
+                _logger.LogWarning("Store not found: {StoreSlug}", slug);
                 StoreNotFound = true;
+                return Page();
             }
 
+            // Check if store is publicly visible
+            if (!Store.IsPubliclyVisible)
+            {
+                _logger.LogInformation("Store not publicly accessible: {StoreSlug}, Status: {Status}", slug, Store.Status);
+                StoreNotAccessible = true;
+                AccessibilityMessage = GetAccessibilityMessage(Store.Status);
+                Store = null; // Hide store details
+                return Page();
+            }
+
+            // Load products for the store
+            Products = await _productService.HandleAsync(new GetProductsByStoreIdQuery(Store.Id));
+
             return Page();
+        }
+
+        private static string GetAccessibilityMessage(Domain.Entities.StoreStatus status)
+        {
+            return status switch
+            {
+                Domain.Entities.StoreStatus.PendingVerification => "This store is currently being verified and is not yet available for public viewing.",
+                Domain.Entities.StoreStatus.Suspended => "This store is currently unavailable.",
+                _ => "This store is not currently available for public viewing."
+            };
         }
     }
 }

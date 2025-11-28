@@ -1,4 +1,4 @@
-@page "{id:guid}"
+@page "/store/{slug}"
 @model SD.Project.Pages.StoreModel
 @{
     ViewData["Title"] = Model.Store?.Name ?? "Store";
@@ -11,6 +11,16 @@
             <div class="col-md-6 text-center">
                 <h1 class="display-4 text-muted mb-4">Store Not Found</h1>
                 <p class="lead text-muted">The store you're looking for doesn't exist or may have been removed.</p>
+                <a asp-page="/Index" class="btn btn-primary">Back to Home</a>
+            </div>
+        </div>
+    }
+    else if (Model.StoreNotAccessible)
+    {
+        <div class="row justify-content-center">
+            <div class="col-md-6 text-center">
+                <h1 class="display-4 text-muted mb-4">Store Unavailable</h1>
+                <p class="lead text-muted">@Model.AccessibilityMessage</p>
                 <a asp-page="/Index" class="btn btn-primary">Back to Home</a>
             </div>
         </div>
@@ -53,7 +63,28 @@
                         <h5 class="mb-0">Products</h5>
                     </div>
                     <div class="card-body">
-                        <p class="text-muted">No products available yet.</p>
+                        @if (Model.Products.Count == 0)
+                        {
+                            <p class="text-muted mb-0">No products available yet.</p>
+                        }
+                        else
+                        {
+                            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                                @foreach (var product in Model.Products)
+                                {
+                                    <div class="col">
+                                        <div class="card h-100">
+                                            <div class="card-body">
+                                                <h6 class="card-title">@product.Name</h6>
+                                                <p class="card-text text-primary fw-bold">
+                                                    @product.Amount.ToString("N2") @product.Currency
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
                     </div>
                 </div>
             </div>

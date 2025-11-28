@@ -45,6 +45,22 @@ public sealed class StoreService
     }
 
     /// <summary>
+    /// Gets a store by its URL slug.
+    /// </summary>
+    public async Task<StoreDto?> HandleAsync(GetStoreBySlugQuery query, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        if (string.IsNullOrWhiteSpace(query.Slug))
+        {
+            return null;
+        }
+
+        var store = await _storeRepository.GetBySlugAsync(query.Slug, cancellationToken);
+        return store is null ? null : MapToDto(store);
+    }
+
+    /// <summary>
     /// Creates a new store for a seller.
     /// </summary>
     public async Task<StoreResultDto> HandleAsync(CreateStoreCommand command, CancellationToken cancellationToken = default)
@@ -193,11 +209,13 @@ public sealed class StoreService
             store.Id,
             store.SellerId,
             store.Name,
+            store.Slug,
             store.LogoUrl,
             store.Description,
             store.ContactEmail,
             store.PhoneNumber,
             store.WebsiteUrl,
+            store.Status,
             store.CreatedAt,
             store.UpdatedAt);
     }

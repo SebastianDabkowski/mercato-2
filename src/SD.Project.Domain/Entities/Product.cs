@@ -6,6 +6,7 @@ namespace SD.Project.Domain.Entities;
 public class Product
 {
     public Guid Id { get; private set; }
+    public Guid? StoreId { get; private set; }
     public string Name { get; private set; } = default!;
     public ValueObjects.Money Price { get; private set; } = default!;
     public bool IsActive { get; private set; }
@@ -15,7 +16,7 @@ public class Product
         // EF Core constructor
     }
 
-    public Product(Guid id, string name, ValueObjects.Money price)
+    public Product(Guid id, string name, ValueObjects.Money price, Guid? storeId = null)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -23,6 +24,7 @@ public class Product
         }
 
         Id = id == Guid.Empty ? Guid.NewGuid() : id;
+        StoreId = storeId;
         Name = name;
         Price = price;
         IsActive = true;

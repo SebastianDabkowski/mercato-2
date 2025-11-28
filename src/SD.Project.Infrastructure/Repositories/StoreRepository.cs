@@ -36,10 +36,30 @@ public sealed class StoreRepository : IStoreRepository
             .FirstOrDefaultAsync(s => EF.Functions.Like(s.Name, normalizedName), cancellationToken);
     }
 
+    public async Task<Store?> GetBySlugAsync(string slug, CancellationToken cancellationToken = default)
+    {
+        var normalizedSlug = slug.Trim().ToLowerInvariant();
+        return await _context.Stores
+            .FirstOrDefaultAsync(s => s.Slug == normalizedSlug, cancellationToken);
+    }
+
     public async Task<bool> NameExistsAsync(string name, Guid? excludeStoreId = null, CancellationToken cancellationToken = default)
     {
         var normalizedName = name.Trim();
         var query = _context.Stores.Where(s => EF.Functions.Like(s.Name, normalizedName));
+
+        if (excludeStoreId.HasValue)
+        {
+            query = query.Where(s => s.Id != excludeStoreId.Value);
+        }
+
+        return await query.AnyAsync(cancellationToken);
+    }
+
+    public async Task<bool> SlugExistsAsync(string slug, Guid? excludeStoreId = null, CancellationToken cancellationToken = default)
+    {
+        var normalizedSlug = slug.Trim().ToLowerInvariant();
+        var query = _context.Stores.Where(s => s.Slug == normalizedSlug);
 
         if (excludeStoreId.HasValue)
         {
