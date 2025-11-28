@@ -5,14 +5,29 @@
 (function () {
     'use strict';
 
-    const DEBOUNCE_DELAY_MS = 300;
-    const MIN_SEARCH_LENGTH = 2;
+    // Configuration constants
+    var DEBOUNCE_DELAY_MS = 300;
+    var MIN_SEARCH_LENGTH = 2;
 
-    let debounceTimer = null;
-    let currentController = null;
-    let searchInput = null;
-    let suggestionsContainer = null;
-    let activeIndex = -1;
+    // Suggestion type constants (matching backend enum values)
+    var SuggestionType = {
+        PRODUCT: 0,
+        CATEGORY: 1,
+        QUERY: 2
+    };
+
+    // SVG icons for suggestion types
+    var ICONS = {
+        folder: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.54 3.87.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3H14.5a2 2 0 0 1 2 2v1.5H.54Z"/><path d="M.5 5.5v7a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-7H.5Z"/></svg>',
+        box: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5 8 5.961 14.154 3.5 8.186 1.113zM15 4.239l-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923l6.5 2.6zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.63 13.09a1 1 0 0 1-.63-.928V3.5a.5.5 0 0 1 .314-.464L7.443.184z"/></svg>',
+        search: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>'
+    };
+
+    var debounceTimer = null;
+    var currentController = null;
+    var searchInput = null;
+    var suggestionsContainer = null;
+    var activeIndex = -1;
 
     /**
      * Initializes the search suggestions functionality.
@@ -207,12 +222,24 @@
     }
 
     /**
+     * Checks if a suggestion type represents a category.
+     */
+    function isCategoryType(type) {
+        return type === 'Category' || type === SuggestionType.CATEGORY;
+    }
+
+    /**
+     * Checks if a suggestion type represents a product.
+     */
+    function isProductType(type) {
+        return type === 'Product' || type === SuggestionType.PRODUCT;
+    }
+
+    /**
      * Selects a suggestion and navigates or searches.
      */
     function selectSuggestion(suggestion) {
-        // Handle both string and numeric type values
-        var isCategory = suggestion.type === 'Category' || suggestion.type === 1;
-        if (isCategory && suggestion.url) {
+        if (isCategoryType(suggestion.type) && suggestion.url) {
             // Navigate to category page
             window.location.href = suggestion.url;
         } else {
@@ -265,34 +292,26 @@
      * Gets the icon for a suggestion type.
      */
     function getTypeIcon(type) {
-        // Handle both string and numeric enum values
-        switch (type) {
-            case 'Category':
-            case 1:
-                return '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-folder" viewBox="0 0 16 16"><path d="M.54 3.87.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3H14.5a2 2 0 0 1 2 2v1.5H.54Z"/><path d="M.5 5.5v7a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-7H.5Z"/></svg>';
-            case 'Product':
-            case 0:
-                return '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box" viewBox="0 0 16 16"><path d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5 8 5.961 14.154 3.5 8.186 1.113zM15 4.239l-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923l6.5 2.6zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.63 13.09a1 1 0 0 1-.63-.928V3.5a.5.5 0 0 1 .314-.464L7.443.184z"/></svg>';
-            default:
-                return '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>';
+        if (isCategoryType(type)) {
+            return ICONS.folder;
         }
+        if (isProductType(type)) {
+            return ICONS.box;
+        }
+        return ICONS.search;
     }
 
     /**
      * Gets the label for a suggestion type.
      */
     function getTypeLabel(type) {
-        // Handle both string and numeric enum values
-        switch (type) {
-            case 'Category':
-            case 1:
-                return 'Category';
-            case 'Product':
-            case 0:
-                return 'Product';
-            default:
-                return 'Search';
+        if (isCategoryType(type)) {
+            return 'Category';
         }
+        if (isProductType(type)) {
+            return 'Product';
+        }
+        return 'Search';
     }
 
     /**

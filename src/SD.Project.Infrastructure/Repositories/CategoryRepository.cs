@@ -148,7 +148,8 @@ public sealed class CategoryRepository : ICategoryRepository
             return Array.Empty<Category>();
         }
 
-        var searchPattern = $"%{searchPrefix.Trim()}%";
+        var escapedPrefix = EscapeLikePattern(searchPrefix.Trim());
+        var searchPattern = $"%{escapedPrefix}%";
         var results = await _context.Categories
             .AsNoTracking()
             .Where(c => c.IsActive && EF.Functions.Like(c.Name, searchPattern))
@@ -177,5 +178,16 @@ public sealed class CategoryRepository : ICategoryRepository
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         return _context.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Escapes LIKE pattern special characters to prevent SQL injection via wildcards.
+    /// </summary>
+    private static string EscapeLikePattern(string input)
+    {
+        return input
+            .Replace("[", "[[]")
+            .Replace("%", "[%]")
+            .Replace("_", "[_]");
     }
 }

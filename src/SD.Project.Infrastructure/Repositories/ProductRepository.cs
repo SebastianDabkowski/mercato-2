@@ -113,7 +113,8 @@ public sealed class ProductRepository : IProductRepository
             return Array.Empty<string>();
         }
 
-        var searchPattern = $"%{searchPrefix.Trim()}%";
+        var escapedPrefix = EscapeLikePattern(searchPrefix.Trim());
+        var searchPattern = $"%{escapedPrefix}%";
         var results = await _context.Products
             .AsNoTracking()
             .Where(p => p.Status == ProductStatus.Active &&
@@ -244,5 +245,16 @@ public sealed class ProductRepository : IProductRepository
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         return _context.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Escapes LIKE pattern special characters to prevent SQL injection via wildcards.
+    /// </summary>
+    private static string EscapeLikePattern(string input)
+    {
+        return input
+            .Replace("[", "[[]")
+            .Replace("%", "[%]")
+            .Replace("_", "[_]");
     }
 }
