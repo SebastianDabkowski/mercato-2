@@ -53,11 +53,11 @@ public sealed class ProductService
         {
             var product = new Product(
                 Guid.NewGuid(),
+                command.StoreId,
                 command.Name,
                 new Money(command.Amount, command.Currency),
                 command.Stock,
-                command.Category,
-                command.StoreId);
+                command.Category);
 
             await _repository.AddAsync(product, cancellationToken);
             await _repository.SaveChangesAsync(cancellationToken);

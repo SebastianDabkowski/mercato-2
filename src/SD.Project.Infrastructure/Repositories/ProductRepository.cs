@@ -32,7 +32,7 @@ public sealed class ProductRepository : IProductRepository
     {
         var results = await _context.Products
             .AsNoTracking()
-            .Where(p => p.StoreId == storeId && p.IsActive && p.Status == ProductStatus.Active)
+            .Where(p => p.StoreId == storeId && p.Status == ProductStatus.Active)
             .ToListAsync(cancellationToken);
         return results.AsReadOnly();
     }

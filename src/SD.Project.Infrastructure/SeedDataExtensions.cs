@@ -56,11 +56,11 @@ public static class SeedDataExtensions
             await storeRepo.SaveChangesAsync();
 
             // Add some products to the store
-            var product1 = new Product(Guid.NewGuid(), "Sample Product 1", new Money(29.99m, "USD"), 50, "Electronics", store.Id);
+            var product1 = new Product(Guid.NewGuid(), store.Id, "Sample Product 1", new Money(29.99m, "USD"), 50, "Electronics");
             product1.Activate();
-            var product2 = new Product(Guid.NewGuid(), "Sample Product 2", new Money(49.99m, "USD"), 25, "Clothing", store.Id);
+            var product2 = new Product(Guid.NewGuid(), store.Id, "Sample Product 2", new Money(49.99m, "USD"), 25, "Clothing");
             product2.Activate();
-            var product3 = new Product(Guid.NewGuid(), "Sample Product 3", new Money(19.99m, "USD"), 100, "Home & Garden", store.Id);
+            var product3 = new Product(Guid.NewGuid(), store.Id, "Sample Product 3", new Money(19.99m, "USD"), 100, "Home & Garden");
             product3.Activate();
             await productRepo.AddAsync(product1);
             await productRepo.AddAsync(product2);

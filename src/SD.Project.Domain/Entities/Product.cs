@@ -40,7 +40,7 @@ public class Product
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public Product(Guid id, string name, ValueObjects.Money price, int stock, string category, Guid storeId)
+    public Product(Guid id, Guid storeId, string name, ValueObjects.Money price, int stock, string category)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
