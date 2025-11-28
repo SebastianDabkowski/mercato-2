@@ -9,7 +9,7 @@ public class User
 {
     public Guid Id { get; private set; }
     public Email Email { get; private set; } = default!;
-    public string PasswordHash { get; private set; } = default!;
+    public string? PasswordHash { get; private set; }
     public UserRole Role { get; private set; }
     public UserStatus Status { get; private set; }
 
@@ -117,7 +117,7 @@ public class User
         {
             Id = Guid.NewGuid(),
             Email = email ?? throw new ArgumentNullException(nameof(email)),
-            PasswordHash = string.Empty, // No password for external logins
+            PasswordHash = null, // No password for external logins
             Role = UserRole.Buyer, // Social login is only for buyers
             Status = UserStatus.Verified, // Social login users are automatically verified
             ExternalProvider = provider,

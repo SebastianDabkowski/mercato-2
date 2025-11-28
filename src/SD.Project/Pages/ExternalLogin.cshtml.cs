@@ -76,9 +76,8 @@ public class ExternalLoginModel : PageModel
             return Page();
         }
 
-        var info = await HttpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-        
-        // Try to get external authentication info from the temporary cookie
+        // The external authentication result comes via the default authentication scheme
+        // which is already configured to be cookies in Program.cs
         var result = await HttpContext.AuthenticateAsync();
         if (!result.Succeeded || result.Principal is null)
         {

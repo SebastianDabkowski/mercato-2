@@ -104,9 +104,24 @@ public sealed class ExternalLoginService
                 return ExternalLoginResultDto.Failed("Your account has been suspended. Please contact support.");
             }
 
-            // Link the external login to the existing account
-            // Note: For security, this should ideally require additional verification,
-            // but the requirement states to log in the user if email matches a buyer account
+            // Security check: Only allow login if the user was created via this same external provider
+            // or if they have no external provider set (legacy email/password user)
+            // For password-based accounts, we require them to log in with password first
+            // to prevent account takeover via email address control at an OAuth provider
+            if (existingUserByEmail.ExternalProvider != ExternalLoginProvider.None &&
+                existingUserByEmail.ExternalProvider != command.Provider)
+            {
+                return ExternalLoginResultDto.Failed(
+                    $"This email is already associated with a different login method. Please use your original login method.");
+            }
+
+            // If user has password-based account, don't allow social login takeover
+            if (existingUserByEmail.ExternalProvider == ExternalLoginProvider.None)
+            {
+                return ExternalLoginResultDto.Failed(
+                    "An account with this email already exists. Please sign in with your email and password.");
+            }
+
             return ExternalLoginResultDto.Succeeded(
                 existingUserByEmail.Id,
                 existingUserByEmail.Role,
