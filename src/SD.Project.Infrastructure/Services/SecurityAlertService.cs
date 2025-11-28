@@ -64,7 +64,11 @@ public sealed class SecurityAlertService : ISecurityAlertService
             var since = DateTime.UtcNow.AddDays(-NewLocationWindowDays);
             var knownIpAddresses = await _loginEventRepository.GetDistinctIpAddressesAsync(userId, since, cancellationToken);
 
-            if (knownIpAddresses.Count > 0 && !knownIpAddresses.Contains(ipAddress))
+            // Normalize IP for comparison (handles IPv6 case variations)
+            var normalizedIp = NormalizeIpAddress(ipAddress);
+            var knownNormalizedIps = knownIpAddresses.Select(NormalizeIpAddress).ToList();
+
+            if (knownNormalizedIps.Count > 0 && !knownNormalizedIps.Contains(normalizedIp))
             {
                 await SendSecurityAlertAsync(
                     userId,
@@ -94,6 +98,24 @@ public sealed class SecurityAlertService : ISecurityAlertService
         return Task.CompletedTask;
     }
 
+    private static string NormalizeIpAddress(string ipAddress)
+    {
+        // Normalize IP address for comparison (handles IPv6 case variations)
+        if (string.IsNullOrEmpty(ipAddress))
+        {
+            return string.Empty;
+        }
+
+        // Try to parse as IP address for proper normalization
+        if (System.Net.IPAddress.TryParse(ipAddress, out var parsedIp))
+        {
+            return parsedIp.ToString().ToLowerInvariant();
+        }
+
+        // Fallback to lowercase if parsing fails
+        return ipAddress.Trim().ToLowerInvariant();
+    }
+
     private static string MaskIpAddress(string ipAddress)
     {
         // Partially mask IP address for privacy in logs/alerts
@@ -102,20 +124,29 @@ public sealed class SecurityAlertService : ISecurityAlertService
             return string.Empty;
         }
 
-        var parts = ipAddress.Split('.');
-        if (parts.Length == 4)
+        // Try to parse as IP address for proper validation
+        if (System.Net.IPAddress.TryParse(ipAddress, out var parsedIp))
         {
-            // IPv4: show first two octets, mask last two
-            return $"{parts[0]}.{parts[1]}.xxx.xxx";
+            if (parsedIp.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+            {
+                // IPv4: show first two octets, mask last two
+                var bytes = parsedIp.GetAddressBytes();
+                return $"{bytes[0]}.{bytes[1]}.xxx.xxx";
+            }
+
+            if (parsedIp.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)
+            {
+                // IPv6: show first segment, mask rest
+                var fullAddress = parsedIp.ToString();
+                var colonIndex = fullAddress.IndexOf(':');
+                if (colonIndex > 0)
+                {
+                    return $"{fullAddress[..colonIndex]}:xxxx::xxxx";
+                }
+            }
         }
 
-        // IPv6 or other: show first part, mask rest
-        var colonIndex = ipAddress.IndexOf(':');
-        if (colonIndex > 0)
-        {
-            return $"{ipAddress[..colonIndex]}:xxxx:xxxx";
-        }
-
-        return "xxx.xxx.xxx.xxx";
+        // Fallback for invalid or unknown format
+        return "[masked IP]";
     }
 }

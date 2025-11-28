@@ -111,9 +111,8 @@ public sealed class LoginService
         // Successful login
         _rateLimiter.ResetAttempts(normalizedEmail);
 
-        // Log successful login event and analyze for security alerts
+        // Log successful login event (which includes security alert analysis)
         await LogLoginEventAsync(user.Id, normalizedEmail, true, LoginEventType.Password, null, command.IpAddress, command.UserAgent, cancellationToken);
-        await _securityAlertService.AnalyzeLoginAsync(user.Id, normalizedEmail, true, command.IpAddress, command.UserAgent, cancellationToken);
 
         // Check if 2FA is required
         if (user.IsTwoFactorConfigured)

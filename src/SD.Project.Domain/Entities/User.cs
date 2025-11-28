@@ -327,12 +327,13 @@ public class User
             return false;
         }
 
-        var normalizedCode = code.Trim().ToUpperInvariant();
+        // Case-sensitive comparison to maintain full entropy of recovery codes
+        var normalizedCode = code.Trim();
         var codes = TwoFactorRecoveryCodes.Split(',', StringSplitOptions.RemoveEmptyEntries)
-            .Select(c => c.Trim().ToUpperInvariant())
+            .Select(c => c.Trim())
             .ToList();
 
-        if (!codes.Contains(normalizedCode))
+        if (!codes.Contains(normalizedCode, StringComparer.Ordinal))
         {
             return false;
         }

@@ -80,19 +80,10 @@ public sealed class LoginEventRepository : ILoginEventRepository
     {
         var now = DateTime.UtcNow;
 
-        var expiredRecords = await _context.LoginEvents
+        // Use ExecuteDeleteAsync for efficient bulk deletion without loading entities into memory
+        return await _context.LoginEvents
             .Where(e => e.RetentionExpiresAt <= now)
-            .ToListAsync(cancellationToken);
-
-        if (expiredRecords.Count == 0)
-        {
-            return 0;
-        }
-
-        _context.LoginEvents.RemoveRange(expiredRecords);
-        await _context.SaveChangesAsync(cancellationToken);
-
-        return expiredRecords.Count;
+            .ExecuteDeleteAsync(cancellationToken);
     }
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
