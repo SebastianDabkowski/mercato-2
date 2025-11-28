@@ -1,0 +1,129 @@
+@page
+@model SD.Project.Pages.RegisterModel
+@using SD.Project.Domain.Entities
+@{
+    ViewData["Title"] = "Register";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <h1 class="text-center mb-4">Create an Account</h1>
+        <p class="text-center text-muted mb-4">Join our marketplace as a buyer or seller</p>
+
+        @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+        {
+            <div class="alert alert-success" role="alert">
+                <h4 class="alert-heading">Registration Successful!</h4>
+                <p>@Model.SuccessMessage</p>
+            </div>
+        }
+
+        @if (Model.Errors.Any())
+        {
+            <div class="alert alert-danger" role="alert">
+                <h4 class="alert-heading">Please correct the following errors:</h4>
+                <ul class="mb-0">
+                    @foreach (var error in Model.Errors)
+                    {
+                        <li>@error</li>
+                    }
+                </ul>
+            </div>
+        }
+
+        <form method="post">
+            <fieldset class="mb-4">
+                <legend class="h5">Account Type</legend>
+                <div class="btn-group w-100" role="group" aria-label="Account type selection">
+                    <input type="radio" class="btn-check" name="Input.Role" id="roleBuyer" 
+                           value="@((int)UserRole.Buyer)" 
+                           @(Model.Input.Role == UserRole.Buyer ? "checked" : "")>
+                    <label class="btn btn-outline-primary" for="roleBuyer">
+                        <i class="bi bi-cart"></i> Register as Buyer
+                    </label>
+                    
+                    <input type="radio" class="btn-check" name="Input.Role" id="roleSeller" 
+                           value="@((int)UserRole.Seller)"
+                           @(Model.Input.Role == UserRole.Seller ? "checked" : "")>
+                    <label class="btn btn-outline-primary" for="roleSeller">
+                        <i class="bi bi-shop"></i> Register as Seller
+                    </label>
+                </div>
+            </fieldset>
+
+            <fieldset class="mb-4">
+                <legend class="h5">Account Credentials</legend>
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email Address <span class="text-danger">*</span></label>
+                    <input type="email" class="form-control" id="email" name="Input.Email" 
+                           value="@Model.Input.Email" placeholder="you@example.com" required>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
+                    <input type="password" class="form-control" id="password" name="Input.Password" required>
+                    <div class="form-text">
+                        Password must be at least 8 characters with uppercase, lowercase, and a digit.
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="confirmPassword" class="form-label">Confirm Password <span class="text-danger">*</span></label>
+                    <input type="password" class="form-control" id="confirmPassword" name="Input.ConfirmPassword" required>
+                </div>
+            </fieldset>
+
+            <fieldset class="mb-4">
+                <legend class="h5">Personal Information</legend>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="firstName" class="form-label">First Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="firstName" name="Input.FirstName" 
+                               value="@Model.Input.FirstName" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="lastName" class="form-label">Last Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="lastName" name="Input.LastName" 
+                               value="@Model.Input.LastName" required>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="phoneNumber" class="form-label">Phone Number</label>
+                    <input type="tel" class="form-control" id="phoneNumber" name="Input.PhoneNumber" 
+                           value="@Model.Input.PhoneNumber" placeholder="+1 (555) 000-0000">
+                </div>
+            </fieldset>
+
+            <fieldset class="mb-4">
+                <legend class="h5">Business Information <span class="text-muted fw-normal">(Optional)</span></legend>
+                <div class="mb-3">
+                    <label for="companyName" class="form-label">Company Name</label>
+                    <input type="text" class="form-control" id="companyName" name="Input.CompanyName" 
+                           value="@Model.Input.CompanyName">
+                </div>
+                <div class="mb-3">
+                    <label for="taxId" class="form-label">Tax ID / VAT Number</label>
+                    <input type="text" class="form-control" id="taxId" name="Input.TaxId" 
+                           value="@Model.Input.TaxId">
+                    <div class="form-text">Required for sellers and invoicing purposes.</div>
+                </div>
+            </fieldset>
+
+            <div class="mb-4">
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="acceptTerms" name="Input.AcceptTerms" 
+                           value="true" @(Model.Input.AcceptTerms ? "checked" : "")>
+                    <label class="form-check-label" for="acceptTerms">
+                        I accept the <a href="/Privacy">Terms of Service and Privacy Policy</a> <span class="text-danger">*</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="d-grid">
+                <button type="submit" class="btn btn-primary btn-lg">Create Account</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
