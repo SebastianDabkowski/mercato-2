@@ -31,6 +31,11 @@ namespace SD.Project.Pages
 
         public async Task<IActionResult> OnPostAsync()
         {
+            if (!ModelState.IsValid)
+            {
+                return Page();
+            }
+
             var command = new ForgotPasswordCommand(Input.Email);
             var result = await _passwordResetService.HandleAsync(command);
 

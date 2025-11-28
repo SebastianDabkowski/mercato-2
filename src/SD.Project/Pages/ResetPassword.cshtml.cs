@@ -61,9 +61,8 @@ namespace SD.Project.Pages
                 return Page();
             }
 
-            if (Input.NewPassword != Input.ConfirmPassword)
+            if (!ModelState.IsValid)
             {
-                ErrorMessage = "Passwords do not match.";
                 TokenValid = true;
                 return Page();
             }
