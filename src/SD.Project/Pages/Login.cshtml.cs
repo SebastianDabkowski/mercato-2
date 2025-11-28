@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using SD.Project.Application.Commands;
 using SD.Project.Application.Interfaces;
 using SD.Project.Application.Services;
+using SD.Project.Domain.Repositories;
+using SD.Project.Domain.ValueObjects;
 using SD.Project.ViewModels;
 
 namespace SD.Project.Pages
@@ -15,6 +17,7 @@ namespace SD.Project.Pages
         private readonly ILogger<LoginModel> _logger;
         private readonly LoginService _loginService;
         private readonly INotificationService _notificationService;
+        private readonly IUserRepository _userRepository;
 
         [BindProperty]
         public LoginViewModel Input { get; set; } = new();
@@ -29,11 +32,13 @@ namespace SD.Project.Pages
         public LoginModel(
             ILogger<LoginModel> logger,
             LoginService loginService,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            IUserRepository userRepository)
         {
             _logger = logger;
             _loginService = loginService;
             _notificationService = notificationService;
+            _userRepository = userRepository;
         }
 
         public void OnGet()
@@ -99,9 +104,23 @@ namespace SD.Project.Pages
                 return Page();
             }
 
-            // Note: We send a generic success message even if the email doesn't exist
+            // Look up the user by email to get the actual user ID
+            // We use a generic success message regardless of whether the user exists
             // to prevent user enumeration attacks
-            await _notificationService.SendEmailVerificationAsync(Guid.Empty, email);
+            try
+            {
+                var emailObj = Email.Create(email);
+                var user = await _userRepository.GetByEmailAsync(emailObj);
+                if (user != null)
+                {
+                    await _notificationService.SendEmailVerificationAsync(user.Id, email);
+                    _logger.LogInformation("Verification email resent to user {UserId}", user.Id);
+                }
+            }
+            catch (ArgumentException)
+            {
+                // Invalid email format - silently ignore to prevent enumeration
+            }
 
             StatusMessage = "If an account exists with this email address, a verification email has been sent.";
             return RedirectToPage();
