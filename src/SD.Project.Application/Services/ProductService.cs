@@ -127,6 +127,19 @@ public sealed class ProductService
     }
 
     /// <summary>
+    /// Retrieves active products for a specific category (public view).
+    /// </summary>
+    public async Task<IReadOnlyCollection<ProductDto>> HandleAsync(GetProductsByCategoryQuery query, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var products = await _repository.GetByCategoryAsync(query.CategoryName, cancellationToken);
+        return products
+            .Select(p => MapToDto(p))
+            .ToArray();
+    }
+
+    /// <summary>
     /// Handles a request to update an existing product.
     /// </summary>
     public async Task<UpdateProductResultDto> HandleAsync(UpdateProductCommand command, CancellationToken cancellationToken = default)

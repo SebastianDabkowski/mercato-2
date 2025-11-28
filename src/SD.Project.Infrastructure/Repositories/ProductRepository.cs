@@ -74,6 +74,17 @@ public sealed class ProductRepository : IProductRepository
         return results.AsReadOnly();
     }
 
+    public async Task<IReadOnlyCollection<Product>> GetByCategoryAsync(string categoryName, CancellationToken cancellationToken = default)
+    {
+        var categoryNameLower = categoryName.ToLowerInvariant();
+        var results = await _context.Products
+            .AsNoTracking()
+            .Where(p => p.Category.ToLower() == categoryNameLower && p.Status == ProductStatus.Active)
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync(cancellationToken);
+        return results.AsReadOnly();
+    }
+
     public async Task AddAsync(Product product, CancellationToken cancellationToken = default)
     {
         await _context.Products.AddAsync(product, cancellationToken);

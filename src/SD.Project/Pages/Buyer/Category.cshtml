@@ -1,0 +1,156 @@
+@page "{id:guid?}"
+@model SD.Project.Pages.Buyer.CategoryModel
+@{
+    ViewData["Title"] = Model.CurrentCategory?.Name ?? "Browse Categories";
+}
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="/Index">Home</a></li>
+        <li class="breadcrumb-item"><a asp-page="/Buyer/Category" asp-route-id="">Categories</a></li>
+        @if (Model.ParentCategory is not null)
+        {
+            <li class="breadcrumb-item">
+                <a asp-page="/Buyer/Category" asp-route-id="@Model.ParentCategory.Id">@Model.ParentCategory.Name</a>
+            </li>
+        }
+        @if (Model.CurrentCategory is not null)
+        {
+            <li class="breadcrumb-item active" aria-current="page">@Model.CurrentCategory.Name</li>
+        }
+    </ol>
+</nav>
+
+@if (Model.CurrentCategory is null)
+{
+    <h1>Browse Categories</h1>
+    <p class="lead">Select a category to explore products.</p>
+
+    @if (Model.RootCategories.Any())
+    {
+        <div class="row row-cols-1 row-cols-md-3 g-4 mt-3">
+            @foreach (var category in Model.RootCategories)
+            {
+                <div class="col">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">@category.Name</h5>
+                            <p class="card-text text-muted">
+                                @category.ProductCount product(s)
+                                @if (category.ChildCount > 0)
+                                {
+                                    <text> • @category.ChildCount subcategory(ies)</text>
+                                }
+                            </p>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <a asp-page="/Buyer/Category" asp-route-id="@category.Id" class="btn btn-primary">
+                                Browse
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info" role="alert">
+            <h4 class="alert-heading">No Categories Available</h4>
+            <p>There are currently no categories configured in the system.</p>
+            <hr>
+            <p class="mb-0">Check back later or <a asp-page="/Index" class="alert-link">browse all products</a>.</p>
+        </div>
+    }
+}
+else
+{
+    <h1>@Model.CurrentCategory.Name</h1>
+
+    @if (Model.Subcategories.Any())
+    {
+        <section class="mb-4">
+            <h5>Subcategories</h5>
+            <div class="d-flex flex-wrap gap-2">
+                @foreach (var subcategory in Model.Subcategories)
+                {
+                    <a asp-page="/Buyer/Category" asp-route-id="@subcategory.Id" class="btn btn-outline-secondary">
+                        @subcategory.Name
+                        <span class="badge bg-secondary">@subcategory.ProductCount</span>
+                    </a>
+                }
+            </div>
+        </section>
+    }
+
+    @if (Model.Products.Any())
+    {
+        <section>
+            <h5>Products</h5>
+            <div class="row row-cols-1 row-cols-md-3 g-4">
+                @foreach (var product in Model.Products)
+                {
+                    <div class="col">
+                        <div class="card h-100">
+                            @if (!string.IsNullOrEmpty(product.MainImageThumbnailUrl))
+                            {
+                                <img src="@product.MainImageThumbnailUrl" class="card-img-top" alt="@product.Name">
+                            }
+                            else
+                            {
+                                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 180px;">
+                                    <span class="text-muted">No Image</span>
+                                </div>
+                            }
+                            <div class="card-body">
+                                <h5 class="card-title">@product.Name</h5>
+                                <p class="card-text text-muted">@(product.Description.Length > 100 ? product.Description.Substring(0, 100) + "..." : product.Description)</p>
+                                <p class="card-text">
+                                    <strong>@product.Currency @product.Amount.ToString("N2")</strong>
+                                </p>
+                            </div>
+                            <div class="card-footer bg-transparent">
+                                @if (product.Stock > 0)
+                                {
+                                    <span class="badge bg-success">In Stock</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">Out of Stock</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </section>
+    }
+    else
+    {
+        <div class="alert alert-info" role="alert">
+            <h4 class="alert-heading">No Products Found</h4>
+            <p>There are currently no products in the "@Model.CurrentCategory.Name" category.</p>
+            <hr>
+            @if (Model.Subcategories.Any())
+            {
+                <p class="mb-0">Try browsing one of the subcategories above.</p>
+            }
+            else if (Model.RootCategories.Any())
+            {
+                <p class="mb-0">Explore other categories:</p>
+                <div class="mt-2">
+                    @foreach (var category in Model.RootCategories.Take(5))
+                    {
+                        <a asp-page="/Buyer/Category" asp-route-id="@category.Id" class="btn btn-outline-primary btn-sm me-1 mb-1">
+                            @category.Name
+                        </a>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="mb-0">Check back later or <a asp-page="/Index" class="alert-link">browse all products</a>.</p>
+            }
+        </div>
+    }
+}
