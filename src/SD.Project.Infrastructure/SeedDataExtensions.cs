@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using SD.Project.Application.Interfaces;
 using SD.Project.Domain.Entities;
 using SD.Project.Domain.Repositories;
 using SD.Project.Domain.ValueObjects;
@@ -18,9 +19,30 @@ public static class SeedDataExtensions
         using var scope = services.CreateScope();
         var storeRepo = scope.ServiceProvider.GetRequiredService<IStoreRepository>();
         var productRepo = scope.ServiceProvider.GetRequiredService<IProductRepository>();
+        var userRepo = scope.ServiceProvider.GetRequiredService<IUserRepository>();
+        var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
 
         // Create a test seller user ID
         var sellerId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+
+        // Create a test seller user for development
+        var existingSeller = await userRepo.GetByIdAsync(sellerId);
+        if (existingSeller is null)
+        {
+            var sellerEmail = Email.Create("seller@demo.com");
+            var passwordHash = passwordHasher.HashPassword("Demo123!");
+            var seller = new User(
+                sellerId,
+                sellerEmail,
+                passwordHash,
+                UserRole.Seller,
+                "Demo",
+                "Seller",
+                acceptedTerms: true);
+            seller.VerifyEmail();
+            await userRepo.AddAsync(seller);
+            await userRepo.SaveChangesAsync();
+        }
 
         // Create an active store
         var existingStore = await storeRepo.GetBySlugAsync("demo-store");

@@ -21,6 +21,7 @@ public class AppDbContext : DbContext
     public DbSet<LoginEvent> LoginEvents => Set<LoginEvent>();
     public DbSet<SellerOnboarding> SellerOnboardings => Set<SellerOnboarding>();
     public DbSet<Store> Stores => Set<Store>();
+    public DbSet<PayoutSettings> PayoutSettings => Set<PayoutSettings>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

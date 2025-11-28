@@ -1,0 +1,196 @@
+@page
+@model SD.Project.Pages.Seller.PayoutSettingsModel
+@using SD.Project.Domain.Entities
+@{
+    ViewData["Title"] = "Payout Settings";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <h1 class="mb-4">Payout Settings</h1>
+            <p class="text-muted">Configure your bank account and payout preferences to receive funds from sales on the marketplace.</p>
+
+            @if (!Model.OnboardingCompleted)
+            {
+                <div class="alert alert-warning mb-4">
+                    <h5 class="alert-heading">Complete Your Seller Onboarding</h5>
+                    <p class="mb-0">You need to complete the seller onboarding wizard before you can receive payouts. Your payout settings will be saved but payouts will be on hold until onboarding is complete.</p>
+                    <a asp-page="/Seller/Onboarding" class="btn btn-warning mt-2">Complete Onboarding</a>
+                </div>
+            }
+
+            @if (!Model.IsConfigured)
+            {
+                <div class="alert alert-info mb-4">
+                    <h5 class="alert-heading">Payout Configuration Required</h5>
+                    <p class="mb-0">Please configure at least one payout method and set it as your default to receive funds from sales.</p>
+                </div>
+            }
+
+            @if (Model.IsConfigured && !Model.IsVerified)
+            {
+                <div class="alert alert-info mb-4">
+                    <h5 class="alert-heading">Verification Pending</h5>
+                    <p class="mb-0">Your payout settings are configured but pending verification. You will be notified once verification is complete.</p>
+                </div>
+            }
+
+            @if (Model.IsConfigured && Model.IsVerified)
+            {
+                <div class="alert alert-success mb-4">
+                    <h5 class="alert-heading">Payout Settings Verified</h5>
+                    <p class="mb-0">Your payout settings are verified and ready to receive funds. Current default: <strong>@(Model.DefaultPayoutMethod == PayoutMethod.BankTransfer ? "Bank Transfer" : Model.DefaultPayoutMethod == PayoutMethod.Sepa ? "SEPA" : "Not Set")</strong></p>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+            {
+                <div class="alert alert-success" role="alert">
+                    @Model.SuccessMessage
+                </div>
+            }
+
+            @if (Model.Errors.Count > 0)
+            {
+                <div class="alert alert-danger" role="alert">
+                    <ul class="mb-0">
+                        @foreach (var error in Model.Errors)
+                        {
+                            <li>@error</li>
+                        }
+                    </ul>
+                </div>
+            }
+
+            <div class="row">
+                <!-- Bank Transfer Configuration -->
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Bank Transfer (SWIFT)</h5>
+                            @if (Model.DefaultPayoutMethod == PayoutMethod.BankTransfer)
+                            {
+                                <span class="badge bg-success">Default</span>
+                            }
+                            else if (Model.IsBankTransferAvailable)
+                            {
+                                <span class="badge bg-secondary">Available</span>
+                            }
+                        </div>
+                        <div class="card-body">
+                            <form method="post">
+                                <div class="mb-3">
+                                    <label asp-for="Input.BankAccountHolder" class="form-label">Account Holder Name <span class="text-danger">*</span></label>
+                                    <input asp-for="Input.BankAccountHolder" class="form-control" placeholder="Enter the name on the bank account" />
+                                    <div class="form-text">Must match the name on your bank account exactly</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label asp-for="Input.BankAccountNumber" class="form-label">Bank Account Number / IBAN <span class="text-danger">*</span></label>
+                                    <input asp-for="Input.BankAccountNumber" class="form-control" placeholder="Enter your bank account number or IBAN" />
+                                </div>
+
+                                <div class="mb-3">
+                                    <label asp-for="Input.BankName" class="form-label">Bank Name <span class="text-danger">*</span></label>
+                                    <input asp-for="Input.BankName" class="form-control" placeholder="Enter your bank's name" />
+                                </div>
+
+                                <div class="mb-3">
+                                    <label asp-for="Input.BankSwiftCode" class="form-label">SWIFT/BIC Code <span class="text-danger">*</span></label>
+                                    <input asp-for="Input.BankSwiftCode" class="form-control" placeholder="Enter your bank's SWIFT/BIC code" />
+                                    <div class="form-text">Usually 8-11 characters, found on your bank statement</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label asp-for="Input.BankCountry" class="form-label">Bank Country</label>
+                                    <input asp-for="Input.BankCountry" class="form-control" placeholder="Enter the country of your bank" />
+                                </div>
+
+                                <div class="d-flex justify-content-between mt-4">
+                                    <button type="submit" asp-page-handler="SaveBankTransfer" class="btn btn-outline-primary">Save</button>
+                                    @if (Model.DefaultPayoutMethod != PayoutMethod.BankTransfer)
+                                    {
+                                        <button type="submit" asp-page-handler="SetBankTransferDefault" class="btn btn-primary">Save & Set as Default</button>
+                                    }
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SEPA Configuration -->
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">SEPA (European Region)</h5>
+                            @if (Model.DefaultPayoutMethod == PayoutMethod.Sepa)
+                            {
+                                <span class="badge bg-success">Default</span>
+                            }
+                            else if (Model.IsSepaAvailable)
+                            {
+                                <span class="badge bg-secondary">Available</span>
+                            }
+                        </div>
+                        <div class="card-body">
+                            <form method="post">
+                                <!-- Include hidden fields for bank transfer to preserve values -->
+                                <input type="hidden" asp-for="Input.BankAccountHolder" />
+                                <input type="hidden" asp-for="Input.BankAccountNumber" />
+                                <input type="hidden" asp-for="Input.BankName" />
+                                <input type="hidden" asp-for="Input.BankSwiftCode" />
+                                <input type="hidden" asp-for="Input.BankCountry" />
+
+                                <div class="mb-3">
+                                    <label asp-for="Input.SepaIban" class="form-label">IBAN <span class="text-danger">*</span></label>
+                                    <input asp-for="Input.SepaIban" class="form-control" placeholder="e.g., DE89 3704 0044 0532 0130 00" />
+                                    <div class="form-text">International Bank Account Number for SEPA transfers</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label asp-for="Input.SepaBic" class="form-label">BIC <span class="text-danger">*</span></label>
+                                    <input asp-for="Input.SepaBic" class="form-control" placeholder="e.g., COBADEFFXXX" />
+                                    <div class="form-text">Bank Identifier Code (8-11 characters)</div>
+                                </div>
+
+                                <div class="alert alert-light">
+                                    <small><strong>Note:</strong> SEPA is available for banks within the Single Euro Payments Area. This option is typically faster and may have lower fees for European transfers.</small>
+                                </div>
+
+                                <div class="d-flex justify-content-between mt-4">
+                                    <button type="submit" asp-page-handler="SaveSepa" class="btn btn-outline-primary">Save</button>
+                                    @if (Model.DefaultPayoutMethod != PayoutMethod.Sepa)
+                                    {
+                                        <button type="submit" asp-page-handler="SetSepaDefault" class="btn btn-primary">Save & Set as Default</button>
+                                    }
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Security Information</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li><strong>Encryption:</strong> Your bank account data is encrypted at rest and protected in transit using industry-standard encryption protocols.</li>
+                        <li><strong>Verification:</strong> Changes to payout settings may require additional verification to prevent fraud.</li>
+                        <li><strong>Access Control:</strong> Only authorized personnel can access payout information for processing payouts.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <a asp-page="/Seller/Dashboard" class="btn btn-outline-secondary">← Back to Dashboard</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
