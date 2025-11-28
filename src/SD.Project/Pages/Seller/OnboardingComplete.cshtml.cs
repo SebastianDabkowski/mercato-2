@@ -11,6 +11,8 @@ namespace SD.Project.Pages.Seller
     [RequireRole(UserRole.Seller, UserRole.Admin)]
     public class OnboardingCompleteModel : PageModel
     {
+        private const string DefaultSupportEmail = "support@example.com";
+
         private readonly ILogger<OnboardingCompleteModel> _logger;
         private readonly SellerOnboardingService _onboardingService;
         private readonly IConfiguration _configuration;
@@ -18,7 +20,7 @@ namespace SD.Project.Pages.Seller
         public OnboardingStatus Status { get; private set; }
         public string? StoreName { get; private set; }
         public DateTime? SubmittedAt { get; private set; }
-        public string SupportEmail { get; private set; } = "support@example.com";
+        public string SupportEmail { get; private set; } = DefaultSupportEmail;
 
         public OnboardingCompleteModel(
             ILogger<OnboardingCompleteModel> logger,
@@ -38,7 +40,7 @@ namespace SD.Project.Pages.Seller
                 return RedirectToPage("/Login");
             }
 
-            SupportEmail = _configuration["SupportEmail"] ?? "support@example.com";
+            SupportEmail = _configuration["SupportEmail"] ?? DefaultSupportEmail;
 
             var onboarding = await _onboardingService.HandleAsync(new GetSellerOnboardingQuery(userId));
             if (onboarding is null)
