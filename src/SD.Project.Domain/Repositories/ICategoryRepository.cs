@@ -13,6 +13,8 @@ public interface ICategoryRepository
     Task<IReadOnlyCollection<Category>> GetChildrenAsync(Guid parentId, CancellationToken cancellationToken = default);
     Task<bool> HasChildrenAsync(Guid categoryId, CancellationToken cancellationToken = default);
     Task<int> GetProductCountAsync(Guid categoryId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<Guid, int>> GetProductCountsAsync(IEnumerable<Guid> categoryIds, CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<Guid, int>> GetChildCountsAsync(IEnumerable<Guid> categoryIds, CancellationToken cancellationToken = default);
     Task AddAsync(Category category, CancellationToken cancellationToken = default);
     void Update(Category category);
     void Delete(Category category);

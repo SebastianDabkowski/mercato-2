@@ -52,7 +52,7 @@ public sealed class CategoryService
             await _repository.AddAsync(category, cancellationToken);
             await _repository.SaveChangesAsync(cancellationToken);
 
-            var dto = await MapToDtoAsync(category, cancellationToken);
+            var dto = await MapSingleToDtoAsync(category, cancellationToken);
             return CreateCategoryResultDto.Succeeded(dto);
         }
         catch (ArgumentException ex)
@@ -95,7 +95,9 @@ public sealed class CategoryService
             }
 
             // Check for circular reference (parent cannot be a descendant of this category)
-            if (await IsDescendantAsync(command.ParentId.Value, command.CategoryId, cancellationToken))
+            // Load all categories once and check in memory
+            var allCategories = await _repository.GetAllAsync(cancellationToken);
+            if (IsDescendantInMemory(command.ParentId.Value, command.CategoryId, allCategories))
             {
                 return UpdateCategoryResultDto.Failed("Cannot set a descendant category as parent (circular reference).");
             }
@@ -110,7 +112,7 @@ public sealed class CategoryService
             _repository.Update(category);
             await _repository.SaveChangesAsync(cancellationToken);
 
-            var dto = await MapToDtoAsync(category, cancellationToken);
+            var dto = await MapSingleToDtoAsync(category, cancellationToken);
             return UpdateCategoryResultDto.Succeeded(dto);
         }
         catch (ArgumentException ex)
@@ -186,7 +188,7 @@ public sealed class CategoryService
             _repository.Update(category);
             await _repository.SaveChangesAsync(cancellationToken);
 
-            var dto = await MapToDtoAsync(category, cancellationToken);
+            var dto = await MapSingleToDtoAsync(category, cancellationToken);
             var message = category.IsActive ? "Category activated successfully." : "Category deactivated successfully.";
             return UpdateCategoryResultDto.Succeeded(dto, message);
         }
@@ -197,39 +199,25 @@ public sealed class CategoryService
     }
 
     /// <summary>
-    /// Retrieves all categories.
+    /// Retrieves all categories with optimized batch loading.
     /// </summary>
     public async Task<IReadOnlyCollection<CategoryDto>> HandleAsync(GetAllCategoriesQuery query, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(query);
 
         var categories = await _repository.GetAllAsync(cancellationToken);
-        var result = new List<CategoryDto>();
-
-        foreach (var category in categories)
-        {
-            result.Add(await MapToDtoAsync(category, cancellationToken));
-        }
-
-        return result.AsReadOnly();
+        return await MapToDtosAsync(categories, cancellationToken);
     }
 
     /// <summary>
-    /// Retrieves only active categories.
+    /// Retrieves only active categories with optimized batch loading.
     /// </summary>
     public async Task<IReadOnlyCollection<CategoryDto>> HandleAsync(GetActiveCategoriesQuery query, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(query);
 
         var categories = await _repository.GetActiveAsync(cancellationToken);
-        var result = new List<CategoryDto>();
-
-        foreach (var category in categories)
-        {
-            result.Add(await MapToDtoAsync(category, cancellationToken));
-        }
-
-        return result.AsReadOnly();
+        return await MapToDtosAsync(categories, cancellationToken);
     }
 
     /// <summary>
@@ -240,10 +228,57 @@ public sealed class CategoryService
         ArgumentNullException.ThrowIfNull(query);
 
         var category = await _repository.GetByIdAsync(query.CategoryId, cancellationToken);
-        return category is null ? null : await MapToDtoAsync(category, cancellationToken);
+        return category is null ? null : await MapSingleToDtoAsync(category, cancellationToken);
     }
 
-    private async Task<CategoryDto> MapToDtoAsync(Category category, CancellationToken cancellationToken)
+    /// <summary>
+    /// Maps multiple categories to DTOs with optimized batch loading.
+    /// </summary>
+    private async Task<IReadOnlyCollection<CategoryDto>> MapToDtosAsync(IReadOnlyCollection<Category> categories, CancellationToken cancellationToken)
+    {
+        if (categories.Count == 0)
+        {
+            return Array.Empty<CategoryDto>();
+        }
+
+        var categoryIds = categories.Select(c => c.Id).ToList();
+
+        // Batch load product counts and child counts
+        var productCounts = await _repository.GetProductCountsAsync(categoryIds, cancellationToken);
+        var childCounts = await _repository.GetChildCountsAsync(categoryIds, cancellationToken);
+
+        // Build parent name lookup from the same collection
+        var categoryById = categories.ToDictionary(c => c.Id, c => c);
+
+        var result = new List<CategoryDto>();
+        foreach (var category in categories)
+        {
+            string? parentName = null;
+            if (category.ParentId.HasValue && categoryById.TryGetValue(category.ParentId.Value, out var parent))
+            {
+                parentName = parent.Name;
+            }
+
+            result.Add(new CategoryDto(
+                category.Id,
+                category.Name,
+                category.ParentId,
+                parentName,
+                category.DisplayOrder,
+                category.IsActive,
+                category.CreatedAt,
+                category.UpdatedAt,
+                productCounts.GetValueOrDefault(category.Id, 0),
+                childCounts.GetValueOrDefault(category.Id, 0)));
+        }
+
+        return result.AsReadOnly();
+    }
+
+    /// <summary>
+    /// Maps a single category to DTO (used for individual operations like create/update).
+    /// </summary>
+    private async Task<CategoryDto> MapSingleToDtoAsync(Category category, CancellationToken cancellationToken)
     {
         string? parentName = null;
         if (category.ParentId.HasValue)
@@ -268,9 +303,12 @@ public sealed class CategoryService
             children.Count);
     }
 
-    private async Task<bool> IsDescendantAsync(Guid potentialDescendantId, Guid ancestorId, CancellationToken cancellationToken)
+    /// <summary>
+    /// Checks if a category is a descendant of another using in-memory traversal.
+    /// </summary>
+    private static bool IsDescendantInMemory(Guid potentialDescendantId, Guid ancestorId, IReadOnlyCollection<Category> allCategories)
     {
-        var children = await _repository.GetChildrenAsync(ancestorId, cancellationToken);
+        var children = allCategories.Where(c => c.ParentId == ancestorId).ToList();
         foreach (var child in children)
         {
             if (child.Id == potentialDescendantId)
@@ -278,7 +316,7 @@ public sealed class CategoryService
                 return true;
             }
 
-            if (await IsDescendantAsync(potentialDescendantId, child.Id, cancellationToken))
+            if (IsDescendantInMemory(potentialDescendantId, child.Id, allCategories))
             {
                 return true;
             }

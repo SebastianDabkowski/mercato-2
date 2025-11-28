@@ -62,7 +62,6 @@ public sealed class CategoryRepository : ICategoryRepository
 
     public async Task<int> GetProductCountAsync(Guid categoryId, CancellationToken cancellationToken = default)
     {
-        // Get the category to find its name for matching
         var category = await _context.Categories
             .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Id == categoryId, cancellationToken);
@@ -72,10 +71,71 @@ public sealed class CategoryRepository : ICategoryRepository
             return 0;
         }
 
-        // Count products that have this category name (case-insensitive match)
+        // Count products that have this category name (using ToLower for case-insensitive comparison)
+        var categoryNameLower = category.Name.ToLowerInvariant();
         return await _context.Products
-            .Where(p => p.Category == category.Name && p.Status != ProductStatus.Archived)
+            .Where(p => p.Category.ToLower() == categoryNameLower && p.Status != ProductStatus.Archived)
             .CountAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyDictionary<Guid, int>> GetProductCountsAsync(IEnumerable<Guid> categoryIds, CancellationToken cancellationToken = default)
+    {
+        var categoryIdList = categoryIds.ToList();
+        if (categoryIdList.Count == 0)
+        {
+            return new Dictionary<Guid, int>();
+        }
+
+        // Get all categories with their names
+        var categories = await _context.Categories
+            .AsNoTracking()
+            .Where(c => categoryIdList.Contains(c.Id))
+            .Select(c => new { c.Id, c.Name })
+            .ToListAsync(cancellationToken);
+
+        // Get product counts by category name (case-insensitive)
+        var categoryNames = categories.Select(c => c.Name.ToLowerInvariant()).Distinct().ToList();
+        var productCounts = await _context.Products
+            .Where(p => categoryNames.Contains(p.Category.ToLower()) && p.Status != ProductStatus.Archived)
+            .GroupBy(p => p.Category.ToLower())
+            .Select(g => new { CategoryName = g.Key, Count = g.Count() })
+            .ToListAsync(cancellationToken);
+
+        var productCountDict = productCounts.ToDictionary(x => x.CategoryName, x => x.Count);
+
+        // Map back to category IDs
+        var result = new Dictionary<Guid, int>();
+        foreach (var category in categories)
+        {
+            var nameLower = category.Name.ToLowerInvariant();
+            result[category.Id] = productCountDict.GetValueOrDefault(nameLower, 0);
+        }
+
+        return result;
+    }
+
+    public async Task<IReadOnlyDictionary<Guid, int>> GetChildCountsAsync(IEnumerable<Guid> categoryIds, CancellationToken cancellationToken = default)
+    {
+        var categoryIdList = categoryIds.ToList();
+        if (categoryIdList.Count == 0)
+        {
+            return new Dictionary<Guid, int>();
+        }
+
+        var childCounts = await _context.Categories
+            .AsNoTracking()
+            .Where(c => c.ParentId.HasValue && categoryIdList.Contains(c.ParentId.Value))
+            .GroupBy(c => c.ParentId!.Value)
+            .Select(g => new { ParentId = g.Key, Count = g.Count() })
+            .ToListAsync(cancellationToken);
+
+        var result = categoryIdList.ToDictionary(id => id, _ => 0);
+        foreach (var item in childCounts)
+        {
+            result[item.ParentId] = item.Count;
+        }
+
+        return result;
     }
 
     public async Task AddAsync(Category category, CancellationToken cancellationToken = default)

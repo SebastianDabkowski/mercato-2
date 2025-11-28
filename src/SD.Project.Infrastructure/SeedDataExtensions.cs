@@ -12,6 +12,21 @@ namespace SD.Project.Infrastructure;
 public static class SeedDataExtensions
 {
     /// <summary>
+    /// Development admin user ID.
+    /// </summary>
+    private static readonly Guid DevAdminId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+
+    /// <summary>
+    /// Development seller user ID.
+    /// </summary>
+    private static readonly Guid DevSellerId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+
+    /// <summary>
+    /// Development pending seller user ID.
+    /// </summary>
+    private static readonly Guid DevPendingSellerId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+
+    /// <summary>
     /// Seeds development data for testing the public store page functionality.
     /// </summary>
     public static async Task SeedDevelopmentDataAsync(this IServiceProvider services)
@@ -24,14 +39,13 @@ public static class SeedDataExtensions
         var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
 
         // Create an admin user for development
-        var adminId = Guid.Parse("00000000-0000-0000-0000-000000000001");
-        var existingAdmin = await userRepo.GetByIdAsync(adminId);
+        var existingAdmin = await userRepo.GetByIdAsync(DevAdminId);
         if (existingAdmin is null)
         {
             var adminEmail = Email.Create("admin@demo.com");
             var passwordHash = passwordHasher.HashPassword("Admin123!");
             var admin = new User(
-                adminId,
+                DevAdminId,
                 adminEmail,
                 passwordHash,
                 UserRole.Admin,
@@ -43,17 +57,14 @@ public static class SeedDataExtensions
             await userRepo.SaveChangesAsync();
         }
 
-        // Create a test seller user ID
-        var sellerId = Guid.Parse("11111111-1111-1111-1111-111111111111");
-
         // Create a test seller user for development
-        var existingSeller = await userRepo.GetByIdAsync(sellerId);
+        var existingSeller = await userRepo.GetByIdAsync(DevSellerId);
         if (existingSeller is null)
         {
             var sellerEmail = Email.Create("seller@demo.com");
             var passwordHash = passwordHasher.HashPassword("Demo123!");
             var seller = new User(
-                sellerId,
+                DevSellerId,
                 sellerEmail,
                 passwordHash,
                 UserRole.Seller,
@@ -69,7 +80,7 @@ public static class SeedDataExtensions
         var existingStore = await storeRepo.GetBySlugAsync("demo-store");
         if (existingStore is null)
         {
-            var store = new Store(sellerId, "Demo Store", "contact@demostore.com");
+            var store = new Store(DevSellerId, "Demo Store", "contact@demostore.com");
             store.UpdateDescription("Welcome to our demo store! We offer a wide range of quality products.");
             store.UpdateLogoUrl(null);
             store.Activate(); // Make it publicly visible
@@ -90,11 +101,10 @@ public static class SeedDataExtensions
         }
 
         // Create a pending verification store
-        var pendingSellerId = Guid.Parse("22222222-2222-2222-2222-222222222222");
         var pendingStore = await storeRepo.GetBySlugAsync("pending-store");
         if (pendingStore is null)
         {
-            var store = new Store(pendingSellerId, "Pending Store", "pending@store.com");
+            var store = new Store(DevPendingSellerId, "Pending Store", "pending@store.com");
             store.UpdateDescription("This store is pending verification.");
             // Don't activate - leave as PendingVerification
             await storeRepo.AddAsync(store);
