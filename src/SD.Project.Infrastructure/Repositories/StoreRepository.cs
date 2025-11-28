@@ -84,6 +84,16 @@ public sealed class StoreRepository : IStoreRepository
         return results.AsReadOnly();
     }
 
+    public async Task<IReadOnlyCollection<Store>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
+    {
+        var idList = ids.ToList();
+        var results = await _context.Stores
+            .AsNoTracking()
+            .Where(s => idList.Contains(s.Id))
+            .ToListAsync(cancellationToken);
+        return results.AsReadOnly();
+    }
+
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         await _context.SaveChangesAsync(cancellationToken);

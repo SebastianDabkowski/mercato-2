@@ -103,7 +103,7 @@ public sealed class CartService
         var cartItem = cart.AddItem(command.ProductId, product.StoreId.Value, command.Quantity);
 
         // Save changes
-        _cartRepository.Update(cart);
+        await _cartRepository.UpdateAsync(cart, cancellationToken);
         await _cartRepository.SaveChangesAsync(cancellationToken);
 
         // Map to DTO
@@ -151,7 +151,7 @@ public sealed class CartService
         cart.UpdateItemQuantity(command.ProductId, command.Quantity);
 
         // Save changes
-        _cartRepository.Update(cart);
+        await _cartRepository.UpdateAsync(cart, cancellationToken);
         await _cartRepository.SaveChangesAsync(cancellationToken);
 
         // Refresh cart item reference after update
@@ -180,7 +180,7 @@ public sealed class CartService
         }
 
         // Save changes
-        _cartRepository.Update(cart);
+        await _cartRepository.UpdateAsync(cart, cancellationToken);
         await _cartRepository.SaveChangesAsync(cancellationToken);
 
         return RemoveFromCartResultDto.Succeeded();
@@ -201,7 +201,7 @@ public sealed class CartService
 
         cart.Clear();
 
-        _cartRepository.Update(cart);
+        await _cartRepository.UpdateAsync(cart, cancellationToken);
         await _cartRepository.SaveChangesAsync(cancellationToken);
     }
 
@@ -235,7 +235,7 @@ public sealed class CartService
         {
             // Just associate the anonymous cart with the buyer
             anonymousCart.AssociateBuyer(command.BuyerId);
-            _cartRepository.Update(anonymousCart);
+            await _cartRepository.UpdateAsync(anonymousCart, cancellationToken);
             await _cartRepository.SaveChangesAsync(cancellationToken);
             return;
         }
@@ -261,8 +261,8 @@ public sealed class CartService
         }
 
         // Delete anonymous cart and save buyer's cart
-        _cartRepository.Delete(anonymousCart);
-        _cartRepository.Update(buyerCart);
+        await _cartRepository.DeleteAsync(anonymousCart, cancellationToken);
+        await _cartRepository.UpdateAsync(buyerCart, cancellationToken);
         await _cartRepository.SaveChangesAsync(cancellationToken);
     }
 
@@ -310,17 +310,10 @@ public sealed class CartService
         var products = await _productRepository.GetByIdsAsync(productIds, cancellationToken);
         var productLookup = products.ToDictionary(p => p.Id);
 
-        // Get all stores
+        // Get all stores in a single batch query
         var storeIds = cart.Items.Select(i => i.StoreId).Distinct().ToList();
-        var stores = new Dictionary<Guid, Store>();
-        foreach (var storeId in storeIds)
-        {
-            var store = await _storeRepository.GetByIdAsync(storeId, cancellationToken);
-            if (store is not null)
-            {
-                stores[storeId] = store;
-            }
-        }
+        var storesList = await _storeRepository.GetByIdsAsync(storeIds, cancellationToken);
+        var stores = storesList.ToDictionary(s => s.Id);
 
         // Group items by seller
         var sellerGroups = new List<CartSellerGroupDto>();

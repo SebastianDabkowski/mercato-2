@@ -61,25 +61,27 @@ public sealed class CartRepository : ICartRepository
         await _context.Carts.AddAsync(cart, cancellationToken);
     }
 
-    public void Update(Cart cart)
+    public async Task UpdateAsync(Cart cart, CancellationToken cancellationToken = default)
     {
         // Handle cart items explicitly since they're in a separate table
-        var existingItemIds = _context.CartItems
+        var existingItemIds = await _context.CartItems
             .Where(ci => ci.CartId == cart.Id)
             .Select(ci => ci.Id)
-            .ToHashSet();
+            .ToListAsync(cancellationToken);
+        var existingItemIdSet = existingItemIds.ToHashSet();
 
         var currentItemIds = cart.Items.Select(i => i.Id).ToHashSet();
 
         // Remove items that are no longer in the cart
-        var itemsToRemove = _context.CartItems
-            .Where(ci => ci.CartId == cart.Id && !currentItemIds.Contains(ci.Id));
+        var itemsToRemove = await _context.CartItems
+            .Where(ci => ci.CartId == cart.Id && !currentItemIds.Contains(ci.Id))
+            .ToListAsync(cancellationToken);
         _context.CartItems.RemoveRange(itemsToRemove);
 
         // Add new items and update existing ones
         foreach (var item in cart.Items)
         {
-            if (existingItemIds.Contains(item.Id))
+            if (existingItemIdSet.Contains(item.Id))
             {
                 _context.CartItems.Update(item);
             }
@@ -92,10 +94,12 @@ public sealed class CartRepository : ICartRepository
         _context.Carts.Update(cart);
     }
 
-    public void Delete(Cart cart)
+    public async Task DeleteAsync(Cart cart, CancellationToken cancellationToken = default)
     {
         // Remove all items first
-        var items = _context.CartItems.Where(ci => ci.CartId == cart.Id);
+        var items = await _context.CartItems
+            .Where(ci => ci.CartId == cart.Id)
+            .ToListAsync(cancellationToken);
         _context.CartItems.RemoveRange(items);
         _context.Carts.Remove(cart);
     }

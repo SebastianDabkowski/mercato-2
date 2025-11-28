@@ -14,7 +14,6 @@ namespace SD.Project.Pages.Buyer;
 /// </summary>
 public class ProductModel : PageModel
 {
-    private const string CartSessionKey = "CartSessionId";
     private readonly ILogger<ProductModel> _logger;
     private readonly ProductService _productService;
     private readonly CategoryService _categoryService;
@@ -154,11 +153,11 @@ public class ProductModel : PageModel
         }
 
         // For anonymous users, use session
-        var sessionId = HttpContext.Session.GetString(CartSessionKey);
+        var sessionId = HttpContext.Session.GetString(Constants.CartSessionKey);
         if (string.IsNullOrEmpty(sessionId))
         {
             sessionId = Guid.NewGuid().ToString();
-            HttpContext.Session.SetString(CartSessionKey, sessionId);
+            HttpContext.Session.SetString(Constants.CartSessionKey, sessionId);
         }
 
         return (null, sessionId);

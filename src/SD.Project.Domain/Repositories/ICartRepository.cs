@@ -30,12 +30,12 @@ public interface ICartRepository
     /// <summary>
     /// Updates an existing cart.
     /// </summary>
-    void Update(Cart cart);
+    Task UpdateAsync(Cart cart, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Deletes a cart.
     /// </summary>
-    void Delete(Cart cart);
+    Task DeleteAsync(Cart cart, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Saves all changes to the database.
