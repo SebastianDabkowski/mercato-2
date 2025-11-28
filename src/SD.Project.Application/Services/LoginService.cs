@@ -69,6 +69,13 @@ public sealed class LoginService
             return LoginResultDto.Failed(InvalidCredentialsMessage);
         }
 
+        // Check if user has a password set (external login users don't have passwords)
+        if (string.IsNullOrEmpty(user.PasswordHash))
+        {
+            _rateLimiter.RecordFailedAttempt(normalizedEmail);
+            return LoginResultDto.Failed("This account uses social login. Please sign in with Google or Facebook.");
+        }
+
         // Verify password
         if (!_passwordHasher.VerifyPassword(command.Password, user.PasswordHash))
         {

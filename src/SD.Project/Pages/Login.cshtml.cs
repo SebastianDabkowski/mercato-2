@@ -18,6 +18,7 @@ namespace SD.Project.Pages
         private readonly LoginService _loginService;
         private readonly INotificationService _notificationService;
         private readonly IUserRepository _userRepository;
+        private readonly IAuthenticationSchemeProvider _schemeProvider;
 
         [BindProperty]
         public LoginViewModel Input { get; set; } = new();
@@ -25,6 +26,7 @@ namespace SD.Project.Pages
         public string? ErrorMessage { get; private set; }
         public bool ShowResendVerification { get; private set; }
         public string? ResendEmail { get; private set; }
+        public IReadOnlyList<string> ExternalProviders { get; private set; } = [];
 
         [TempData]
         public string? StatusMessage { get; set; }
@@ -33,21 +35,24 @@ namespace SD.Project.Pages
             ILogger<LoginModel> logger,
             LoginService loginService,
             INotificationService notificationService,
-            IUserRepository userRepository)
+            IUserRepository userRepository,
+            IAuthenticationSchemeProvider schemeProvider)
         {
             _logger = logger;
             _loginService = loginService;
             _notificationService = notificationService;
             _userRepository = userRepository;
+            _schemeProvider = schemeProvider;
         }
 
-        public void OnGet()
+        public async Task OnGetAsync()
         {
-            // Display the login form
+            await LoadExternalProvidersAsync();
         }
 
         public async Task<IActionResult> OnPostAsync(string? returnUrl = null)
         {
+            await LoadExternalProvidersAsync();
             returnUrl ??= Url.Content("~/");
 
             var command = new LoginCommand(Input.Email, Input.Password);
@@ -98,6 +103,8 @@ namespace SD.Project.Pages
 
         public async Task<IActionResult> OnPostResendVerificationAsync(string email)
         {
+            await LoadExternalProvidersAsync();
+
             if (string.IsNullOrWhiteSpace(email))
             {
                 ErrorMessage = "Email address is required.";
@@ -124,6 +131,17 @@ namespace SD.Project.Pages
 
             StatusMessage = "If an account exists with this email address, a verification email has been sent.";
             return RedirectToPage();
+        }
+
+        private async Task LoadExternalProvidersAsync()
+        {
+            var schemes = await _schemeProvider.GetAllSchemesAsync();
+            var externalSchemes = new[] { "Google", "Facebook" };
+            
+            ExternalProviders = schemes
+                .Where(s => externalSchemes.Contains(s.Name))
+                .Select(s => s.Name)
+                .ToList();
         }
     }
 }

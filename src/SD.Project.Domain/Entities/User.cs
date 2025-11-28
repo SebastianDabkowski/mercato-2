@@ -9,9 +9,13 @@ public class User
 {
     public Guid Id { get; private set; }
     public Email Email { get; private set; } = default!;
-    public string PasswordHash { get; private set; } = default!;
+    public string? PasswordHash { get; private set; }
     public UserRole Role { get; private set; }
     public UserStatus Status { get; private set; }
+
+    // External login provider info
+    public ExternalLoginProvider ExternalProvider { get; private set; }
+    public string? ExternalId { get; private set; }
 
     // Personal data for KYC and invoicing
     public string FirstName { get; private set; } = default!;
@@ -66,6 +70,8 @@ public class User
         PasswordHash = passwordHash;
         Role = role;
         Status = UserStatus.Unverified;
+        ExternalProvider = ExternalLoginProvider.None;
+        ExternalId = null;
         FirstName = firstName.Trim();
         LastName = lastName.Trim();
         CompanyName = companyName?.Trim();
@@ -74,6 +80,59 @@ public class User
         AcceptedTerms = acceptedTerms;
         AcceptedTermsAt = DateTime.UtcNow;
         CreatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Creates a new user from an external login provider.
+    /// Social login users do not require a password and are automatically verified.
+    /// </summary>
+    public static User CreateFromExternalLogin(
+        Email email,
+        ExternalLoginProvider provider,
+        string externalId,
+        string firstName,
+        string lastName)
+    {
+        if (provider == ExternalLoginProvider.None)
+        {
+            throw new ArgumentException("External provider must be specified for external login.", nameof(provider));
+        }
+
+        if (string.IsNullOrWhiteSpace(externalId))
+        {
+            throw new ArgumentException("External ID is required.", nameof(externalId));
+        }
+
+        if (string.IsNullOrWhiteSpace(firstName))
+        {
+            throw new ArgumentException("First name is required.", nameof(firstName));
+        }
+
+        if (string.IsNullOrWhiteSpace(lastName))
+        {
+            throw new ArgumentException("Last name is required.", nameof(lastName));
+        }
+
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = email ?? throw new ArgumentNullException(nameof(email)),
+            PasswordHash = null, // No password for external logins
+            Role = UserRole.Buyer, // Social login is only for buyers
+            Status = UserStatus.Verified, // Social login users are automatically verified
+            ExternalProvider = provider,
+            ExternalId = externalId.Trim(),
+            FirstName = firstName.Trim(),
+            LastName = lastName.Trim(),
+            CompanyName = null,
+            TaxId = null,
+            PhoneNumber = null,
+            AcceptedTerms = true, // By using social login, user implicitly accepts terms
+            AcceptedTermsAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        return user;
     }
 
     /// <summary>

@@ -26,7 +26,6 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .IsUnique();
 
         builder.Property(u => u.PasswordHash)
-            .IsRequired()
             .HasMaxLength(500);
 
         builder.Property(u => u.Role)
@@ -34,6 +33,15 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(u => u.Status)
             .IsRequired();
+
+        builder.Property(u => u.ExternalProvider)
+            .IsRequired();
+
+        builder.Property(u => u.ExternalId)
+            .HasMaxLength(255);
+
+        // Create an index on external provider and ID for efficient lookup
+        builder.HasIndex(u => new { u.ExternalProvider, u.ExternalId });
 
         builder.Property(u => u.FirstName)
             .IsRequired()
