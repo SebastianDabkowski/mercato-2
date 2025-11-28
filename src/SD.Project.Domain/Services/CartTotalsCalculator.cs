@@ -62,9 +62,14 @@ public sealed record SellerCartTotals(
 public sealed class CartTotalsCalculator
 {
     /// <summary>
-    /// Default shipping cost when no shipping rule is configured for a store.
+    /// Default base shipping cost when no shipping rule is configured for a store.
+    /// Stores without configured shipping rules get free shipping.
     /// </summary>
     private const decimal DefaultBaseCost = 0m;
+
+    /// <summary>
+    /// Default per-item shipping cost when no shipping rule is configured.
+    /// </summary>
     private const decimal DefaultCostPerItem = 0m;
 
     /// <summary>

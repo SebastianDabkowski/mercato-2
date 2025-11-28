@@ -41,6 +41,8 @@ public sealed class CommissionCalculator
 {
     /// <summary>
     /// Default platform commission rate (percentage).
+    /// This default can be overridden per-calculation via the commissionRate parameter.
+    /// For different rate tiers per seller, pass the appropriate rate when calling the calculation methods.
     /// </summary>
     public const decimal DefaultCommissionRate = 10m;
 

@@ -325,7 +325,9 @@ public sealed class CartService
         // Get shipping rules for all stores in a single batch query
         var shippingRules = await _shippingRuleRepository.GetDefaultsByStoreIdsAsync(storeIds, cancellationToken);
 
-        // Determine currency from products (use first available or default to USD)
+        // Determine currency from products. In a multi-currency marketplace, 
+        // products in a single cart should share the same currency.
+        // Fallback to USD if cart is empty or products have no price.
         var currency = products.FirstOrDefault()?.Price.Currency ?? "USD";
 
         // Group items by seller and calculate totals
