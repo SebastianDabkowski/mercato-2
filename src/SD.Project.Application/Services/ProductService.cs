@@ -14,6 +14,8 @@ namespace SD.Project.Application.Services;
 /// </summary>
 public sealed class ProductService
 {
+    private const decimal MaxPercentageValue = 100m;
+
     private readonly IProductRepository _repository;
     private readonly IStoreRepository _storeRepository;
     private readonly INotificationService _notificationService;
@@ -410,7 +412,14 @@ public sealed class ProductService
         }
 
         // Save all changes
-        await _repository.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _repository.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            return BulkUpdateResultDto.Failed($"Failed to save changes: {ex.Message}");
+        }
 
         var successCount = results.Count(r => r.IsSuccess);
         var failureCount = results.Count - successCount;
@@ -426,8 +435,8 @@ public sealed class ProductService
         return changeType switch
         {
             PriceChangeType.FixedValue => value,
-            PriceChangeType.PercentageUp => currentPrice * (1 + value / 100),
-            PriceChangeType.PercentageDown => currentPrice * (1 - value / 100),
+            PriceChangeType.PercentageUp => currentPrice * (1 + value / MaxPercentageValue),
+            PriceChangeType.PercentageDown => currentPrice * (1 - value / MaxPercentageValue),
             _ => currentPrice
         };
     }
@@ -470,9 +479,9 @@ public sealed class ProductService
                 errors.Add("Fixed price must be greater than zero.");
             }
             else if ((command.PriceChangeType == PriceChangeType.PercentageUp || command.PriceChangeType == PriceChangeType.PercentageDown)
-                     && (command.PriceValue.Value < 0 || command.PriceValue.Value > 100))
+                     && (command.PriceValue.Value < 0 || command.PriceValue.Value > MaxPercentageValue))
             {
-                errors.Add("Percentage must be between 0 and 100.");
+                errors.Add($"Percentage must be between 0 and {MaxPercentageValue}.");
             }
         }
 

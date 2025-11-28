@@ -73,26 +73,7 @@ namespace SD.Project.Pages.Seller
                     .ToList();
             }
 
-            var products = await _productService.HandleAsync(new GetAllProductsByStoreIdQuery(store.Id));
-            Products = products
-                .Where(p => p.Status != ProductStatus.Archived)
-                .Select(p => new ProductViewModel(
-                    p.Id,
-                    p.Name,
-                    p.Description,
-                    p.Amount,
-                    p.Currency,
-                    p.Stock,
-                    p.Category,
-                    p.Status,
-                    p.IsActive,
-                    p.CreatedAt,
-                    p.UpdatedAt,
-                    p.WeightKg,
-                    p.LengthCm,
-                    p.WidthCm,
-                    p.HeightCm))
-                .ToArray();
+            await LoadProductsAsync(store.Id);
 
             _logger.LogInformation(
                 "Seller {UserId} accessed bulk update page for store {StoreId} with {ProductCount} products",
@@ -121,26 +102,7 @@ namespace SD.Project.Pages.Seller
             HasStore = true;
 
             // Re-load products for display
-            var products = await _productService.HandleAsync(new GetAllProductsByStoreIdQuery(store.Id));
-            Products = products
-                .Where(p => p.Status != ProductStatus.Archived)
-                .Select(p => new ProductViewModel(
-                    p.Id,
-                    p.Name,
-                    p.Description,
-                    p.Amount,
-                    p.Currency,
-                    p.Stock,
-                    p.Category,
-                    p.Status,
-                    p.IsActive,
-                    p.CreatedAt,
-                    p.UpdatedAt,
-                    p.WeightKg,
-                    p.LengthCm,
-                    p.WidthCm,
-                    p.HeightCm))
-                .ToArray();
+            await LoadProductsAsync(store.Id);
 
             // Parse change types
             var priceChangeTypeEnum = PriceChangeType switch
@@ -184,6 +146,30 @@ namespace SD.Project.Pages.Seller
             }
 
             return Page();
+        }
+
+        private async Task LoadProductsAsync(Guid storeId)
+        {
+            var products = await _productService.HandleAsync(new GetAllProductsByStoreIdQuery(storeId));
+            Products = products
+                .Where(p => p.Status != ProductStatus.Archived)
+                .Select(p => new ProductViewModel(
+                    p.Id,
+                    p.Name,
+                    p.Description,
+                    p.Amount,
+                    p.Currency,
+                    p.Stock,
+                    p.Category,
+                    p.Status,
+                    p.IsActive,
+                    p.CreatedAt,
+                    p.UpdatedAt,
+                    p.WeightKg,
+                    p.LengthCm,
+                    p.WidthCm,
+                    p.HeightCm))
+                .ToArray();
         }
 
         private Guid GetUserId()
