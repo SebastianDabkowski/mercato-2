@@ -112,6 +112,47 @@ public sealed class ProductRepository : IProductRepository
         ProductSortOrder sortOrder = ProductSortOrder.Newest,
         CancellationToken cancellationToken = default)
     {
+        var query = BuildFilterQuery(searchTerm, category, minPrice, maxPrice, storeId, sortOrder);
+
+        var results = await query.ToListAsync(cancellationToken);
+
+        return results.AsReadOnly();
+    }
+
+    public async Task<(IReadOnlyCollection<Product> Items, int TotalCount)> FilterPagedAsync(
+        string? searchTerm = null,
+        string? category = null,
+        decimal? minPrice = null,
+        decimal? maxPrice = null,
+        Guid? storeId = null,
+        ProductSortOrder sortOrder = ProductSortOrder.Newest,
+        int pageNumber = 1,
+        int pageSize = 12,
+        CancellationToken cancellationToken = default)
+    {
+        var query = BuildFilterQuery(searchTerm, category, minPrice, maxPrice, storeId, sortOrder);
+
+        // Get total count before pagination
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        // Apply pagination
+        var skip = (pageNumber - 1) * pageSize;
+        var results = await query
+            .Skip(skip)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (results.AsReadOnly(), totalCount);
+    }
+
+    private IQueryable<Product> BuildFilterQuery(
+        string? searchTerm,
+        string? category,
+        decimal? minPrice,
+        decimal? maxPrice,
+        Guid? storeId,
+        ProductSortOrder sortOrder)
+    {
         var query = _context.Products.AsNoTracking().AsQueryable();
 
         // Apply search term filter (name and description)
@@ -160,9 +201,7 @@ public sealed class ProductRepository : IProductRepository
             _ => query.OrderByDescending(p => p.CreatedAt).ThenBy(p => p.Id)
         };
 
-        var results = await query.ToListAsync(cancellationToken);
-
-        return results.AsReadOnly();
+        return query;
     }
 
     public async Task AddAsync(Product product, CancellationToken cancellationToken = default)

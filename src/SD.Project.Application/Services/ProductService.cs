@@ -155,8 +155,9 @@ public sealed class ProductService
 
     /// <summary>
     /// Filters active products by multiple criteria including search term, category, price range, and store.
+    /// Returns a paginated result set.
     /// </summary>
-    public async Task<IReadOnlyCollection<ProductDto>> HandleAsync(FilterProductsQuery query, CancellationToken cancellationToken = default)
+    public async Task<PagedResultDto<ProductDto>> HandleAsync(FilterProductsQuery query, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(query);
 
@@ -173,18 +174,26 @@ public sealed class ProductService
             _ => ProductSortOrder.Newest
         };
 
-        var products = await _repository.FilterAsync(
+        // Validate and normalize pagination parameters
+        var pageNumber = Math.Max(1, query.PageNumber);
+        var pageSize = Math.Clamp(query.PageSize, 1, 100);
+
+        var (products, totalCount) = await _repository.FilterPagedAsync(
             searchTerm: query.SearchTerm,
             category: query.Filters?.Category,
             minPrice: query.Filters?.MinPrice,
             maxPrice: query.Filters?.MaxPrice,
             storeId: query.Filters?.StoreId,
             sortOrder: sortOrder,
+            pageNumber: pageNumber,
+            pageSize: pageSize,
             cancellationToken: cancellationToken);
 
-        return products
+        var items = products
             .Select(p => MapToDto(p))
             .ToArray();
+
+        return PagedResultDto<ProductDto>.Create(items, pageNumber, pageSize, totalCount);
     }
 
     /// <summary>
