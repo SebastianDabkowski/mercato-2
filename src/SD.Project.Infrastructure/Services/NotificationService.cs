@@ -21,4 +21,11 @@ public sealed class NotificationService : INotificationService
         _logger.LogInformation("Product {ProductId} created", productId);
         return Task.CompletedTask;
     }
+
+    public Task SendEmailVerificationAsync(Guid userId, string email, CancellationToken cancellationToken = default)
+    {
+        // TODO: Replace logging with real email sending integration.
+        _logger.LogInformation("Verification email sent to {Email} for user {UserId}", email, userId);
+        return Task.CompletedTask;
+    }
 }
