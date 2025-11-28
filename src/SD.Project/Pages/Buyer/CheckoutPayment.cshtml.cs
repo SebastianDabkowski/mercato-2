@@ -23,6 +23,26 @@ public class CheckoutPaymentModel : PageModel
     public string? Message { get; private set; }
     public bool IsSuccess { get; private set; }
 
+    /// <summary>
+    /// Indicates if the last order attempt had validation issues.
+    /// </summary>
+    public bool HasValidationIssues { get; private set; }
+
+    /// <summary>
+    /// Indicates if there were stock availability issues.
+    /// </summary>
+    public bool HasStockIssues { get; private set; }
+
+    /// <summary>
+    /// Indicates if there were price change issues.
+    /// </summary>
+    public bool HasPriceChanges { get; private set; }
+
+    /// <summary>
+    /// List of validation issues for display.
+    /// </summary>
+    public IReadOnlyList<CartItemValidationIssueDto>? ValidationIssues { get; private set; }
+
     public CheckoutPaymentModel(
         ILogger<CheckoutPaymentModel> logger,
         CheckoutService checkoutService)
@@ -105,6 +125,21 @@ public class CheckoutPaymentModel : PageModel
         {
             IsSuccess = false;
             Message = result.ErrorMessage;
+
+            // Capture validation issues for display
+            HasValidationIssues = result.HasValidationIssues;
+            HasStockIssues = result.HasStockIssues;
+            HasPriceChanges = result.HasPriceChanges;
+            ValidationIssues = result.ValidationIssues;
+
+            if (HasValidationIssues)
+            {
+                _logger.LogWarning(
+                    "Order validation failed: StockIssues={HasStockIssues}, PriceChanges={HasPriceChanges}",
+                    HasStockIssues,
+                    HasPriceChanges);
+            }
+
             await LoadPageDataAsync(addressId.Value, shippingMethods, cancellationToken);
             return Page();
         }

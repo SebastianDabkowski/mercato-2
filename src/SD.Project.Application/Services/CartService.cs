@@ -106,8 +106,13 @@ public sealed class CartService
             return AddToCartResultDto.Failed($"Cannot add {command.Quantity} more. You have {existingItem?.Quantity ?? 0} in cart and only {product.Stock} available.");
         }
 
-        // Add item to cart
-        var cartItem = cart.AddItem(command.ProductId, product.StoreId.Value, command.Quantity);
+        // Add item to cart with current price snapshot
+        var cartItem = cart.AddItem(
+            command.ProductId,
+            product.StoreId.Value,
+            product.Price.Amount,
+            product.Price.Currency,
+            command.Quantity);
 
         // Save changes
         await _cartRepository.UpdateAsync(cart, cancellationToken);
@@ -263,7 +268,12 @@ public sealed class CartService
             var quantityToAdd = Math.Min(item.Quantity, product.Stock - (existingItem?.Quantity ?? 0));
             if (quantityToAdd > 0 && product.StoreId.HasValue)
             {
-                buyerCart.AddItem(item.ProductId, product.StoreId.Value, quantityToAdd);
+                buyerCart.AddItem(
+                    item.ProductId,
+                    product.StoreId.Value,
+                    product.Price.Amount,
+                    product.Price.Currency,
+                    quantityToAdd);
             }
         }
 

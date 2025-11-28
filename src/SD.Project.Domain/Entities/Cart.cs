@@ -64,12 +64,15 @@ public class Cart
 
     /// <summary>
     /// Adds a product to the cart. If the product already exists, quantity is increased.
+    /// The price snapshot is updated to reflect the current price when adding more quantity.
     /// </summary>
     /// <param name="productId">The product ID.</param>
     /// <param name="storeId">The seller's store ID.</param>
+    /// <param name="unitPrice">The current unit price of the product.</param>
+    /// <param name="currency">The currency of the price.</param>
     /// <param name="quantity">Quantity to add.</param>
     /// <returns>The cart item that was added or updated.</returns>
-    public CartItem AddItem(Guid productId, Guid storeId, int quantity = 1)
+    public CartItem AddItem(Guid productId, Guid storeId, decimal unitPrice, string currency, int quantity = 1)
     {
         if (productId == Guid.Empty)
         {
@@ -90,11 +93,13 @@ public class Cart
         if (existingItem is not null)
         {
             existingItem.IncreaseQuantity(quantity);
+            // Update the price snapshot to the current price when adding more items
+            existingItem.UpdateCapturedPrice(unitPrice, currency);
             UpdatedAt = DateTime.UtcNow;
             return existingItem;
         }
 
-        var newItem = new CartItem(Id, productId, storeId, quantity);
+        var newItem = new CartItem(Id, productId, storeId, quantity, unitPrice, currency);
         _items.Add(newItem);
         UpdatedAt = DateTime.UtcNow;
         return newItem;

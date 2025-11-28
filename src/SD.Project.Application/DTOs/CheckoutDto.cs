@@ -78,6 +78,22 @@ public sealed record SelectShippingResultDto(
 }
 
 /// <summary>
+/// Represents a validation issue for a cart item during checkout.
+/// </summary>
+public sealed record CartItemValidationIssueDto(
+    Guid ProductId,
+    string ProductName,
+    bool HasStockIssue,
+    bool HasPriceChange,
+    int RequestedQuantity,
+    int AvailableStock,
+    decimal OriginalPrice,
+    decimal CurrentPrice,
+    string Currency,
+    string? StockMessage,
+    string? PriceMessage);
+
+/// <summary>
 /// Result of initiating payment.
 /// </summary>
 public sealed record InitiatePaymentResultDto(
@@ -86,13 +102,27 @@ public sealed record InitiatePaymentResultDto(
     Guid? OrderId,
     string? OrderNumber,
     string? PaymentRedirectUrl,
-    bool RequiresRedirect)
+    bool RequiresRedirect,
+    bool HasValidationIssues,
+    bool HasStockIssues,
+    bool HasPriceChanges,
+    IReadOnlyList<CartItemValidationIssueDto>? ValidationIssues)
 {
     public static InitiatePaymentResultDto Succeeded(Guid orderId, string orderNumber, string? redirectUrl = null)
-        => new(true, null, orderId, orderNumber, redirectUrl, redirectUrl is not null);
+        => new(true, null, orderId, orderNumber, redirectUrl, redirectUrl is not null,
+            false, false, false, null);
 
     public static InitiatePaymentResultDto Failed(string errorMessage)
-        => new(false, errorMessage, null, null, null, false);
+        => new(false, errorMessage, null, null, null, false,
+            false, false, false, null);
+
+    public static InitiatePaymentResultDto ValidationFailed(
+        string errorMessage,
+        bool hasStockIssues,
+        bool hasPriceChanges,
+        IReadOnlyList<CartItemValidationIssueDto> validationIssues)
+        => new(false, errorMessage, null, null, null, false,
+            true, hasStockIssues, hasPriceChanges, validationIssues);
 }
 
 /// <summary>
