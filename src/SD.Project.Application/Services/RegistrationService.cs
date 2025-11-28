@@ -76,21 +76,30 @@ public sealed class RegistrationService
             errors.AddRange(passwordErrors);
         }
 
-        // Validate email format
-        Email email;
-        try
+        // Validate email format and attempt to create Email value object
+        Email? email = null;
+        if (!string.IsNullOrWhiteSpace(command.Email))
         {
-            email = Email.Create(command.Email);
-        }
-        catch (ArgumentException ex)
-        {
-            errors.Add(ex.Message);
-            email = null!;
+            try
+            {
+                email = Email.Create(command.Email);
+            }
+            catch (ArgumentException ex)
+            {
+                errors.Add(ex.Message);
+            }
         }
 
         if (errors.Count > 0)
         {
             return RegistrationResultDto.Failed(errors);
+        }
+
+        // At this point, email is guaranteed to be non-null because we checked for empty email above
+        // and would have returned early if there were validation errors
+        if (email is null)
+        {
+            return RegistrationResultDto.Failed("Email address is required.");
         }
 
         // Check for duplicate email
