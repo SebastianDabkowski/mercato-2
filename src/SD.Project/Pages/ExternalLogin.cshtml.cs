@@ -16,17 +16,20 @@ public class ExternalLoginModel : PageModel
     private readonly ILogger<ExternalLoginModel> _logger;
     private readonly ExternalLoginService _externalLoginService;
     private readonly SessionService _sessionService;
+    private readonly CartService _cartService;
 
     public string? ErrorMessage { get; private set; }
 
     public ExternalLoginModel(
         ILogger<ExternalLoginModel> logger,
         ExternalLoginService externalLoginService,
-        SessionService sessionService)
+        SessionService sessionService,
+        CartService cartService)
     {
         _logger = logger;
         _externalLoginService = externalLoginService;
         _sessionService = sessionService;
+        _cartService = cartService;
     }
 
     public IActionResult OnGet()
@@ -184,6 +187,23 @@ public class ExternalLoginModel : PageModel
             CookieAuthenticationDefaults.AuthenticationScheme,
             new ClaimsPrincipal(claimsIdentity),
             authProperties);
+
+        // Merge guest cart with user's cart if a guest session exists
+        var guestSessionId = HttpContext.Session.GetString(Constants.CartSessionKey);
+        if (!string.IsNullOrEmpty(guestSessionId))
+        {
+            try
+            {
+                await _cartService.HandleAsync(new MergeCartsCommand(loginResult.UserId!.Value, guestSessionId));
+                HttpContext.Session.Remove(Constants.CartSessionKey);
+                _logger.LogInformation("Merged guest cart for user {UserId} via external login", loginResult.UserId);
+            }
+            catch (Exception ex)
+            {
+                // Log the error but don't fail the login - cart merge is not critical
+                _logger.LogWarning(ex, "Failed to merge guest cart for user {UserId} via external login", loginResult.UserId);
+            }
+        }
 
         return LocalRedirect(returnUrl);
     }

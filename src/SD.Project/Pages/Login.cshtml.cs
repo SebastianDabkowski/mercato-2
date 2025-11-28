@@ -15,6 +15,7 @@ namespace SD.Project.Pages
         private readonly LoginService _loginService;
         private readonly EmailVerificationService _emailVerificationService;
         private readonly SessionService _sessionService;
+        private readonly CartService _cartService;
         private readonly IAuthenticationSchemeProvider _schemeProvider;
 
         // Custom claim type for session token
@@ -36,12 +37,14 @@ namespace SD.Project.Pages
             LoginService loginService,
             EmailVerificationService emailVerificationService,
             SessionService sessionService,
+            CartService cartService,
             IAuthenticationSchemeProvider schemeProvider)
         {
             _logger = logger;
             _loginService = loginService;
             _emailVerificationService = emailVerificationService;
             _sessionService = sessionService;
+            _cartService = cartService;
             _schemeProvider = schemeProvider;
         }
 
@@ -97,6 +100,23 @@ namespace SD.Project.Pages
                     CookieAuthenticationDefaults.AuthenticationScheme,
                     new ClaimsPrincipal(claimsIdentity),
                     authProperties);
+
+                // Merge guest cart with user's cart if a guest session exists
+                var guestSessionId = HttpContext.Session.GetString(Constants.CartSessionKey);
+                if (!string.IsNullOrEmpty(guestSessionId))
+                {
+                    try
+                    {
+                        await _cartService.HandleAsync(new MergeCartsCommand(result.UserId!.Value, guestSessionId));
+                        HttpContext.Session.Remove(Constants.CartSessionKey);
+                        _logger.LogInformation("Merged guest cart for user {UserId}", result.UserId);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log the error but don't fail the login - cart merge is not critical
+                        _logger.LogWarning(ex, "Failed to merge guest cart for user {UserId}", result.UserId);
+                    }
+                }
 
                 return LocalRedirect(returnUrl);
             }
