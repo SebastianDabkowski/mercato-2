@@ -31,6 +31,7 @@ public sealed record ProductViewModel(
         ProductStatus.Active => "Active",
         ProductStatus.Inactive => "Inactive",
         ProductStatus.Archived => "Archived",
+        ProductStatus.Suspended => "Suspended",
         _ => "Unknown"
     };
 }

@@ -89,11 +89,14 @@ public static class SeedDataExtensions
 
             // Add some products to the store
             var product1 = new Product(Guid.NewGuid(), store.Id, "Sample Product 1", new Money(29.99m, "USD"), 50, "Electronics");
-            product1.Activate();
+            product1.UpdateDescription("A sample electronics product for testing.");
+            product1.TransitionTo(ProductStatus.Active);
             var product2 = new Product(Guid.NewGuid(), store.Id, "Sample Product 2", new Money(49.99m, "USD"), 25, "Clothing");
-            product2.Activate();
+            product2.UpdateDescription("A sample clothing product for testing.");
+            product2.TransitionTo(ProductStatus.Active);
             var product3 = new Product(Guid.NewGuid(), store.Id, "Sample Product 3", new Money(19.99m, "USD"), 100, "Home & Garden");
-            product3.Activate();
+            product3.UpdateDescription("A sample home & garden product for testing.");
+            product3.TransitionTo(ProductStatus.Active);
             await productRepo.AddAsync(product1);
             await productRepo.AddAsync(product2);
             await productRepo.AddAsync(product3);
