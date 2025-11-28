@@ -4,6 +4,7 @@ using SD.Project.Application.Interfaces;
 using SD.Project.Application.Queries;
 using SD.Project.Domain.Entities;
 using SD.Project.Domain.Repositories;
+using SD.Project.Domain.Services;
 
 namespace SD.Project.Application.Services;
 
@@ -27,6 +28,7 @@ public sealed class CheckoutService
     private readonly IDeliveryAddressRepository _deliveryAddressRepository;
     private readonly IOrderRepository _orderRepository;
     private readonly INotificationService _notificationService;
+    private readonly CheckoutValidationService _checkoutValidationService;
 
     public CheckoutService(
         ICartRepository cartRepository,
@@ -36,7 +38,8 @@ public sealed class CheckoutService
         IPaymentMethodRepository paymentMethodRepository,
         IDeliveryAddressRepository deliveryAddressRepository,
         IOrderRepository orderRepository,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        CheckoutValidationService checkoutValidationService)
     {
         _cartRepository = cartRepository;
         _productRepository = productRepository;
@@ -46,6 +49,7 @@ public sealed class CheckoutService
         _deliveryAddressRepository = deliveryAddressRepository;
         _orderRepository = orderRepository;
         _notificationService = notificationService;
+        _checkoutValidationService = checkoutValidationService;
     }
 
     /// <summary>
@@ -294,6 +298,7 @@ public sealed class CheckoutService
 
     /// <summary>
     /// Initiates payment and creates the order.
+    /// Validates stock availability and price changes before order creation.
     /// </summary>
     public async Task<InitiatePaymentResultDto> HandleAsync(
         InitiatePaymentCommand command,
@@ -328,6 +333,35 @@ public sealed class CheckoutService
         var productLookup = products.ToDictionary(p => p.Id);
         var currency = products.FirstOrDefault()?.Price.Currency ?? "USD";
 
+        // Validate stock availability and price changes before creating order
+        var validationResult = _checkoutValidationService.ValidateCartItems(cart.Items, productLookup);
+
+        if (!validationResult.IsValid)
+        {
+            var validationIssues = validationResult.ItemResults
+                .Where(r => !r.IsValid)
+                .Select(r => new CartItemValidationIssueDto(
+                    r.ProductId,
+                    r.ProductName,
+                    !r.IsStockValid,
+                    !r.IsPriceValid,
+                    r.RequestedQuantity,
+                    r.AvailableStock,
+                    r.OriginalPrice,
+                    r.CurrentPrice,
+                    r.Currency,
+                    r.StockValidationMessage,
+                    r.PriceValidationMessage))
+                .ToList()
+                .AsReadOnly();
+
+            return InitiatePaymentResultDto.ValidationFailed(
+                validationResult.GetSummaryMessage(),
+                validationResult.HasStockIssues,
+                validationResult.HasPriceChanges,
+                validationIssues);
+        }
+
         var storeIds = cart.Items.Select(i => i.StoreId).Distinct().ToList();
         var stores = await _storeRepository.GetByIdsAsync(storeIds, cancellationToken);
         var storeLookup = stores.ToDictionary(s => s.Id);
@@ -352,7 +386,7 @@ public sealed class CheckoutService
             paymentMethod.Name,
             currency);
 
-        // Add items with shipping
+        // Add items with shipping - use current product prices for the order snapshot
         var itemsByStore = cart.GetItemsGroupedBySeller();
         foreach (var (storeId, items) in itemsByStore)
         {
@@ -390,6 +424,7 @@ public sealed class CheckoutService
                 var product = productLookup.GetValueOrDefault(item.ProductId);
                 if (product is not null)
                 {
+                    // Store snapshot of current price with the order
                     order.AddItem(
                         item.ProductId,
                         item.StoreId,
@@ -399,6 +434,10 @@ public sealed class CheckoutService
                         shippingMethod?.Id,
                         shippingMethod?.Name,
                         shippingPerItem * item.Quantity);
+
+                    // Reduce stock for the product
+                    product.UpdateStock(product.Stock - item.Quantity);
+                    _productRepository.Update(product);
                 }
             }
         }
@@ -406,8 +445,9 @@ public sealed class CheckoutService
         // Create shipments grouped by seller
         order.CreateShipments();
 
-        // Save order
+        // Save order and updated product stock
         await _orderRepository.AddAsync(order, cancellationToken);
+        await _productRepository.SaveChangesAsync(cancellationToken);
         await _orderRepository.SaveChangesAsync(cancellationToken);
 
         // For this implementation, we simulate successful payment authorization

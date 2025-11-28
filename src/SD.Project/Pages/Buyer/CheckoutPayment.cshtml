@@ -40,6 +40,80 @@
         </div>
     }
 
+    @if (Model.HasValidationIssues && Model.ValidationIssues is not null && Model.ValidationIssues.Any())
+    {
+        <div class="card border-danger mb-4">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-exclamation-triangle me-2" viewBox="0 0 16 16">
+                        <path d="M7.938 2.016A.13.13 0 0 1 8.002 2a.13.13 0 0 1 .063.016.15.15 0 0 1 .054.057l6.857 11.667c.036.06.035.124.002.183a.2.2 0 0 1-.054.06.1.1 0 0 1-.066.017H1.146a.1.1 0 0 1-.066-.017.2.2 0 0 1-.054-.06.18.18 0 0 1 .002-.183L7.884 2.073a.15.15 0 0 1 .054-.057m1.044-.45a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767z"/>
+                        <path d="M7.002 12a1 1 0 1 1 2 0 1 1 0 0 1-2 0M7.1 5.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0z"/>
+                    </svg>
+                    Unable to Complete Your Order
+                </h5>
+            </div>
+            <div class="card-body">
+                @if (Model.HasStockIssues)
+                {
+                    <h6 class="text-danger mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box-seam me-1" viewBox="0 0 16 16">
+                            <path d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5l2.404.961L10.404 2zm3.564 1.426L5.596 5 8 5.961 14.154 3.5zm3.25 1.7-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.63 13.09a1 1 0 0 1-.63-.928V3.5a.5.5 0 0 1 .314-.464z"/>
+                        </svg>
+                        Stock Availability Issues
+                    </h6>
+                    <ul class="list-unstyled mb-3">
+                        @foreach (var issue in Model.ValidationIssues.Where(v => v.HasStockIssue))
+                        {
+                            <li class="mb-2">
+                                <strong>@issue.ProductName:</strong>
+                                @if (issue.AvailableStock == 0)
+                                {
+                                    <span class="text-danger">Out of stock</span>
+                                }
+                                else
+                                {
+                                    <span class="text-warning">Only @issue.AvailableStock available (you requested @issue.RequestedQuantity)</span>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
+
+                @if (Model.HasPriceChanges)
+                {
+                    <h6 class="text-warning mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-currency-dollar me-1" viewBox="0 0 16 16">
+                            <path d="M4 10.781c.148 1.667 1.513 2.85 3.591 3.003V15h1.043v-1.216c2.27-.179 3.678-1.438 3.678-3.3 0-1.59-.947-2.51-2.956-3.028l-.722-.187V3.467c1.122.11 1.879.714 2.07 1.616h1.47c-.166-1.6-1.54-2.748-3.54-2.875V1H7.591v1.233c-1.939.23-3.27 1.472-3.27 3.156 0 1.454.966 2.483 2.661 2.917l.61.162v4.031c-1.149-.17-1.94-.8-2.131-1.718zm3.391-3.836c-1.043-.263-1.6-.825-1.6-1.616 0-.944.704-1.641 1.8-1.828v3.495zm1.07 1.51c1.32.335 1.972.918 1.972 1.856 0 1.021-.768 1.765-2.073 1.939V8.455z"/>
+                        </svg>
+                        Price Changes Detected
+                    </h6>
+                    <ul class="list-unstyled mb-3">
+                        @foreach (var issue in Model.ValidationIssues.Where(v => v.HasPriceChange))
+                        {
+                            var priceChange = issue.CurrentPrice - issue.OriginalPrice;
+                            var changeDirection = priceChange > 0 ? "increased" : "decreased";
+                            var changeClass = priceChange > 0 ? "text-danger" : "text-success";
+                            <li class="mb-2">
+                                <strong>@issue.ProductName:</strong>
+                                <span class="@changeClass">
+                                    Price @changeDirection from @issue.Currency @issue.OriginalPrice.ToString("N2") to @issue.Currency @issue.CurrentPrice.ToString("N2")
+                                </span>
+                            </li>
+                        }
+                    </ul>
+                }
+
+                <div class="alert alert-info mb-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-info-circle me-2" viewBox="0 0 16 16">
+                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                        <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
+                    </svg>
+                    Please <a asp-page="/Buyer/Cart" class="alert-link">update your cart</a> to resolve these issues and try again.
+                </div>
+            </div>
+        </div>
+    }
+
     @if (Model.PaymentData is null)
     {
         <div class="alert alert-warning">

@@ -38,6 +38,9 @@ public static class DependencyInjection
         services.AddSingleton<CartTotalsCalculator>();
         services.AddSingleton<CommissionCalculator>();
 
+        // Domain services for checkout validation
+        services.AddSingleton<CheckoutValidationService>();
+
         return services;
     }
 }
