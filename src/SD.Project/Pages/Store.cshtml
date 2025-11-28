@@ -1,0 +1,92 @@
+@page "{id:guid}"
+@model SD.Project.Pages.StoreModel
+@{
+    ViewData["Title"] = Model.Store?.Name ?? "Store";
+}
+
+<div class="container">
+    @if (Model.StoreNotFound)
+    {
+        <div class="row justify-content-center">
+            <div class="col-md-6 text-center">
+                <h1 class="display-4 text-muted mb-4">Store Not Found</h1>
+                <p class="lead text-muted">The store you're looking for doesn't exist or may have been removed.</p>
+                <a asp-page="/Index" class="btn btn-primary">Back to Home</a>
+            </div>
+        </div>
+    }
+    else if (Model.Store is not null)
+    {
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-4">
+                            @if (!string.IsNullOrEmpty(Model.Store.LogoUrl))
+                            {
+                                <img src="@Model.Store.LogoUrl" alt="@Model.Store.Name Logo" class="rounded me-4" style="width: 100px; height: 100px; object-fit: cover;" />
+                            }
+                            else
+                            {
+                                <div class="bg-light border rounded d-flex align-items-center justify-content-center me-4" style="width: 100px; height: 100px;">
+                                    <span class="text-muted fs-1">🏪</span>
+                                </div>
+                            }
+                            <div>
+                                <h1 class="mb-1">@Model.Store.Name</h1>
+                                <p class="text-muted mb-0">Seller Store</p>
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(Model.Store.Description))
+                        {
+                            <div class="mb-4">
+                                <h5>About This Store</h5>
+                                <p>@Model.Store.Description</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Products</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">No products available yet.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Contact Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled mb-0">
+                            <li class="mb-3">
+                                <strong>Email:</strong><br />
+                                <a href="mailto:@Model.Store.ContactEmail">@Model.Store.ContactEmail</a>
+                            </li>
+                            @if (!string.IsNullOrEmpty(Model.Store.PhoneNumber))
+                            {
+                                <li class="mb-3">
+                                    <strong>Phone:</strong><br />
+                                    <a href="tel:@Model.Store.PhoneNumber">@Model.Store.PhoneNumber</a>
+                                </li>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.Store.WebsiteUrl))
+                            {
+                                <li class="mb-3">
+                                    <strong>Website:</strong><br />
+                                    <a href="@Model.Store.WebsiteUrl" target="_blank" rel="noopener noreferrer">@Model.Store.WebsiteUrl</a>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>

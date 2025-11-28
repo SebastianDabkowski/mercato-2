@@ -19,6 +19,7 @@ public static class DependencyInjection
         services.AddScoped<PasswordResetService>();
         services.AddScoped<SessionService>();
         services.AddScoped<SellerOnboardingService>();
+        services.AddScoped<StoreService>();
         services.AddScoped<IAuthorizationService, AuthorizationService>();
         return services;
     }
