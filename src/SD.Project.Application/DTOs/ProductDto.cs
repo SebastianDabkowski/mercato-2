@@ -21,4 +21,6 @@ public sealed record ProductDto(
     decimal? LengthCm,
     decimal? WidthCm,
     decimal? HeightCm,
-    string? Sku = null);
+    string? Sku = null,
+    string? MainImageUrl = null,
+    string? MainImageThumbnailUrl = null);

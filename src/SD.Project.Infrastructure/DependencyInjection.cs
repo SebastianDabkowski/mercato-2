@@ -28,6 +28,7 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IProductRepository, ProductRepository>();
+        services.AddScoped<IProductImageRepository, ProductImageRepository>();
         services.AddScoped<IProductImportJobRepository, ProductImportJobRepository>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
@@ -44,6 +45,7 @@ public static class DependencyInjection
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IPasswordValidator, PasswordValidator>();
         services.AddScoped<ISecurityAlertService, SecurityAlertService>();
+        services.AddScoped<IImageStorageService, LocalImageStorageService>();
         services.AddSingleton<ILoginRateLimiter, LoginRateLimiter>();
 
         return services;

@@ -85,7 +85,7 @@ public sealed class ProductService
 
         var products = await _repository.GetAllAsync(cancellationToken);
         return products
-            .Select(MapToDto)
+            .Select(p => MapToDto(p))
             .ToArray();
     }
 
@@ -98,7 +98,7 @@ public sealed class ProductService
 
         var products = await _repository.GetByStoreIdAsync(query.StoreId, cancellationToken);
         return products
-            .Select(MapToDto)
+            .Select(p => MapToDto(p))
             .ToArray();
     }
 
@@ -111,7 +111,7 @@ public sealed class ProductService
 
         var products = await _repository.GetAllByStoreIdAsync(query.StoreId, cancellationToken);
         return products
-            .Select(MapToDto)
+            .Select(p => MapToDto(p))
             .ToArray();
     }
 
@@ -506,7 +506,7 @@ public sealed class ProductService
         return errors;
     }
 
-    private static ProductDto MapToDto(Product p)
+    private static ProductDto MapToDto(Product p, string? mainImageUrl = null, string? mainImageThumbnailUrl = null)
     {
         return new ProductDto(
             p.Id,
@@ -524,7 +524,9 @@ public sealed class ProductService
             p.LengthCm,
             p.WidthCm,
             p.HeightCm,
-            p.Sku);
+            p.Sku,
+            mainImageUrl,
+            mainImageThumbnailUrl);
     }
 
     private static IReadOnlyList<string> ValidateProduct(CreateProductCommand command)
