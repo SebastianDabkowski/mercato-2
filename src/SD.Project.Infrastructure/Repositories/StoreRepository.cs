@@ -74,6 +74,16 @@ public sealed class StoreRepository : IStoreRepository
         await _context.Stores.AddAsync(store, cancellationToken);
     }
 
+    public async Task<IReadOnlyCollection<Store>> GetPubliclyVisibleAsync(CancellationToken cancellationToken = default)
+    {
+        var results = await _context.Stores
+            .AsNoTracking()
+            .Where(s => s.Status == StoreStatus.Active || s.Status == StoreStatus.LimitedActive)
+            .OrderBy(s => s.Name)
+            .ToListAsync(cancellationToken);
+        return results.AsReadOnly();
+    }
+
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         await _context.SaveChangesAsync(cancellationToken);

@@ -61,6 +61,19 @@ public sealed class StoreService
     }
 
     /// <summary>
+    /// Gets all publicly visible stores.
+    /// </summary>
+    public async Task<IReadOnlyCollection<StoreDto>> HandleAsync(GetPublicStoresQuery query, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var stores = await _storeRepository.GetPubliclyVisibleAsync(cancellationToken);
+        return stores
+            .Select(MapToDto)
+            .ToArray();
+    }
+
+    /// <summary>
     /// Creates a new store for a seller.
     /// </summary>
     public async Task<StoreResultDto> HandleAsync(CreateStoreCommand command, CancellationToken cancellationToken = default)
