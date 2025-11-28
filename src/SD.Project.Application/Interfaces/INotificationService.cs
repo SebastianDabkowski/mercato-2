@@ -15,4 +15,13 @@ public interface INotificationService
     /// <param name="verificationToken">The unique verification token to include in the link.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     Task SendEmailVerificationAsync(Guid userId, string email, string verificationToken, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a password reset email with a time-limited reset link.
+    /// </summary>
+    /// <param name="userId">The ID of the user.</param>
+    /// <param name="email">The email address to send to.</param>
+    /// <param name="resetToken">The unique password reset token to include in the link.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendPasswordResetEmailAsync(Guid userId, string email, string resetToken, CancellationToken cancellationToken = default);
 }

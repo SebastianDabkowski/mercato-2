@@ -33,4 +33,16 @@ public sealed class NotificationService : INotificationService
             email, userId, verificationLink);
         return Task.CompletedTask;
     }
+
+    public Task SendPasswordResetEmailAsync(Guid userId, string email, string resetToken, CancellationToken cancellationToken = default)
+    {
+        // TODO: Replace logging with real email sending integration.
+        // In a production environment, this would generate a full URL like:
+        // https://yourdomain.com/ResetPassword?token={resetToken}
+        var resetLink = $"/ResetPassword?token={resetToken}";
+        _logger.LogInformation(
+            "Password reset email sent to {Email} for user {UserId}. Reset link: {ResetLink}",
+            email, userId, resetLink);
+        return Task.CompletedTask;
+    }
 }

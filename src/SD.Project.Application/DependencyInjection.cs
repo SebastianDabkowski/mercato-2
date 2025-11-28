@@ -15,6 +15,7 @@ public static class DependencyInjection
         services.AddScoped<LoginService>();
         services.AddScoped<ExternalLoginService>();
         services.AddScoped<EmailVerificationService>();
+        services.AddScoped<PasswordResetService>();
         return services;
     }
 }
