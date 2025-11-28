@@ -456,6 +456,9 @@ public sealed class CheckoutService
         order.CreateShipments();
 
         // Save order and updated product stock
+        // NOTE: When migrating to a relational database provider, wrap these operations
+        // in a transaction (using TransactionScope or DbContext.Database.BeginTransactionAsync)
+        // to ensure atomicity. The current InMemory provider does not support transactions.
         await _orderRepository.AddAsync(order, cancellationToken);
         await _productRepository.SaveChangesAsync(cancellationToken);
         await _orderRepository.SaveChangesAsync(cancellationToken);

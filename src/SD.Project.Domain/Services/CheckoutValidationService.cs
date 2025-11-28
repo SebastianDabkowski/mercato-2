@@ -90,8 +90,7 @@ public sealed class CartItemValidationResult
         decimal currentPrice,
         string currency)
     {
-        var direction = currentPrice > originalPrice ? "increased" : "decreased";
-        var message = $"The price of '{productName}' has {direction} from {originalPrice:C} to {currentPrice:C}.";
+        var message = FormatPriceChangeMessage(productName, originalPrice, currentPrice);
 
         return new CartItemValidationResult(
             productId, productName, true, false,
@@ -113,14 +112,19 @@ public sealed class CartItemValidationResult
             ? $"'{productName}' is currently out of stock."
             : $"'{productName}' has only {availableStock} items available, but you requested {requestedQuantity}.";
 
-        var direction = currentPrice > originalPrice ? "increased" : "decreased";
-        var priceMessage = $"The price of '{productName}' has {direction} from {originalPrice:C} to {currentPrice:C}.";
+        var priceMessage = FormatPriceChangeMessage(productName, originalPrice, currentPrice);
 
         return new CartItemValidationResult(
             productId, productName, false, false,
             requestedQuantity, availableStock,
             originalPrice, currentPrice, currency,
             stockMessage, priceMessage);
+    }
+
+    private static string FormatPriceChangeMessage(string productName, decimal originalPrice, decimal currentPrice)
+    {
+        var direction = currentPrice > originalPrice ? "increased" : "decreased";
+        return $"The price of '{productName}' has {direction} from {originalPrice:C} to {currentPrice:C}.";
     }
 
     public static CartItemValidationResult ProductNotFound(
@@ -252,6 +256,8 @@ public sealed class CheckoutValidationService
         }
 
         // Check if product is still active
+        // Both checks are included for defensive programming - Status is the source of truth
+        // but IsActive provides a quick boolean check. They should be aligned per Product entity logic.
         if (product.Status != ProductStatus.Active || !product.IsActive)
         {
             return CartItemValidationResult.ProductInactive(
