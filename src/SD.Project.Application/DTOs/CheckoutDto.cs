@@ -156,7 +156,9 @@ public sealed record OrderConfirmationDto(
     decimal TotalShipping,
     decimal TotalAmount,
     string Currency,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    string? EstimatedDeliveryRange,
+    string? BuyerEmail);
 
 /// <summary>
 /// DTO for an order item in confirmation.
@@ -170,4 +172,17 @@ public sealed record OrderItemDto(
     int Quantity,
     decimal LineTotal,
     string? ShippingMethodName,
-    decimal ShippingCost);
+    decimal ShippingCost,
+    string? EstimatedDelivery);
+
+/// <summary>
+/// DTO for order history list.
+/// </summary>
+public sealed record OrderSummaryDto(
+    Guid OrderId,
+    string OrderNumber,
+    string Status,
+    int ItemCount,
+    decimal TotalAmount,
+    string Currency,
+    DateTime CreatedAt);

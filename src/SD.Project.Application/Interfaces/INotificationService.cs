@@ -71,6 +71,16 @@ public interface INotificationService
     /// Sends an order confirmation notification to the buyer.
     /// </summary>
     /// <param name="orderId">The ID of the order.</param>
+    /// <param name="buyerEmail">The buyer's email address.</param>
+    /// <param name="orderNumber">The order number for display.</param>
+    /// <param name="totalAmount">The total order amount.</param>
+    /// <param name="currency">The currency code.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    Task SendOrderConfirmationAsync(Guid orderId, CancellationToken cancellationToken = default);
+    Task SendOrderConfirmationAsync(
+        Guid orderId,
+        string buyerEmail,
+        string orderNumber,
+        decimal totalAmount,
+        string currency,
+        CancellationToken cancellationToken = default);
 }

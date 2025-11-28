@@ -78,6 +78,26 @@ public static class SeedDataExtensions
             await userRepo.SaveChangesAsync();
         }
 
+        // Create a test buyer user for development
+        var devBuyerId = Guid.Parse("33333333-3333-3333-3333-333333333333");
+        var existingBuyer = await userRepo.GetByIdAsync(devBuyerId);
+        if (existingBuyer is null)
+        {
+            var buyerEmail = Email.Create("buyer@demo.com");
+            var passwordHash = passwordHasher.HashPassword("Buyer123!");
+            var buyer = new User(
+                devBuyerId,
+                buyerEmail,
+                passwordHash,
+                UserRole.Buyer,
+                "Demo",
+                "Buyer",
+                acceptedTerms: true);
+            buyer.VerifyEmail();
+            await userRepo.AddAsync(buyer);
+            await userRepo.SaveChangesAsync();
+        }
+
         // Create an active store
         var existingStore = await storeRepo.GetBySlugAsync("demo-store");
         Store? demoStore = existingStore;

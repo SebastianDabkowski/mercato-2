@@ -31,3 +31,11 @@ public sealed record GetOrderConfirmationQuery(
 public sealed record GetOrderByNumberQuery(
     Guid BuyerId,
     string OrderNumber);
+
+/// <summary>
+/// Query to get buyer's order history with pagination.
+/// </summary>
+public sealed record GetBuyerOrdersQuery(
+    Guid BuyerId,
+    int Skip = 0,
+    int Take = 20);

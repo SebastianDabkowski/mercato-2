@@ -13,6 +13,11 @@ public interface IShippingMethodRepository
     Task<ShippingMethod?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets shipping methods by their IDs.
+    /// </summary>
+    Task<IReadOnlyList<ShippingMethod>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets all active shipping methods for a store.
     /// </summary>
     Task<IReadOnlyList<ShippingMethod>> GetByStoreIdAsync(Guid storeId, CancellationToken cancellationToken = default);
