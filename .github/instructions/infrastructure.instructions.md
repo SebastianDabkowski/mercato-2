@@ -19,8 +19,8 @@ This layer provides implementations for interfaces defined in Domain and Applica
 - Use `AsNoTracking()` for read-only queries
 
 ## Configuration
-- Currently uses `UseInMemoryDatabase("AppDb")` for development
-- Replace with SQL provider when `ConnectionStrings:DefaultConnection` is configured
+- Currently uses `UseInMemoryDatabase("AppDb")` for local development
+- To switch to a real database, update `DependencyInjection.cs` to use the appropriate provider (e.g., SQL Server, PostgreSQL) and configure `ConnectionStrings:DefaultConnection` in appsettings
 - Register all implementations in `DependencyInjection.cs`
 
 ## Constraints

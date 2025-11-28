@@ -25,7 +25,7 @@ This layer hosts the ASP.NET Core Razor Pages application.
 ## Configuration
 - `appsettings.json`: Base configuration
 - `appsettings.Development.json`: Development overrides
-- DI is wired via `AddApplication()` and `AddInfrastructure()` in Program.cs
+- DI is wired in Program.cs via `AddApplication()` (from `SD.Project.Application/DependencyInjection.cs`) and `AddInfrastructure()` (from `SD.Project.Infrastructure/DependencyInjection.cs`)
 
 ## Constraints
 - Never reference EF Core or domain repositories directly

@@ -21,6 +21,7 @@ This layer orchestrates use cases and coordinates between domain and infrastruct
 - Register all services in `DependencyInjection.cs`
 
 ## Constraints
-- Depend only on Domain layer, never on Infrastructure
+- Depend only on Domain layer; define interfaces here that Infrastructure implements
+- Never reference Infrastructure implementations directly
 - Keep services thin; delegate business logic to domain entities
 - Use interfaces for infrastructure concerns (e.g., `INotificationService`)
