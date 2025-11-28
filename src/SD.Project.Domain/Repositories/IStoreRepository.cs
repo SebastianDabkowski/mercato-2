@@ -48,6 +48,11 @@ public interface IStoreRepository
     Task<IReadOnlyCollection<Store>> GetPubliclyVisibleAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets stores by their IDs.
+    /// </summary>
+    Task<IReadOnlyCollection<Store>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Persists changes to the underlying store.
     /// </summary>
     Task SaveChangesAsync(CancellationToken cancellationToken = default);

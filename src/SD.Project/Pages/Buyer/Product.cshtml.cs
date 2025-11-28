@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using SD.Project.Application.Commands;
 using SD.Project.Application.DTOs;
 using SD.Project.Application.Queries;
 using SD.Project.Application.Services;
 using SD.Project.ViewModels;
+using System.Security.Claims;
 
 namespace SD.Project.Pages.Buyer;
 
@@ -16,6 +18,7 @@ public class ProductModel : PageModel
     private readonly ProductService _productService;
     private readonly CategoryService _categoryService;
     private readonly StoreService _storeService;
+    private readonly CartService _cartService;
 
     /// <summary>
     /// The product being viewed.
@@ -32,16 +35,28 @@ public class ProductModel : PageModel
     /// </summary>
     public StoreViewModel? Store { get; private set; }
 
+    /// <summary>
+    /// Message to display to the user.
+    /// </summary>
+    public string? Message { get; private set; }
+
+    /// <summary>
+    /// Whether the last operation was successful.
+    /// </summary>
+    public bool IsSuccess { get; private set; }
+
     public ProductModel(
         ILogger<ProductModel> logger,
         ProductService productService,
         CategoryService categoryService,
-        StoreService storeService)
+        StoreService storeService,
+        CartService cartService)
     {
         _logger = logger;
         _productService = productService;
         _categoryService = categoryService;
         _storeService = storeService;
+        _cartService = cartService;
     }
 
     public async Task<IActionResult> OnGetAsync(
@@ -88,6 +103,64 @@ public class ProductModel : PageModel
         }
 
         return Page();
+    }
+
+    public async Task<IActionResult> OnPostAddToCartAsync(
+        Guid productId,
+        int quantity = 1,
+        CancellationToken cancellationToken = default)
+    {
+        var (buyerId, sessionId) = GetCartIdentifiers();
+
+        var result = await _cartService.HandleAsync(
+            new AddToCartCommand(buyerId, sessionId, productId, quantity),
+            cancellationToken);
+
+        if (result.IsSuccess)
+        {
+            IsSuccess = true;
+            if (result.WasQuantityIncreased)
+            {
+                Message = $"Updated quantity in cart. You now have {result.Item!.Quantity} of this item.";
+            }
+            else
+            {
+                Message = "Item added to cart successfully!";
+            }
+            _logger.LogInformation("Added product {ProductId} to cart (quantity: {Quantity})", productId, quantity);
+        }
+        else
+        {
+            IsSuccess = false;
+            Message = result.ErrorMessage;
+            _logger.LogWarning("Failed to add product {ProductId} to cart: {Error}", productId, result.ErrorMessage);
+        }
+
+        // Reload the page with the product
+        return await OnGetAsync(productId, cancellationToken);
+    }
+
+    private (Guid? BuyerId, string? SessionId) GetCartIdentifiers()
+    {
+        // Check if user is authenticated
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (Guid.TryParse(userIdClaim, out var buyerId))
+            {
+                return (buyerId, null);
+            }
+        }
+
+        // For anonymous users, use session
+        var sessionId = HttpContext.Session.GetString(Constants.CartSessionKey);
+        if (string.IsNullOrEmpty(sessionId))
+        {
+            sessionId = Guid.NewGuid().ToString();
+            HttpContext.Session.SetString(Constants.CartSessionKey, sessionId);
+        }
+
+        return (null, sessionId);
     }
 
     private async Task LoadCategoryIdAsync(string categoryName, CancellationToken cancellationToken)

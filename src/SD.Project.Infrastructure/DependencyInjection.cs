@@ -43,6 +43,7 @@ public static class DependencyInjection
         services.AddScoped<IPayoutSettingsRepository, PayoutSettingsRepository>();
         services.AddScoped<IInternalUserRepository, InternalUserRepository>();
         services.AddScoped<IInternalUserInvitationRepository, InternalUserInvitationRepository>();
+        services.AddScoped<ICartRepository, CartRepository>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IPasswordValidator, PasswordValidator>();
