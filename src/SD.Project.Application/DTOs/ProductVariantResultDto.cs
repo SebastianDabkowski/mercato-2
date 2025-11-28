@@ -49,3 +49,21 @@ public sealed record DeleteProductVariantResultDto(
     public static DeleteProductVariantResultDto Failed(string error) =>
         new(false, new[] { error });
 }
+
+/// <summary>
+/// Result of creating a variant attribute definition.
+/// </summary>
+public sealed record CreateAttributeDefinitionResultDto(
+    bool IsSuccess,
+    ProductVariantAttributeDefinitionDto? Definition,
+    IReadOnlyList<string> Errors)
+{
+    public static CreateAttributeDefinitionResultDto Succeeded(ProductVariantAttributeDefinitionDto definition) =>
+        new(true, definition, Array.Empty<string>());
+
+    public static CreateAttributeDefinitionResultDto Failed(string error) =>
+        new(false, null, new[] { error });
+
+    public static CreateAttributeDefinitionResultDto Failed(IReadOnlyList<string> errors) =>
+        new(false, null, errors);
+}

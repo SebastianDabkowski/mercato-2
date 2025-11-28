@@ -302,7 +302,7 @@ public sealed class ProductVariantService
     /// <summary>
     /// Adds a variant attribute definition to a product.
     /// </summary>
-    public async Task<CreateProductVariantResultDto> HandleAsync(AddVariantAttributeDefinitionCommand command, CancellationToken cancellationToken = default)
+    public async Task<CreateAttributeDefinitionResultDto> HandleAsync(AddVariantAttributeDefinitionCommand command, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(command);
 
@@ -310,31 +310,31 @@ public sealed class ProductVariantService
         var store = await _storeRepository.GetBySellerIdAsync(command.SellerId, cancellationToken);
         if (store is null)
         {
-            return CreateProductVariantResultDto.Failed("Store not found.");
+            return CreateAttributeDefinitionResultDto.Failed("Store not found.");
         }
 
         // Get the product
         var product = await _productRepository.GetByIdAsync(command.ProductId, cancellationToken);
         if (product is null)
         {
-            return CreateProductVariantResultDto.Failed("Product not found.");
+            return CreateAttributeDefinitionResultDto.Failed("Product not found.");
         }
 
         // Check ownership
         if (product.StoreId != store.Id)
         {
-            return CreateProductVariantResultDto.Failed("You do not have permission to modify this product.");
+            return CreateAttributeDefinitionResultDto.Failed("You do not have permission to modify this product.");
         }
 
         // Validate command
         if (string.IsNullOrWhiteSpace(command.Name))
         {
-            return CreateProductVariantResultDto.Failed("Attribute name is required.");
+            return CreateAttributeDefinitionResultDto.Failed("Attribute name is required.");
         }
 
         if (string.IsNullOrWhiteSpace(command.PossibleValues))
         {
-            return CreateProductVariantResultDto.Failed("Possible values are required.");
+            return CreateAttributeDefinitionResultDto.Failed("Possible values are required.");
         }
 
         try
@@ -349,22 +349,11 @@ public sealed class ProductVariantService
             await _attributeDefinitionRepository.AddAsync(definition, cancellationToken);
             await _attributeDefinitionRepository.SaveChangesAsync(cancellationToken);
 
-            // Return success (using a simplified response since this isn't a variant)
-            return CreateProductVariantResultDto.Succeeded(new ProductVariantDto(
-                definition.Id,
-                definition.ProductId,
-                null,
-                0,
-                null,
-                null,
-                true,
-                $"{{\"name\": \"{definition.Name}\", \"values\": \"{definition.PossibleValues}\"}}",
-                definition.CreatedAt,
-                definition.UpdatedAt));
+            return CreateAttributeDefinitionResultDto.Succeeded(MapToDto(definition));
         }
         catch (ArgumentException ex)
         {
-            return CreateProductVariantResultDto.Failed(ex.Message);
+            return CreateAttributeDefinitionResultDto.Failed(ex.Message);
         }
     }
 

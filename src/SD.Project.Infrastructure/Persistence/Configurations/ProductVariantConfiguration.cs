@@ -17,6 +17,7 @@ public sealed class ProductVariantConfiguration : IEntityTypeConfiguration<Produ
         builder.Property(v => v.ProductId)
             .IsRequired();
 
+        // SKU is optional but must be unique within a product when provided
         builder.Property(v => v.Sku)
             .HasMaxLength(100);
 
@@ -40,7 +41,10 @@ public sealed class ProductVariantConfiguration : IEntityTypeConfiguration<Produ
             .IsRequired()
             .HasMaxLength(2000);
 
+        // Unique index to ensure SKU is unique within a product
         builder.HasIndex(v => new { v.ProductId, v.Sku })
-            .HasDatabaseName("IX_ProductVariants_ProductId_Sku");
+            .HasDatabaseName("IX_ProductVariants_ProductId_Sku")
+            .IsUnique()
+            .HasFilter("[Sku] IS NOT NULL");
     }
 }
