@@ -31,7 +31,9 @@
                         </li>
                     </ul>
                     <form class="d-flex me-3" asp-page="/Buyer/Search" method="get">
-                        <input class="form-control me-2" type="search" name="q" placeholder="Search products..." aria-label="Search">
+                        <input class="form-control me-2" type="search" name="q" id="global-search-input" 
+                               placeholder="Search products..." aria-label="Search" 
+                               autocomplete="off" aria-expanded="false" aria-haspopup="listbox">
                         <button class="btn btn-outline-primary" type="submit">Search</button>
                     </form>
                     <ul class="navbar-nav">
@@ -73,6 +75,7 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/search-suggestions.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

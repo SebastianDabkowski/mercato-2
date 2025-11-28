@@ -103,6 +103,28 @@ public sealed class ProductRepository : IProductRepository
         return results.AsReadOnly();
     }
 
+    public async Task<IReadOnlyCollection<string>> GetProductSuggestionsAsync(
+        string searchPrefix,
+        int maxResults = 5,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(searchPrefix))
+        {
+            return Array.Empty<string>();
+        }
+
+        var searchPattern = $"%{searchPrefix.Trim()}%";
+        var results = await _context.Products
+            .AsNoTracking()
+            .Where(p => p.Status == ProductStatus.Active &&
+                        EF.Functions.Like(p.Name, searchPattern))
+            .Select(p => p.Name)
+            .Distinct()
+            .Take(maxResults)
+            .ToListAsync(cancellationToken);
+        return results.AsReadOnly();
+    }
+
     public async Task<IReadOnlyCollection<Product>> FilterAsync(
         string? searchTerm = null,
         string? category = null,

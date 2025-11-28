@@ -138,6 +138,27 @@ public sealed class CategoryRepository : ICategoryRepository
         return result;
     }
 
+    public async Task<IReadOnlyCollection<Category>> GetSuggestionsAsync(
+        string searchPrefix,
+        int maxResults = 5,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(searchPrefix))
+        {
+            return Array.Empty<Category>();
+        }
+
+        var searchPattern = $"%{searchPrefix.Trim()}%";
+        var results = await _context.Categories
+            .AsNoTracking()
+            .Where(c => c.IsActive && EF.Functions.Like(c.Name, searchPattern))
+            .OrderBy(c => c.DisplayOrder)
+            .ThenBy(c => c.Name)
+            .Take(maxResults)
+            .ToListAsync(cancellationToken);
+        return results.AsReadOnly();
+    }
+
     public async Task AddAsync(Category category, CancellationToken cancellationToken = default)
     {
         await _context.Categories.AddAsync(category, cancellationToken);
