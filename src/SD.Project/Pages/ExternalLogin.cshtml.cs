@@ -15,15 +15,18 @@ public class ExternalLoginModel : PageModel
 {
     private readonly ILogger<ExternalLoginModel> _logger;
     private readonly ExternalLoginService _externalLoginService;
+    private readonly SessionService _sessionService;
 
     public string? ErrorMessage { get; private set; }
 
     public ExternalLoginModel(
         ILogger<ExternalLoginModel> logger,
-        ExternalLoginService externalLoginService)
+        ExternalLoginService externalLoginService,
+        SessionService sessionService)
     {
         _logger = logger;
         _externalLoginService = externalLoginService;
+        _sessionService = sessionService;
     }
 
     public IActionResult OnGet()
@@ -149,13 +152,23 @@ public class ExternalLoginModel : PageModel
         _logger.LogInformation("User {UserId} logged in via {Provider} (new user: {IsNew})",
             loginResult.UserId, provider, loginResult.IsNewUser);
 
+        // Create a secure session token
+        var userAgent = Request.Headers.UserAgent.ToString();
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var session = await _sessionService.CreateSessionAsync(
+            loginResult.UserId!.Value,
+            isPersistent: true,
+            userAgent,
+            ipAddress);
+
         // Create claims for the authenticated user
         var userClaims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, loginResult.UserId!.Value.ToString()),
             new(ClaimTypes.Email, loginResult.Email!),
             new(ClaimTypes.Name, loginResult.FirstName!),
-            new(ClaimTypes.Role, loginResult.Role!.Value.ToString())
+            new(ClaimTypes.Role, loginResult.Role!.Value.ToString()),
+            new(LoginModel.SessionTokenClaimType, session.Token)
         };
 
         var claimsIdentity = new ClaimsIdentity(

@@ -14,7 +14,11 @@ namespace SD.Project.Pages
         private readonly ILogger<LoginModel> _logger;
         private readonly LoginService _loginService;
         private readonly EmailVerificationService _emailVerificationService;
+        private readonly SessionService _sessionService;
         private readonly IAuthenticationSchemeProvider _schemeProvider;
+
+        // Custom claim type for session token
+        public const string SessionTokenClaimType = "session_token";
 
         [BindProperty]
         public LoginViewModel Input { get; set; } = new();
@@ -31,11 +35,13 @@ namespace SD.Project.Pages
             ILogger<LoginModel> logger,
             LoginService loginService,
             EmailVerificationService emailVerificationService,
+            SessionService sessionService,
             IAuthenticationSchemeProvider schemeProvider)
         {
             _logger = logger;
             _loginService = loginService;
             _emailVerificationService = emailVerificationService;
+            _sessionService = sessionService;
             _schemeProvider = schemeProvider;
         }
 
@@ -57,13 +63,23 @@ namespace SD.Project.Pages
                 _logger.LogInformation("User {UserId} logged in with role {Role}",
                     result.UserId, result.Role);
 
+                // Create a secure session token
+                var userAgent = Request.Headers.UserAgent.ToString();
+                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+                var session = await _sessionService.CreateSessionAsync(
+                    result.UserId!.Value,
+                    Input.RememberMe,
+                    userAgent,
+                    ipAddress);
+
                 // Create claims for the authenticated user
                 var claims = new List<Claim>
                 {
                     new(ClaimTypes.NameIdentifier, result.UserId!.Value.ToString()),
                     new(ClaimTypes.Email, result.Email!),
                     new(ClaimTypes.Name, result.FirstName!),
-                    new(ClaimTypes.Role, result.Role!.Value.ToString())
+                    new(ClaimTypes.Role, result.Role!.Value.ToString()),
+                    new(SessionTokenClaimType, session.Token)
                 };
 
                 var claimsIdentity = new ClaimsIdentity(
