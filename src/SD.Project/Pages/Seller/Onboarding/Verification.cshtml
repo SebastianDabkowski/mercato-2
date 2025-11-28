@@ -1,5 +1,6 @@
 @page
 @model SD.Project.Pages.Seller.Onboarding.VerificationModel
+@using SD.Project.Domain.Entities
 @{
     ViewData["Title"] = "Verification - Seller Onboarding";
 }
@@ -51,7 +52,7 @@
 
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0">Step 2: Business Verification</h5>
+                    <h5 class="mb-0">Step 2: Identity Verification</h5>
                 </div>
                 <div class="card-body">
                     @if (!string.IsNullOrEmpty(Model.SuccessMessage))
@@ -74,25 +75,109 @@
                     }
 
                     <form method="post">
-                        <div class="mb-3">
-                            <label asp-for="Input.BusinessName" class="form-label">Legal Business Name <span class="text-danger">*</span></label>
-                            <input asp-for="Input.BusinessName" class="form-control" placeholder="Enter your legal business name" />
-                            <div class="form-text">The official name registered with your government</div>
+                        <!-- Seller Type Selection -->
+                        <div class="mb-4">
+                            <label class="form-label">Seller Type <span class="text-danger">*</span></label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check card p-3 @(Model.Input.SellerType == SellerType.Company ? "border-primary" : "")">
+                                        <input class="form-check-input" type="radio" asp-for="Input.SellerType" value="@SellerType.Company" id="sellerTypeCompany" />
+                                        <label class="form-check-label w-100" for="sellerTypeCompany">
+                                            <strong>Company / Business</strong>
+                                            <div class="small text-muted">I am selling on behalf of a registered company or business entity</div>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check card p-3 @(Model.Input.SellerType == SellerType.Individual ? "border-primary" : "")">
+                                        <input class="form-check-input" type="radio" asp-for="Input.SellerType" value="@SellerType.Individual" id="sellerTypeIndividual" />
+                                        <label class="form-check-label w-100" for="sellerTypeIndividual">
+                                            <strong>Individual</strong>
+                                            <div class="small text-muted">I am selling as a private individual</div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label asp-for="Input.BusinessRegistrationNumber" class="form-label">Business Registration Number <span class="text-danger">*</span></label>
-                            <input asp-for="Input.BusinessRegistrationNumber" class="form-control" placeholder="Enter your business registration number" />
+                        <!-- Company Verification Form -->
+                        <div id="companyForm" style="display: @(Model.Input.SellerType == SellerType.Company ? "block" : "none");">
+                            <h6 class="mb-3 text-muted">Company Information</h6>
+                            
+                            <div class="mb-3">
+                                <label asp-for="Input.BusinessName" class="form-label">Company Name <span class="text-danger">*</span></label>
+                                <input asp-for="Input.BusinessName" class="form-control" placeholder="Enter your legal company name" />
+                                <div class="form-text">The official name registered with your government</div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="Input.BusinessRegistrationNumber" class="form-label">Registration Number <span class="text-danger">*</span></label>
+                                    <input asp-for="Input.BusinessRegistrationNumber" class="form-control" placeholder="e.g., Company number" />
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="Input.TaxIdentificationNumber" class="form-label">Tax ID / VAT Number <span class="text-danger">*</span></label>
+                                    <input asp-for="Input.TaxIdentificationNumber" class="form-control" placeholder="e.g., VAT123456789" />
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Input.BusinessAddress" class="form-label">Registered Address <span class="text-danger">*</span></label>
+                                <textarea asp-for="Input.BusinessAddress" class="form-control" rows="3" placeholder="Enter your official registered business address"></textarea>
+                            </div>
+
+                            <h6 class="mb-3 mt-4 text-muted">Contact Person</h6>
+
+                            <div class="mb-3">
+                                <label asp-for="Input.ContactPersonName" class="form-label">Contact Person Name <span class="text-danger">*</span></label>
+                                <input asp-for="Input.ContactPersonName" class="form-control" placeholder="Full name of the contact person" />
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="Input.ContactPersonEmail" class="form-label">Contact Email <span class="text-danger">*</span></label>
+                                    <input asp-for="Input.ContactPersonEmail" type="email" class="form-control" placeholder="contact@company.com" />
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="Input.ContactPersonPhone" class="form-label">Contact Phone <span class="text-danger">*</span></label>
+                                    <input asp-for="Input.ContactPersonPhone" type="tel" class="form-control" placeholder="+1 234 567 8900" />
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label asp-for="Input.TaxIdentificationNumber" class="form-label">Tax Identification Number <span class="text-danger">*</span></label>
-                            <input asp-for="Input.TaxIdentificationNumber" class="form-control" placeholder="Enter your tax ID / VAT number" />
-                        </div>
+                        <!-- Individual Verification Form -->
+                        <div id="individualForm" style="display: @(Model.Input.SellerType == SellerType.Individual ? "block" : "none");">
+                            <h6 class="mb-3 text-muted">Personal Information</h6>
+                            
+                            <div class="mb-3">
+                                <label asp-for="Input.FullName" class="form-label">Full Name <span class="text-danger">*</span></label>
+                                <input asp-for="Input.FullName" class="form-control" placeholder="Enter your full legal name" />
+                                <div class="form-text">As it appears on your official ID document</div>
+                            </div>
 
-                        <div class="mb-3">
-                            <label asp-for="Input.BusinessAddress" class="form-label">Registered Business Address <span class="text-danger">*</span></label>
-                            <textarea asp-for="Input.BusinessAddress" class="form-control" rows="3" placeholder="Enter your official registered business address"></textarea>
+                            <div class="mb-3">
+                                <label asp-for="Input.PersonalIdNumber" class="form-label">Personal ID Number <span class="text-danger">*</span></label>
+                                <input asp-for="Input.PersonalIdNumber" class="form-control" placeholder="National ID, Passport number, or equivalent" />
+                                <div class="form-text">This information is securely stored and used only for verification purposes</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Input.PersonalAddress" class="form-label">Address <span class="text-danger">*</span></label>
+                                <textarea asp-for="Input.PersonalAddress" class="form-control" rows="3" placeholder="Enter your residential address"></textarea>
+                            </div>
+
+                            <h6 class="mb-3 mt-4 text-muted">Contact Details</h6>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="Input.PersonalEmail" class="form-label">Email <span class="text-danger">*</span></label>
+                                    <input asp-for="Input.PersonalEmail" type="email" class="form-control" placeholder="your.email@example.com" />
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="Input.PersonalPhone" class="form-label">Phone Number <span class="text-danger">*</span></label>
+                                    <input asp-for="Input.PersonalPhone" type="tel" class="form-control" placeholder="+1 234 567 8900" />
+                                </div>
+                            </div>
                         </div>
 
                         <div class="d-flex justify-content-between mt-4">
@@ -111,4 +196,28 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const companyRadio = document.getElementById('sellerTypeCompany');
+            const individualRadio = document.getElementById('sellerTypeIndividual');
+            const companyForm = document.getElementById('companyForm');
+            const individualForm = document.getElementById('individualForm');
+
+            function updateFormVisibility() {
+                if (companyRadio.checked) {
+                    companyForm.style.display = 'block';
+                    individualForm.style.display = 'none';
+                } else if (individualRadio.checked) {
+                    companyForm.style.display = 'none';
+                    individualForm.style.display = 'block';
+                } else {
+                    companyForm.style.display = 'none';
+                    individualForm.style.display = 'none';
+                }
+            }
+
+            companyRadio.addEventListener('change', updateFormVisibility);
+            individualRadio.addEventListener('change', updateFormVisibility);
+        });
+    </script>
 }

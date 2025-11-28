@@ -19,10 +19,21 @@ public sealed record SellerOnboardingDto(
     string? StoreCountry,
     bool StoreProfileCompleted,
     // Step 2: Verification
+    SellerType SellerType,
+    // Company verification fields
     string? BusinessName,
     string? BusinessRegistrationNumber,
     string? TaxIdentificationNumber,
     string? BusinessAddress,
+    string? ContactPersonName,
+    string? ContactPersonEmail,
+    string? ContactPersonPhone,
+    // Individual verification fields
+    string? FullName,
+    string? PersonalIdNumber,
+    string? PersonalAddress,
+    string? PersonalEmail,
+    string? PersonalPhone,
     bool VerificationCompleted,
     // Step 3: Payout
     string? BankAccountHolder,

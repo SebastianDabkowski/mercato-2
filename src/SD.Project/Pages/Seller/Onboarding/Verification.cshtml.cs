@@ -24,6 +24,7 @@ namespace SD.Project.Pages.Seller.Onboarding
         public bool StoreProfileCompleted { get; private set; }
         public bool VerificationCompleted { get; private set; }
         public bool PayoutCompleted { get; private set; }
+        public OnboardingStatus OnboardingStatus { get; private set; }
 
         public VerificationModel(
             ILogger<VerificationModel> logger,
@@ -87,10 +88,21 @@ namespace SD.Project.Pages.Seller.Onboarding
 
             var command = new SaveVerificationCommand(
                 userId,
+                Input.SellerType,
+                // Company fields
                 Input.BusinessName,
                 Input.BusinessRegistrationNumber,
                 Input.TaxIdentificationNumber,
                 Input.BusinessAddress,
+                Input.ContactPersonName,
+                Input.ContactPersonEmail,
+                Input.ContactPersonPhone,
+                // Individual fields
+                Input.FullName,
+                Input.PersonalIdNumber,
+                Input.PersonalAddress,
+                Input.PersonalEmail,
+                Input.PersonalPhone,
                 completeStep);
 
             var result = await _onboardingService.HandleAsync(command);
@@ -119,6 +131,7 @@ namespace SD.Project.Pages.Seller.Onboarding
                 StoreProfileCompleted = onboarding.StoreProfileCompleted;
                 VerificationCompleted = onboarding.VerificationCompleted;
                 PayoutCompleted = onboarding.PayoutCompleted;
+                OnboardingStatus = onboarding.Status;
             }
 
             return Page();
@@ -126,13 +139,26 @@ namespace SD.Project.Pages.Seller.Onboarding
 
         private void LoadFromOnboarding(Application.DTOs.SellerOnboardingDto onboarding)
         {
+            Input.SellerType = onboarding.SellerType;
+            // Company fields
             Input.BusinessName = onboarding.BusinessName ?? string.Empty;
             Input.BusinessRegistrationNumber = onboarding.BusinessRegistrationNumber ?? string.Empty;
             Input.TaxIdentificationNumber = onboarding.TaxIdentificationNumber ?? string.Empty;
             Input.BusinessAddress = onboarding.BusinessAddress ?? string.Empty;
+            Input.ContactPersonName = onboarding.ContactPersonName ?? string.Empty;
+            Input.ContactPersonEmail = onboarding.ContactPersonEmail ?? string.Empty;
+            Input.ContactPersonPhone = onboarding.ContactPersonPhone ?? string.Empty;
+            // Individual fields
+            Input.FullName = onboarding.FullName ?? string.Empty;
+            Input.PersonalIdNumber = onboarding.PersonalIdNumber ?? string.Empty;
+            Input.PersonalAddress = onboarding.PersonalAddress ?? string.Empty;
+            Input.PersonalEmail = onboarding.PersonalEmail ?? string.Empty;
+            Input.PersonalPhone = onboarding.PersonalPhone ?? string.Empty;
+            // Status flags
             StoreProfileCompleted = onboarding.StoreProfileCompleted;
             VerificationCompleted = onboarding.VerificationCompleted;
             PayoutCompleted = onboarding.PayoutCompleted;
+            OnboardingStatus = onboarding.Status;
         }
 
         private Guid GetUserId()
