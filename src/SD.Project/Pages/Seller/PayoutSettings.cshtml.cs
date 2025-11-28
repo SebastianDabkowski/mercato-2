@@ -207,7 +207,6 @@ namespace SD.Project.Pages.Seller
 
         private void LoadFromSettings(Application.DTOs.PayoutSettingsDto settings)
         {
-            Input.DefaultPayoutMethod = settings.DefaultPayoutMethod;
             Input.BankAccountHolder = settings.BankAccountHolder ?? string.Empty;
             Input.BankAccountNumber = settings.BankAccountNumber ?? string.Empty;
             Input.BankName = settings.BankName ?? string.Empty;

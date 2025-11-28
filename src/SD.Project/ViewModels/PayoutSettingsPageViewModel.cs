@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using SD.Project.Domain.Entities;
 
 namespace SD.Project.ViewModels;
 
@@ -8,9 +7,6 @@ namespace SD.Project.ViewModels;
 /// </summary>
 public sealed class PayoutSettingsPageViewModel
 {
-    // Current default payout method
-    public PayoutMethod DefaultPayoutMethod { get; set; }
-
     // Bank Transfer fields
     [Display(Name = "Account Holder Name")]
     public string BankAccountHolder { get; set; } = string.Empty;

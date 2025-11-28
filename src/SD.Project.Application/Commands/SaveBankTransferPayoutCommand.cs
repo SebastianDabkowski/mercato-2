@@ -1,5 +1,3 @@
-using SD.Project.Domain.Entities;
-
 namespace SD.Project.Application.Commands;
 
 /// <summary>
