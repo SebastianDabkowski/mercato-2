@@ -32,7 +32,17 @@ public sealed class ProductRepository : IProductRepository
     {
         var results = await _context.Products
             .AsNoTracking()
-            .Where(p => p.StoreId == storeId && p.IsActive)
+            .Where(p => p.StoreId == storeId && p.IsActive && p.Status == ProductStatus.Active)
+            .ToListAsync(cancellationToken);
+        return results.AsReadOnly();
+    }
+
+    public async Task<IReadOnlyCollection<Product>> GetAllByStoreIdAsync(Guid storeId, CancellationToken cancellationToken = default)
+    {
+        var results = await _context.Products
+            .AsNoTracking()
+            .Where(p => p.StoreId == storeId)
+            .OrderByDescending(p => p.CreatedAt)
             .ToListAsync(cancellationToken);
         return results.AsReadOnly();
     }

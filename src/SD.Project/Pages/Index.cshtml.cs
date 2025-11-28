@@ -27,7 +27,17 @@ namespace SD.Project.Pages
         {
             var items = await _productService.HandleAsync(new GetAllProductsQuery());
             Products = items
-                .Select(p => new ProductViewModel(p.Id, p.Name, p.Amount, p.Currency, p.IsActive))
+                .Select(p => new ProductViewModel(
+                    p.Id,
+                    p.Name,
+                    p.Amount,
+                    p.Currency,
+                    p.Stock,
+                    p.Category,
+                    p.Status,
+                    p.IsActive,
+                    p.CreatedAt,
+                    p.UpdatedAt))
                 .ToArray();
             _logger.LogDebug("Loaded {Count} products for display", Products.Count);
         }
