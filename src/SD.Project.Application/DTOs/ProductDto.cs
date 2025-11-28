@@ -20,4 +20,5 @@ public sealed record ProductDto(
     decimal? WeightKg,
     decimal? LengthCm,
     decimal? WidthCm,
-    decimal? HeightCm);
+    decimal? HeightCm,
+    string? Sku = null);

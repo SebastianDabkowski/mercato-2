@@ -59,9 +59,29 @@ public sealed class ProductRepository : IProductRepository
         return results.AsReadOnly();
     }
 
+    public async Task<Product?> GetBySkuAndStoreIdAsync(string sku, Guid storeId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Products
+            .FirstOrDefaultAsync(p => p.Sku == sku && p.StoreId == storeId, cancellationToken);
+    }
+
+    public async Task<IReadOnlyCollection<Product>> GetBySkusAndStoreIdAsync(IEnumerable<string> skus, Guid storeId, CancellationToken cancellationToken = default)
+    {
+        var skuList = skus.ToList();
+        var results = await _context.Products
+            .Where(p => p.Sku != null && skuList.Contains(p.Sku) && p.StoreId == storeId)
+            .ToListAsync(cancellationToken);
+        return results.AsReadOnly();
+    }
+
     public async Task AddAsync(Product product, CancellationToken cancellationToken = default)
     {
         await _context.Products.AddAsync(product, cancellationToken);
+    }
+
+    public async Task AddRangeAsync(IEnumerable<Product> products, CancellationToken cancellationToken = default)
+    {
+        await _context.Products.AddRangeAsync(products, cancellationToken);
     }
 
     public void Update(Product product)

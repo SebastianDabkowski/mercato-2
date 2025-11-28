@@ -17,6 +17,12 @@ public class Product
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
 
+    /// <summary>
+    /// Stock Keeping Unit - unique identifier for merchant's inventory management.
+    /// Used as matching key for bulk imports.
+    /// </summary>
+    public string? Sku { get; private set; }
+
     // Shipping parameters
     public decimal? WeightKg { get; private set; }
     public decimal? LengthCm { get; private set; }
@@ -300,4 +306,14 @@ public class Product
     /// Checks if the product is suspended.
     /// </summary>
     public bool IsSuspended => Status == ProductStatus.Suspended;
+
+    /// <summary>
+    /// Updates the product's SKU (Stock Keeping Unit).
+    /// </summary>
+    /// <param name="sku">The new SKU value. Can be null to clear the SKU.</param>
+    public void UpdateSku(string? sku)
+    {
+        Sku = sku?.Trim();
+        UpdatedAt = DateTime.UtcNow;
+    }
 }
