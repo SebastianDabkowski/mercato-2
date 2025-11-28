@@ -7,6 +7,7 @@ namespace SD.Project.Application.DTOs;
 /// </summary>
 public sealed record ProductDto(
     Guid Id,
+    Guid? StoreId,
     string Name,
     string Description,
     decimal Amount,

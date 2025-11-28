@@ -607,6 +607,7 @@ public sealed class ProductService
     {
         return new ProductDto(
             p.Id,
+            p.StoreId,
             p.Name,
             p.Description,
             p.Price.Amount,

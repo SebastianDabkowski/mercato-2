@@ -388,6 +388,7 @@ public sealed class ProductVariantService
     {
         return new ProductDto(
             p.Id,
+            p.StoreId,
             p.Name,
             p.Description,
             p.Price.Amount,
