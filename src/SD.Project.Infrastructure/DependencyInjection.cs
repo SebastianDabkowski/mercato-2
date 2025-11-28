@@ -33,6 +33,7 @@ public static class DependencyInjection
         services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
         services.AddScoped<IUserSessionRepository, UserSessionRepository>();
         services.AddScoped<ILoginEventRepository, LoginEventRepository>();
+        services.AddScoped<ISellerOnboardingRepository, SellerOnboardingRepository>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IPasswordValidator, PasswordValidator>();

@@ -1,0 +1,114 @@
+@page
+@model SD.Project.Pages.Seller.Onboarding.VerificationModel
+@{
+    ViewData["Title"] = "Verification - Seller Onboarding";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h1 class="mb-4">Seller Onboarding</h1>
+
+            <!-- Progress Indicator -->
+            <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="text-center flex-fill">
+                        <div class="rounded-circle bg-success text-white d-inline-flex justify-content-center align-items-center" style="width: 40px; height: 40px;">
+                            <span>✓</span>
+                        </div>
+                        <div class="small mt-1">Store Profile</div>
+                    </div>
+                    <div class="flex-fill border-top" style="height: 2px;"></div>
+                    <div class="text-center flex-fill">
+                        <div class="rounded-circle bg-primary text-white d-inline-flex justify-content-center align-items-center" style="width: 40px; height: 40px;">
+                            @if (Model.VerificationCompleted)
+                            {
+                                <span>✓</span>
+                            }
+                            else
+                            {
+                                <span>2</span>
+                            }
+                        </div>
+                        <div class="small mt-1"><strong>Verification</strong></div>
+                    </div>
+                    <div class="flex-fill border-top" style="height: 2px;"></div>
+                    <div class="text-center flex-fill">
+                        <div class="rounded-circle @(Model.PayoutCompleted ? "bg-success" : (Model.VerificationCompleted ? "bg-primary" : "bg-secondary")) text-white d-inline-flex justify-content-center align-items-center" style="width: 40px; height: 40px;">
+                            @if (Model.PayoutCompleted)
+                            {
+                                <span>✓</span>
+                            }
+                            else
+                            {
+                                <span>3</span>
+                            }
+                        </div>
+                        <div class="small mt-1">Payout</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Step 2: Business Verification</h5>
+                </div>
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+                    {
+                        <div class="alert alert-success" role="alert">
+                            @Model.SuccessMessage
+                        </div>
+                    }
+
+                    @if (Model.Errors.Count > 0)
+                    {
+                        <div class="alert alert-danger" role="alert">
+                            <ul class="mb-0">
+                                @foreach (var error in Model.Errors)
+                                {
+                                    <li>@error</li>
+                                }
+                            </ul>
+                        </div>
+                    }
+
+                    <form method="post">
+                        <div class="mb-3">
+                            <label asp-for="Input.BusinessName" class="form-label">Legal Business Name <span class="text-danger">*</span></label>
+                            <input asp-for="Input.BusinessName" class="form-control" placeholder="Enter your legal business name" />
+                            <div class="form-text">The official name registered with your government</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Input.BusinessRegistrationNumber" class="form-label">Business Registration Number <span class="text-danger">*</span></label>
+                            <input asp-for="Input.BusinessRegistrationNumber" class="form-control" placeholder="Enter your business registration number" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Input.TaxIdentificationNumber" class="form-label">Tax Identification Number <span class="text-danger">*</span></label>
+                            <input asp-for="Input.TaxIdentificationNumber" class="form-control" placeholder="Enter your tax ID / VAT number" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Input.BusinessAddress" class="form-label">Registered Business Address <span class="text-danger">*</span></label>
+                            <textarea asp-for="Input.BusinessAddress" class="form-control" rows="3" placeholder="Enter your official registered business address"></textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="submit" asp-page-handler="Back" class="btn btn-outline-secondary">← Back</button>
+                            <div>
+                                <button type="submit" asp-page-handler="Save" class="btn btn-secondary me-2">Save Draft</button>
+                                <button type="submit" asp-page-handler="Next" class="btn btn-primary">Save & Continue →</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

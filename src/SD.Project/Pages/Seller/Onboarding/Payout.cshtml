@@ -1,0 +1,112 @@
+@page
+@model SD.Project.Pages.Seller.Onboarding.PayoutModel
+@{
+    ViewData["Title"] = "Payout Settings - Seller Onboarding";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h1 class="mb-4">Seller Onboarding</h1>
+
+            <!-- Progress Indicator -->
+            <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="text-center flex-fill">
+                        <div class="rounded-circle bg-success text-white d-inline-flex justify-content-center align-items-center" style="width: 40px; height: 40px;">
+                            <span>✓</span>
+                        </div>
+                        <div class="small mt-1">Store Profile</div>
+                    </div>
+                    <div class="flex-fill border-top" style="height: 2px;"></div>
+                    <div class="text-center flex-fill">
+                        <div class="rounded-circle bg-success text-white d-inline-flex justify-content-center align-items-center" style="width: 40px; height: 40px;">
+                            <span>✓</span>
+                        </div>
+                        <div class="small mt-1">Verification</div>
+                    </div>
+                    <div class="flex-fill border-top" style="height: 2px;"></div>
+                    <div class="text-center flex-fill">
+                        <div class="rounded-circle bg-primary text-white d-inline-flex justify-content-center align-items-center" style="width: 40px; height: 40px;">
+                            @if (Model.PayoutCompleted)
+                            {
+                                <span>✓</span>
+                            }
+                            else
+                            {
+                                <span>3</span>
+                            }
+                        </div>
+                        <div class="small mt-1"><strong>Payout</strong></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Step 3: Payout Settings</h5>
+                </div>
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+                    {
+                        <div class="alert alert-success" role="alert">
+                            @Model.SuccessMessage
+                        </div>
+                    }
+
+                    @if (Model.Errors.Count > 0)
+                    {
+                        <div class="alert alert-danger" role="alert">
+                            <ul class="mb-0">
+                                @foreach (var error in Model.Errors)
+                                {
+                                    <li>@error</li>
+                                }
+                            </ul>
+                        </div>
+                    }
+
+                    <div class="alert alert-info" role="alert">
+                        <strong>Note:</strong> Please provide your bank account details for receiving payouts from sales. This information is kept secure and confidential.
+                    </div>
+
+                    <form method="post">
+                        <div class="mb-3">
+                            <label asp-for="Input.BankAccountHolder" class="form-label">Account Holder Name <span class="text-danger">*</span></label>
+                            <input asp-for="Input.BankAccountHolder" class="form-control" placeholder="Enter the name on the bank account" />
+                            <div class="form-text">Must match the name on your bank account exactly</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Input.BankAccountNumber" class="form-label">Bank Account Number / IBAN <span class="text-danger">*</span></label>
+                            <input asp-for="Input.BankAccountNumber" class="form-control" placeholder="Enter your bank account number or IBAN" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Input.BankName" class="form-label">Bank Name <span class="text-danger">*</span></label>
+                            <input asp-for="Input.BankName" class="form-control" placeholder="Enter your bank's name" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Input.BankSwiftCode" class="form-label">SWIFT/BIC Code <span class="text-danger">*</span></label>
+                            <input asp-for="Input.BankSwiftCode" class="form-control" placeholder="Enter your bank's SWIFT/BIC code" />
+                            <div class="form-text">Usually 8-11 characters, found on your bank statement</div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="submit" asp-page-handler="Back" class="btn btn-outline-secondary">← Back</button>
+                            <div>
+                                <button type="submit" asp-page-handler="Save" class="btn btn-secondary me-2">Save Draft</button>
+                                <button type="submit" asp-page-handler="Submit" class="btn btn-success">Submit Application ✓</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

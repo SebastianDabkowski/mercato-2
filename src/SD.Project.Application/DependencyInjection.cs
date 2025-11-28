@@ -18,6 +18,7 @@ public static class DependencyInjection
         services.AddScoped<EmailVerificationService>();
         services.AddScoped<PasswordResetService>();
         services.AddScoped<SessionService>();
+        services.AddScoped<SellerOnboardingService>();
         services.AddScoped<IAuthorizationService, AuthorizationService>();
         return services;
     }

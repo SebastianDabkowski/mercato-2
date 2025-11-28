@@ -19,6 +19,7 @@ public class AppDbContext : DbContext
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
     public DbSet<UserSession> UserSessions => Set<UserSession>();
     public DbSet<LoginEvent> LoginEvents => Set<LoginEvent>();
+    public DbSet<SellerOnboarding> SellerOnboardings => Set<SellerOnboarding>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
