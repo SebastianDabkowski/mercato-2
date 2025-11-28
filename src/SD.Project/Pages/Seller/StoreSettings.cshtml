@@ -1,0 +1,130 @@
+@page
+@model SD.Project.Pages.Seller.StoreSettingsModel
+@{
+    ViewData["Title"] = "Store Settings";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <h1 class="mb-4">Store Settings</h1>
+            <p class="text-muted">Manage your store profile information. This information will be visible to buyers on your public store page.</p>
+
+            @if (Model.Errors.Any())
+            {
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        @foreach (var error in Model.Errors)
+                        {
+                            <li>@error</li>
+                        }
+                    </ul>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+            {
+                <div class="alert alert-success">
+                    @Model.SuccessMessage
+                </div>
+            }
+
+            <form method="post">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Store Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label asp-for="Input.Name" class="form-label"></label>
+                            <input asp-for="Input.Name" class="form-control" placeholder="Enter your store name" />
+                            <span asp-validation-for="Input.Name" class="text-danger"></span>
+                            <small class="text-muted">Your store name must be unique across the platform.</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Input.Description" class="form-label"></label>
+                            <textarea asp-for="Input.Description" class="form-control" rows="4" placeholder="Tell customers about your store, products, and what makes you unique..."></textarea>
+                            <span asp-validation-for="Input.Description" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Store Logo</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-3">
+                                @if (!string.IsNullOrEmpty(Model.Input.LogoUrl))
+                                {
+                                    <img src="@Model.Input.LogoUrl" alt="Store Logo" class="img-fluid rounded" style="max-width: 150px; max-height: 150px;" />
+                                }
+                                else
+                                {
+                                    <div class="bg-light border rounded d-flex align-items-center justify-content-center" style="width: 150px; height: 150px;">
+                                        <span class="text-muted">No logo</span>
+                                    </div>
+                                }
+                            </div>
+                            <div class="col-md-9">
+                                <p class="text-muted mb-2">Upload a logo for your store. Recommended size: 200x200 pixels. Supported formats: JPG, PNG, GIF.</p>
+                                <input type="file" class="form-control" accept="image/*" disabled />
+                                <small class="text-muted">Logo upload functionality coming soon.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Contact Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label asp-for="Input.ContactEmail" class="form-label"></label>
+                            <input asp-for="Input.ContactEmail" class="form-control" type="email" placeholder="contact@yourstore.com" />
+                            <span asp-validation-for="Input.ContactEmail" class="text-danger"></span>
+                            <small class="text-muted">This email will be displayed on your public store page for customer inquiries.</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Input.PhoneNumber" class="form-label"></label>
+                            <input asp-for="Input.PhoneNumber" class="form-control" type="tel" placeholder="+1 (555) 123-4567" />
+                            <span asp-validation-for="Input.PhoneNumber" class="text-danger"></span>
+                            <small class="text-muted">Optional. Display a phone number for customers to contact you.</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Input.WebsiteUrl" class="form-label"></label>
+                            <input asp-for="Input.WebsiteUrl" class="form-control" type="url" placeholder="https://www.yourstore.com" />
+                            <span asp-validation-for="Input.WebsiteUrl" class="text-danger"></span>
+                            <small class="text-muted">Optional. Link to your external website or social media page.</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <a asp-page="/Seller/Dashboard" class="btn btn-outline-secondary">Back to Dashboard</a>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+
+            @if (Model.HasStore && Model.StoreId.HasValue)
+            {
+                <div class="mt-4">
+                    <hr />
+                    <p class="text-muted">
+                        <strong>Public Store Page:</strong> 
+                        <a asp-page="/Store" asp-route-id="@Model.StoreId.Value" target="_blank">View your public store page</a>
+                    </p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

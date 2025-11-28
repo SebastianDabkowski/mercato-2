@@ -20,6 +20,7 @@ public class AppDbContext : DbContext
     public DbSet<UserSession> UserSessions => Set<UserSession>();
     public DbSet<LoginEvent> LoginEvents => Set<LoginEvent>();
     public DbSet<SellerOnboarding> SellerOnboardings => Set<SellerOnboarding>();
+    public DbSet<Store> Stores => Set<Store>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
