@@ -33,8 +33,8 @@ else if (Model.OnboardingStatus == OnboardingStatus.Verified)
 }
 
 <div class="row">
-    <div class="col-md-4">
-        <div class="card">
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
             <div class="card-body">
                 <h5 class="card-title">My Products</h5>
                 <p class="card-text">Manage your product listings.</p>
@@ -42,8 +42,8 @@ else if (Model.OnboardingStatus == OnboardingStatus.Verified)
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card">
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
             <div class="card-body">
                 <h5 class="card-title">Orders</h5>
                 <p class="card-text">View and manage customer orders.</p>
@@ -51,12 +51,21 @@ else if (Model.OnboardingStatus == OnboardingStatus.Verified)
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card">
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
             <div class="card-body">
                 <h5 class="card-title">Store Settings</h5>
                 <p class="card-text">Configure your store profile.</p>
                 <a asp-page="/Seller/StoreSettings" class="btn btn-primary">Store Settings</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Payout Settings</h5>
+                <p class="card-text">Configure bank account and payout preferences.</p>
+                <a asp-page="/Seller/PayoutSettings" class="btn btn-primary">Payout Settings</a>
             </div>
         </div>
     </div>

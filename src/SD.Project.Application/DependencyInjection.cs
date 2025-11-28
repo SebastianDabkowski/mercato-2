@@ -20,6 +20,7 @@ public static class DependencyInjection
         services.AddScoped<SessionService>();
         services.AddScoped<SellerOnboardingService>();
         services.AddScoped<StoreService>();
+        services.AddScoped<PayoutSettingsService>();
         services.AddScoped<IAuthorizationService, AuthorizationService>();
         return services;
     }
