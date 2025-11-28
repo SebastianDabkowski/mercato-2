@@ -19,13 +19,30 @@
 else
 {
     <div data-product-id="@Model.Product.Id" data-max-recent-items="10">
+        <!-- Back to Results Button -->
+        <div class="mb-3">
+            <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm" id="back-to-results-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left me-1" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
+                </svg>
+                Back to results
+            </a>
+        </div>
+
         <nav aria-label="breadcrumb" class="mb-3">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a asp-page="/Index">Home</a></li>
                 <li class="breadcrumb-item"><a asp-page="/Buyer/Category" asp-route-id="">Categories</a></li>
                 @if (!string.IsNullOrEmpty(Model.Product.Category))
                 {
-                    <li class="breadcrumb-item"><a asp-page="/Buyer/Search" asp-route-q="" asp-route-CategoryFilter="@Model.Product.Category">@Model.Product.Category</a></li>
+                    @if (Model.CategoryId.HasValue)
+                    {
+                        <li class="breadcrumb-item"><a asp-page="/Buyer/Category" asp-route-id="@Model.CategoryId">@Model.Product.Category</a></li>
+                    }
+                    else
+                    {
+                        <li class="breadcrumb-item"><a asp-page="/Buyer/Search" asp-route-q="" asp-route-CategoryFilter="@Model.Product.Category">@Model.Product.Category</a></li>
+                    }
                 }
                 <li class="breadcrumb-item active" aria-current="page">@Model.Product.Name</li>
             </ol>
@@ -70,7 +87,22 @@ else
                 {
                     <p class="mb-2">
                         <strong>Category:</strong>
-                        <a asp-page="/Buyer/Search" asp-route-q="" asp-route-CategoryFilter="@Model.Product.Category">@Model.Product.Category</a>
+                        @if (Model.CategoryId.HasValue)
+                        {
+                            <a asp-page="/Buyer/Category" asp-route-id="@Model.CategoryId">@Model.Product.Category</a>
+                        }
+                        else
+                        {
+                            <a asp-page="/Buyer/Search" asp-route-q="" asp-route-CategoryFilter="@Model.Product.Category">@Model.Product.Category</a>
+                        }
+                    </p>
+                }
+
+                @if (Model.Store is not null)
+                {
+                    <p class="mb-2">
+                        <strong>Seller:</strong>
+                        <a asp-page="/Store" asp-route-slug="@Model.Store.Slug">@Model.Store.Name</a>
                     </p>
                 }
 
@@ -139,4 +171,21 @@ else
 
 @section Scripts {
     <script src="~/js/recently-viewed.js" asp-append-version="true"></script>
+    <script>
+        // Hide the "Back to results" button if the user navigated directly to this page
+        // (no referrer or referrer is from external site)
+        document.addEventListener('DOMContentLoaded', function() {
+            var backBtn = document.getElementById('back-to-results-btn');
+            if (backBtn) {
+                // Check if we have a referrer from our own site
+                var referrer = document.referrer;
+                var currentOrigin = window.location.origin;
+                
+                // Hide the button if there's no referrer or it's from an external site
+                if (!referrer || !referrer.startsWith(currentOrigin)) {
+                    backBtn.style.display = 'none';
+                }
+            }
+        });
+    </script>
 }

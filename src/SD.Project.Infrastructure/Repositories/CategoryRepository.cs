@@ -22,6 +22,19 @@ public sealed class CategoryRepository : ICategoryRepository
         return await _context.Categories.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
+    public async Task<Category?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return null;
+        }
+
+        return await _context.Categories
+            .AsNoTracking()
+            .Where(c => c.IsActive && c.Name.ToLower() == name.ToLower())
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyCollection<Category>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         var results = await _context.Categories
