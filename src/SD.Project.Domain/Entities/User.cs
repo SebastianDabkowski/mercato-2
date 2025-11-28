@@ -229,4 +229,24 @@ public class User
     {
         Status = UserStatus.Suspended;
     }
+
+    /// <summary>
+    /// Updates the user's password hash. Only valid for users with password-based authentication.
+    /// </summary>
+    /// <param name="newPasswordHash">The new password hash.</param>
+    /// <exception cref="InvalidOperationException">Thrown if the user uses external login.</exception>
+    public void SetPassword(string newPasswordHash)
+    {
+        if (ExternalProvider != ExternalLoginProvider.None)
+        {
+            throw new InvalidOperationException("Cannot set password for users with external login.");
+        }
+
+        if (string.IsNullOrWhiteSpace(newPasswordHash))
+        {
+            throw new ArgumentException("Password hash is required.", nameof(newPasswordHash));
+        }
+
+        PasswordHash = newPasswordHash;
+    }
 }
