@@ -32,6 +32,7 @@ public static class DependencyInjection
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IPasswordValidator, PasswordValidator>();
+        services.AddSingleton<ILoginRateLimiter, LoginRateLimiter>();
 
         return services;
     }

@@ -1,0 +1,64 @@
+@page
+@model SD.Project.Pages.LoginModel
+@{
+    ViewData["Title"] = "Login";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-4">
+        <h1 class="text-center mb-4">Sign In</h1>
+        <p class="text-center text-muted mb-4">Welcome back to the marketplace</p>
+
+        @if (!string.IsNullOrEmpty(Model.StatusMessage))
+        {
+            <div class="alert alert-success" role="alert">
+                @Model.StatusMessage
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger" role="alert">
+                @Model.ErrorMessage
+                @if (Model.ShowResendVerification)
+                {
+                    <hr>
+                    <form method="post" asp-page-handler="ResendVerification">
+                        <input type="hidden" name="email" value="@Model.ResendEmail" />
+                        <button type="submit" class="btn btn-link p-0">
+                            Click here to resend the verification email
+                        </button>
+                    </form>
+                }
+            </div>
+        }
+
+        <form method="post">
+            <div class="mb-3">
+                <label for="email" class="form-label">Email Address</label>
+                <input type="email" class="form-control" id="email" name="Input.Email" 
+                       value="@Model.Input.Email" placeholder="you@example.com" required autofocus>
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="password" name="Input.Password" required>
+            </div>
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="rememberMe" name="Input.RememberMe" 
+                       value="true" @(Model.Input.RememberMe ? "checked" : "")>
+                <label class="form-check-label" for="rememberMe">
+                    Remember me
+                </label>
+            </div>
+            <div class="d-grid">
+                <button type="submit" class="btn btn-primary btn-lg">Sign In</button>
+            </div>
+        </form>
+
+        <hr class="my-4">
+        
+        <p class="text-center">
+            Don't have an account? <a asp-page="/Register">Create one here</a>
+        </p>
+    </div>
+</div>
