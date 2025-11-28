@@ -121,11 +121,30 @@ public sealed class SellerOnboardingService
 
         try
         {
-            onboarding.UpdateVerification(
-                command.BusinessName,
-                command.BusinessRegistrationNumber,
-                command.TaxIdentificationNumber,
-                command.BusinessAddress);
+            if (command.SellerType == SellerType.Company)
+            {
+                onboarding.UpdateCompanyVerification(
+                    command.BusinessName,
+                    command.BusinessRegistrationNumber,
+                    command.TaxIdentificationNumber,
+                    command.BusinessAddress,
+                    command.ContactPersonName,
+                    command.ContactPersonEmail,
+                    command.ContactPersonPhone);
+            }
+            else if (command.SellerType == SellerType.Individual)
+            {
+                onboarding.UpdateIndividualVerification(
+                    command.FullName,
+                    command.PersonalIdNumber,
+                    command.PersonalAddress,
+                    command.PersonalEmail,
+                    command.PersonalPhone);
+            }
+            else
+            {
+                return OnboardingStepResultDto.Failed("Please select your seller type (Company or Individual).");
+            }
 
             if (command.CompleteStep)
             {
@@ -223,10 +242,19 @@ public sealed class SellerOnboardingService
             onboarding.StorePostalCode,
             onboarding.StoreCountry,
             onboarding.StoreProfileCompleted,
+            onboarding.SellerType,
             onboarding.BusinessName,
             onboarding.BusinessRegistrationNumber,
             onboarding.TaxIdentificationNumber,
             onboarding.BusinessAddress,
+            onboarding.ContactPersonName,
+            onboarding.ContactPersonEmail,
+            onboarding.ContactPersonPhone,
+            onboarding.FullName,
+            onboarding.PersonalIdNumber,
+            onboarding.PersonalAddress,
+            onboarding.PersonalEmail,
+            onboarding.PersonalPhone,
             onboarding.VerificationCompleted,
             onboarding.BankAccountHolder,
             onboarding.BankAccountNumber,

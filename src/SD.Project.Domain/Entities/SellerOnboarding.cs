@@ -23,10 +23,24 @@ public class SellerOnboarding
     public bool StoreProfileCompleted { get; private set; }
     
     // Step 2: Verification Data
+    public SellerType SellerType { get; private set; }
+    
+    // Company verification fields
     public string? BusinessName { get; private set; }
     public string? BusinessRegistrationNumber { get; private set; }
     public string? TaxIdentificationNumber { get; private set; }
     public string? BusinessAddress { get; private set; }
+    public string? ContactPersonName { get; private set; }
+    public string? ContactPersonEmail { get; private set; }
+    public string? ContactPersonPhone { get; private set; }
+    
+    // Individual verification fields
+    public string? FullName { get; private set; }
+    public string? PersonalIdNumber { get; private set; }
+    public string? PersonalAddress { get; private set; }
+    public string? PersonalEmail { get; private set; }
+    public string? PersonalPhone { get; private set; }
+    
     public bool VerificationCompleted { get; private set; }
     
     // Step 3: Payout Settings
@@ -107,24 +121,81 @@ public class SellerOnboarding
     }
 
     /// <summary>
-    /// Updates the verification step data.
+    /// Updates the verification step data for company sellers.
     /// </summary>
-    public void UpdateVerification(
+    public void UpdateCompanyVerification(
         string businessName,
         string businessRegistrationNumber,
         string taxIdentificationNumber,
-        string businessAddress)
+        string businessAddress,
+        string contactPersonName,
+        string contactPersonEmail,
+        string contactPersonPhone)
     {
         if (Status != OnboardingStatus.InProgress)
         {
             throw new InvalidOperationException("Cannot update completed onboarding.");
         }
 
+        SellerType = SellerType.Company;
         BusinessName = businessName?.Trim();
         BusinessRegistrationNumber = businessRegistrationNumber?.Trim();
         TaxIdentificationNumber = taxIdentificationNumber?.Trim();
         BusinessAddress = businessAddress?.Trim();
+        ContactPersonName = contactPersonName?.Trim();
+        ContactPersonEmail = contactPersonEmail?.Trim();
+        ContactPersonPhone = contactPersonPhone?.Trim();
         UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Updates the verification step data for individual sellers.
+    /// </summary>
+    public void UpdateIndividualVerification(
+        string fullName,
+        string personalIdNumber,
+        string personalAddress,
+        string personalEmail,
+        string personalPhone)
+    {
+        if (Status != OnboardingStatus.InProgress)
+        {
+            throw new InvalidOperationException("Cannot update completed onboarding.");
+        }
+
+        SellerType = SellerType.Individual;
+        FullName = fullName?.Trim();
+        PersonalIdNumber = personalIdNumber?.Trim();
+        PersonalAddress = personalAddress?.Trim();
+        PersonalEmail = personalEmail?.Trim();
+        PersonalPhone = personalPhone?.Trim();
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Updates the verification step data (legacy - for backwards compatibility).
+    /// Only works for Company seller type.
+    /// </summary>
+    [Obsolete("Use UpdateCompanyVerification or UpdateIndividualVerification instead.")]
+    public void UpdateVerification(
+        string businessName,
+        string businessRegistrationNumber,
+        string taxIdentificationNumber,
+        string businessAddress)
+    {
+        if (SellerType == SellerType.Individual)
+        {
+            throw new InvalidOperationException("Cannot use legacy UpdateVerification for Individual sellers. Use UpdateIndividualVerification instead.");
+        }
+
+        UpdateCompanyVerification(
+            businessName,
+            businessRegistrationNumber,
+            taxIdentificationNumber,
+            businessAddress,
+            ContactPersonName ?? string.Empty,
+            ContactPersonEmail ?? string.Empty,
+            ContactPersonPhone ?? string.Empty);
     }
 
     /// <summary>
@@ -261,19 +332,74 @@ public class SellerOnboarding
     {
         var errors = new List<string>();
 
-        if (string.IsNullOrWhiteSpace(BusinessName))
-            errors.Add("Business name is required.");
+        if (SellerType == SellerType.NotSpecified)
+        {
+            errors.Add("Please select your seller type (Company or Individual).");
+            return errors;
+        }
 
-        if (string.IsNullOrWhiteSpace(BusinessRegistrationNumber))
-            errors.Add("Business registration number is required.");
+        if (SellerType == SellerType.Company)
+        {
+            if (string.IsNullOrWhiteSpace(BusinessName))
+                errors.Add("Company name is required.");
 
-        if (string.IsNullOrWhiteSpace(TaxIdentificationNumber))
-            errors.Add("Tax identification number is required.");
+            if (string.IsNullOrWhiteSpace(BusinessRegistrationNumber))
+                errors.Add("Business registration number is required.");
 
-        if (string.IsNullOrWhiteSpace(BusinessAddress))
-            errors.Add("Business address is required.");
+            if (string.IsNullOrWhiteSpace(TaxIdentificationNumber))
+                errors.Add("Tax identification number is required.");
+
+            if (string.IsNullOrWhiteSpace(BusinessAddress))
+                errors.Add("Registered business address is required.");
+
+            if (string.IsNullOrWhiteSpace(ContactPersonName))
+                errors.Add("Contact person name is required.");
+
+            if (string.IsNullOrWhiteSpace(ContactPersonEmail))
+                errors.Add("Contact person email is required.");
+            else if (!IsValidEmail(ContactPersonEmail))
+                errors.Add("Contact person email format is invalid.");
+
+            if (string.IsNullOrWhiteSpace(ContactPersonPhone))
+                errors.Add("Contact person phone is required.");
+        }
+        else if (SellerType == SellerType.Individual)
+        {
+            if (string.IsNullOrWhiteSpace(FullName))
+                errors.Add("Full name is required.");
+
+            if (string.IsNullOrWhiteSpace(PersonalIdNumber))
+                errors.Add("Personal ID number is required.");
+
+            if (string.IsNullOrWhiteSpace(PersonalAddress))
+                errors.Add("Address is required.");
+
+            if (string.IsNullOrWhiteSpace(PersonalEmail))
+                errors.Add("Email is required.");
+            else if (!IsValidEmail(PersonalEmail))
+                errors.Add("Email format is invalid.");
+
+            if (string.IsNullOrWhiteSpace(PersonalPhone))
+                errors.Add("Phone number is required.");
+        }
 
         return errors;
+    }
+
+    private static bool IsValidEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return false;
+
+        try
+        {
+            var addr = new System.Net.Mail.MailAddress(email);
+            return addr.Address == email.Trim();
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     /// <summary>
