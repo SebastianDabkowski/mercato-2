@@ -25,6 +25,7 @@ public sealed record ProductViewModel(
         ProductStatus.Draft => "Draft",
         ProductStatus.Active => "Active",
         ProductStatus.Inactive => "Inactive",
+        ProductStatus.Archived => "Archived",
         _ => "Unknown"
     };
 }

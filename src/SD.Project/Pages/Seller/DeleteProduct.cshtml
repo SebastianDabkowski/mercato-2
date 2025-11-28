@@ -1,0 +1,66 @@
+@page "{id:guid}"
+@model SD.Project.Pages.Seller.DeleteProductModel
+@{
+    ViewData["Title"] = "Delete Product";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <h1 class="mb-4">Delete Product</h1>
+
+            @if (Model.Errors.Any())
+            {
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        @foreach (var error in Model.Errors)
+                        {
+                            <li>@error</li>
+                        }
+                    </ul>
+                </div>
+            }
+
+            @if (Model.Product is not null)
+            {
+                <div class="alert alert-warning">
+                    <strong>Warning:</strong> You are about to delete this product. This action will archive the product and remove it from public listings.
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Product Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-3">Product Title</dt>
+                            <dd class="col-sm-9">@Model.Product.Name</dd>
+
+                            <dt class="col-sm-3">Category</dt>
+                            <dd class="col-sm-9">@Model.Product.Category</dd>
+
+                            <dt class="col-sm-3">Price</dt>
+                            <dd class="col-sm-9">@Model.Product.Amount.ToString("N2") @Model.Product.Currency</dd>
+
+                            <dt class="col-sm-3">Stock</dt>
+                            <dd class="col-sm-9">@Model.Product.Stock</dd>
+
+                            <dt class="col-sm-3">Status</dt>
+                            <dd class="col-sm-9">@Model.Product.StatusDisplay</dd>
+
+                            <dt class="col-sm-3">Created</dt>
+                            <dd class="col-sm-9">@Model.Product.CreatedAt.ToString("MMM d, yyyy HH:mm")</dd>
+                        </dl>
+                    </div>
+                </div>
+
+                <form method="post">
+                    <div class="d-flex justify-content-between">
+                        <a asp-page="/Seller/Products" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-danger">Delete Product</button>
+                    </div>
+                </form>
+            }
+        </div>
+    </div>
+</div>

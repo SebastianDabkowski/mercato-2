@@ -8,6 +8,20 @@ public interface INotificationService
     Task SendProductCreatedAsync(Guid productId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Sends a notification when a product is updated.
+    /// </summary>
+    /// <param name="productId">The ID of the updated product.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendProductUpdatedAsync(Guid productId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a notification when a product is deleted (archived).
+    /// </summary>
+    /// <param name="productId">The ID of the deleted product.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendProductDeletedAsync(Guid productId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Sends a verification email to a newly registered user with a verification link.
     /// </summary>
     /// <param name="userId">The ID of the user.</param>

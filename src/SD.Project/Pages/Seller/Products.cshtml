@@ -48,6 +48,7 @@
                                 <th class="text-center">Stock</th>
                                 <th class="text-center">Status</th>
                                 <th class="text-end">Created</th>
+                                <th class="text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -82,12 +83,31 @@
                                         {
                                             <span class="badge bg-success">@product.StatusDisplay</span>
                                         }
+                                        else if (product.Status == ProductStatus.Archived)
+                                        {
+                                            <span class="badge bg-dark">@product.StatusDisplay</span>
+                                        }
                                         else
                                         {
                                             <span class="badge bg-warning text-dark">@product.StatusDisplay</span>
                                         }
                                     </td>
                                     <td class="text-end">@product.CreatedAt.ToString("MMM d, yyyy")</td>
+                                    <td class="text-center">
+                                        @if (product.Status != ProductStatus.Archived)
+                                        {
+                                            <a asp-page="/Seller/EditProduct" asp-route-id="@product.Id" class="btn btn-sm btn-outline-primary me-1" title="Edit">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <a asp-page="/Seller/DeleteProduct" asp-route-id="@product.Id" class="btn btn-sm btn-outline-danger" title="Delete">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Archived</span>
+                                        }
+                                    </td>
                                 </tr>
                             }
                         </tbody>

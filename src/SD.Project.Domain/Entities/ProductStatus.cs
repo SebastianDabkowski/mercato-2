@@ -18,5 +18,10 @@ public enum ProductStatus
     /// <summary>
     /// Product is hidden from the public catalog.
     /// </summary>
-    Inactive = 2
+    Inactive = 2,
+
+    /// <summary>
+    /// Product has been soft-deleted and is not visible anywhere.
+    /// </summary>
+    Archived = 3
 }
