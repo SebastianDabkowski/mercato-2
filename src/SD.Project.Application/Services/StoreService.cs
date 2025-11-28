@@ -94,6 +94,13 @@ public sealed class StoreService
             return StoreResultDto.Failed("A store with this name already exists. Please choose a different name.");
         }
 
+        // Check for slug uniqueness
+        var slug = Store.CreateSlugFromName(command.Name);
+        if (await _storeRepository.SlugExistsAsync(slug, null, cancellationToken))
+        {
+            return StoreResultDto.Failed("A store with a similar URL already exists. Please choose a different name.");
+        }
+
         // Validate contact email
         if (!IsValidEmail(command.ContactEmail))
         {
@@ -151,6 +158,13 @@ public sealed class StoreService
         if (await _storeRepository.NameExistsAsync(command.Name, store.Id, cancellationToken))
         {
             return StoreResultDto.Failed("A store with this name already exists. Please choose a different name.");
+        }
+
+        // Check for slug uniqueness (excluding current store)
+        var slug = Store.CreateSlugFromName(command.Name);
+        if (await _storeRepository.SlugExistsAsync(slug, store.Id, cancellationToken))
+        {
+            return StoreResultDto.Failed("A store with a similar URL already exists. Please choose a different name.");
         }
 
         // Validate contact email

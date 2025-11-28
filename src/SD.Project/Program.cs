@@ -104,6 +104,12 @@ builder.Services.AddRazorPages();
 
 var app = builder.Build();
 
+// Seed development data
+if (app.Environment.IsDevelopment())
+{
+    await app.Services.SeedDevelopmentDataAsync();
+}
+
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {

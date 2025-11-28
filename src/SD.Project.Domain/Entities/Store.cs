@@ -69,7 +69,9 @@ public class Store
     private static string GenerateSlug(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
-            return string.Empty;
+        {
+            throw new ArgumentException("Name cannot be empty when generating slug.", nameof(name));
+        }
 
         // Convert to lowercase and replace spaces with hyphens
         var slug = name.Trim().ToLowerInvariant();
@@ -86,7 +88,22 @@ public class Store
         // Trim hyphens from start and end
         slug = slug.Trim('-');
 
+        // If slug is empty after processing (e.g., name was only special chars), use a fallback
+        if (string.IsNullOrEmpty(slug))
+        {
+            slug = "store";
+        }
+
         return slug;
+    }
+
+    /// <summary>
+    /// Creates a slug from the given name without updating the store.
+    /// Useful for checking slug uniqueness before updating.
+    /// </summary>
+    public static string CreateSlugFromName(string name)
+    {
+        return GenerateSlug(name);
     }
 
     /// <summary>
