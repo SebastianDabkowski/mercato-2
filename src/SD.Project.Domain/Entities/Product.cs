@@ -29,6 +29,12 @@ public class Product
     public decimal? WidthCm { get; private set; }
     public decimal? HeightCm { get; private set; }
 
+    /// <summary>
+    /// Indicates whether this product has variants enabled.
+    /// When true, stock and price are managed at the variant level.
+    /// </summary>
+    public bool HasVariants { get; private set; }
+
     private Product()
     {
         // EF Core constructor
@@ -314,6 +320,26 @@ public class Product
     public void UpdateSku(string? sku)
     {
         Sku = sku?.Trim();
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Enables variants for this product.
+    /// When variants are enabled, stock and price are managed at the variant level.
+    /// </summary>
+    public void EnableVariants()
+    {
+        HasVariants = true;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Disables variants for this product.
+    /// Stock and price will be managed at the product level.
+    /// </summary>
+    public void DisableVariants()
+    {
+        HasVariants = false;
         UpdatedAt = DateTime.UtcNow;
     }
 }

@@ -23,4 +23,5 @@ public sealed record ProductDto(
     decimal? HeightCm,
     string? Sku = null,
     string? MainImageUrl = null,
-    string? MainImageThumbnailUrl = null);
+    string? MainImageThumbnailUrl = null,
+    bool HasVariants = false);
