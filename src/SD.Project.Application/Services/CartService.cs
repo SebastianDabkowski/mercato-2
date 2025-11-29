@@ -16,20 +16,26 @@ public sealed class CartService
     private readonly IProductRepository _productRepository;
     private readonly IStoreRepository _storeRepository;
     private readonly IShippingRuleRepository _shippingRuleRepository;
+    private readonly IPromoCodeRepository _promoCodeRepository;
     private readonly CartTotalsCalculator _cartTotalsCalculator;
+    private readonly PromoCodeValidator _promoCodeValidator;
 
     public CartService(
         ICartRepository cartRepository,
         IProductRepository productRepository,
         IStoreRepository storeRepository,
         IShippingRuleRepository shippingRuleRepository,
-        CartTotalsCalculator cartTotalsCalculator)
+        IPromoCodeRepository promoCodeRepository,
+        CartTotalsCalculator cartTotalsCalculator,
+        PromoCodeValidator promoCodeValidator)
     {
         _cartRepository = cartRepository;
         _productRepository = productRepository;
         _storeRepository = storeRepository;
         _shippingRuleRepository = shippingRuleRepository;
+        _promoCodeRepository = promoCodeRepository;
         _cartTotalsCalculator = cartTotalsCalculator;
+        _promoCodeValidator = promoCodeValidator;
     }
 
     /// <summary>
@@ -114,6 +120,9 @@ public sealed class CartService
             product.Price.Currency,
             command.Quantity);
 
+        // Revalidate applied promo code after cart change
+        await RevalidateAppliedPromoAsync(cart, command.BuyerId, cancellationToken);
+
         // Save changes
         await _cartRepository.UpdateAsync(cart, cancellationToken);
         await _cartRepository.SaveChangesAsync(cancellationToken);
@@ -162,6 +171,9 @@ public sealed class CartService
         // Update quantity
         cart.UpdateItemQuantity(command.ProductId, command.Quantity);
 
+        // Revalidate applied promo code after cart change
+        await RevalidateAppliedPromoAsync(cart, command.BuyerId, cancellationToken);
+
         // Save changes
         await _cartRepository.UpdateAsync(cart, cancellationToken);
         await _cartRepository.SaveChangesAsync(cancellationToken);
@@ -191,6 +203,9 @@ public sealed class CartService
             return RemoveFromCartResultDto.Failed("Item not found in cart.");
         }
 
+        // Revalidate applied promo code after cart change
+        await RevalidateAppliedPromoAsync(cart, command.BuyerId, cancellationToken);
+
         // Save changes
         await _cartRepository.UpdateAsync(cart, cancellationToken);
         await _cartRepository.SaveChangesAsync(cancellationToken);
@@ -200,6 +215,7 @@ public sealed class CartService
 
     /// <summary>
     /// Clears all items from the cart.
+    /// Note: Cart.Clear() automatically removes any applied promo code.
     /// </summary>
     public async Task HandleAsync(ClearCartCommand command, CancellationToken cancellationToken = default)
     {
@@ -211,6 +227,7 @@ public sealed class CartService
             return;
         }
 
+        // Clear() automatically removes the promo code as well
         cart.Clear();
 
         await _cartRepository.UpdateAsync(cart, cancellationToken);
@@ -433,5 +450,81 @@ public sealed class CartService
             product.Stock,
             null, // Image URL - can be extended later
             item.AddedAt);
+    }
+
+    /// <summary>
+    /// Revalidates the applied promo code when cart contents change.
+    /// If the promo code is no longer valid, it is automatically removed.
+    /// </summary>
+    private async Task RevalidateAppliedPromoAsync(Cart cart, Guid? buyerId, CancellationToken cancellationToken)
+    {
+        if (!cart.HasPromoCodeApplied)
+        {
+            return;
+        }
+
+        // Get the promo code
+        var promoCode = await _promoCodeRepository.GetByIdAsync(cart.AppliedPromoCodeId!.Value, cancellationToken);
+        if (promoCode is null)
+        {
+            cart.ClearPromoCode();
+            return;
+        }
+
+        // Calculate current cart data
+        var productIds = cart.Items.Select(i => i.ProductId).ToList();
+        var products = await _productRepository.GetByIdsAsync(productIds, cancellationToken);
+        var productLookup = products.ToDictionary(p => p.Id);
+
+        var currency = products.FirstOrDefault()?.Price.Currency ?? "USD";
+        var storeSubtotals = new Dictionary<Guid, decimal>();
+        decimal totalSubtotal = 0m;
+
+        var itemsByStore = cart.GetItemsGroupedBySeller();
+        foreach (var (storeId, items) in itemsByStore)
+        {
+            decimal sellerSubtotal = 0m;
+            foreach (var item in items)
+            {
+                var product = productLookup.GetValueOrDefault(item.ProductId);
+                if (product is not null)
+                {
+                    sellerSubtotal += product.Price.Amount * item.Quantity;
+                }
+            }
+            storeSubtotals[storeId] = sellerSubtotal;
+            totalSubtotal += sellerSubtotal;
+        }
+
+        // Get user usage count if buyer is authenticated
+        var userUsageCount = 0;
+        if (buyerId.HasValue && buyerId.Value != Guid.Empty)
+        {
+            userUsageCount = await _promoCodeRepository.GetUserUsageCountAsync(
+                promoCode.Id, buyerId.Value, cancellationToken);
+        }
+
+        // Validate the promo code
+        var validationResult = _promoCodeValidator.Validate(
+            promoCode,
+            totalSubtotal,
+            currency,
+            storeSubtotals,
+            userUsageCount);
+
+        if (!validationResult.IsValid)
+        {
+            // Promo code is no longer valid, remove it
+            cart.ClearPromoCode();
+        }
+        else
+        {
+            // Update discount amount in case cart subtotal changed
+            cart.ApplyPromoCode(
+                validationResult.PromoCodeId!.Value,
+                validationResult.PromoCode!,
+                validationResult.DiscountAmount,
+                validationResult.DiscountDescription!);
+        }
     }
 }
