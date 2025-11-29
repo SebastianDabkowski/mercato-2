@@ -32,6 +32,7 @@ public static class DependencyInjection
         services.AddScoped<CartService>();
         services.AddScoped<DeliveryAddressService>();
         services.AddScoped<CheckoutService>();
+        services.AddScoped<PromoCodeService>();
         services.AddScoped<IAuthorizationService, AuthorizationService>();
 
         // Domain services for cart totals calculation
@@ -40,6 +41,9 @@ public static class DependencyInjection
 
         // Domain services for checkout validation
         services.AddSingleton<CheckoutValidationService>();
+
+        // Domain services for promo code validation
+        services.AddSingleton<PromoCodeValidator>();
 
         return services;
     }

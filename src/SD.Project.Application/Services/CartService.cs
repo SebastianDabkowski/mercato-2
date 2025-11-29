@@ -386,8 +386,22 @@ public sealed class CartService
             }
         }
 
-        // Calculate overall cart totals
-        var cartTotals = _cartTotalsCalculator.CalculateCartTotals(sellerTotals, currency);
+        // Calculate overall cart totals (including discount)
+        var cartTotals = _cartTotalsCalculator.CalculateCartTotals(
+            sellerTotals, 
+            currency, 
+            cart.PromoDiscountAmount);
+
+        // Map applied promo code if any
+        AppliedPromoCodeDto? appliedPromoCode = null;
+        if (cart.HasPromoCodeApplied)
+        {
+            appliedPromoCode = new AppliedPromoCodeDto(
+                cart.AppliedPromoCodeId!.Value,
+                cart.AppliedPromoCode!,
+                cart.PromoDiscountAmount,
+                cart.PromoDiscountDescription!);
+        }
 
         return new CartDto(
             cart.Id,
@@ -397,8 +411,10 @@ public sealed class CartService
             cart.UniqueItemCount,
             cartTotals.ItemSubtotal.Amount,
             cartTotals.TotalShipping.Amount,
+            cartTotals.Discount.Amount,
             cartTotals.TotalAmount.Amount,
             currency,
+            appliedPromoCode,
             cart.CreatedAt,
             cart.UpdatedAt);
     }

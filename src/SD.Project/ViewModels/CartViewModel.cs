@@ -8,8 +8,12 @@ public sealed record CartViewModel(
     IReadOnlyCollection<CartSellerGroupViewModel> SellerGroups,
     int TotalItemCount,
     int UniqueItemCount,
+    decimal ItemSubtotal,
+    decimal TotalShipping,
+    decimal DiscountAmount,
     decimal TotalAmount,
-    string Currency);
+    string Currency,
+    AppliedPromoCodeViewModel? AppliedPromoCode);
 
 /// <summary>
 /// View model for cart items grouped by seller.
@@ -36,3 +40,12 @@ public sealed record CartItemViewModel(
     decimal LineTotal,
     int AvailableStock,
     string? ProductImageUrl);
+
+/// <summary>
+/// View model for applied promo code display.
+/// </summary>
+public sealed record AppliedPromoCodeViewModel(
+    Guid PromoCodeId,
+    string PromoCode,
+    decimal DiscountAmount,
+    string DiscountDescription);

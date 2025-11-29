@@ -20,6 +20,26 @@ public class Cart
     /// </summary>
     public string? SessionId { get; private set; }
 
+    /// <summary>
+    /// The ID of the applied promo code, if any.
+    /// </summary>
+    public Guid? AppliedPromoCodeId { get; private set; }
+
+    /// <summary>
+    /// The code string of the applied promo, for display purposes.
+    /// </summary>
+    public string? AppliedPromoCode { get; private set; }
+
+    /// <summary>
+    /// The calculated discount amount from the applied promo code.
+    /// </summary>
+    public decimal PromoDiscountAmount { get; private set; }
+
+    /// <summary>
+    /// Description of the applied promo discount for display purposes.
+    /// </summary>
+    public string? PromoDiscountDescription { get; private set; }
+
     public IReadOnlyCollection<CartItem> Items => _items.AsReadOnly();
 
     public DateTime CreatedAt { get; private set; }
@@ -153,8 +173,57 @@ public class Cart
     public void Clear()
     {
         _items.Clear();
+        ClearPromoCode();
         UpdatedAt = DateTime.UtcNow;
     }
+
+    /// <summary>
+    /// Applies a promo code to the cart.
+    /// </summary>
+    /// <param name="promoCodeId">The promo code ID.</param>
+    /// <param name="promoCode">The promo code string.</param>
+    /// <param name="discountAmount">The calculated discount amount.</param>
+    /// <param name="discountDescription">Description of the discount.</param>
+    public void ApplyPromoCode(Guid promoCodeId, string promoCode, decimal discountAmount, string discountDescription)
+    {
+        if (promoCodeId == Guid.Empty)
+        {
+            throw new ArgumentException("Promo code ID is required.", nameof(promoCodeId));
+        }
+
+        if (string.IsNullOrWhiteSpace(promoCode))
+        {
+            throw new ArgumentException("Promo code is required.", nameof(promoCode));
+        }
+
+        if (discountAmount < 0)
+        {
+            throw new ArgumentException("Discount amount cannot be negative.", nameof(discountAmount));
+        }
+
+        AppliedPromoCodeId = promoCodeId;
+        AppliedPromoCode = promoCode;
+        PromoDiscountAmount = discountAmount;
+        PromoDiscountDescription = discountDescription;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Removes the applied promo code from the cart.
+    /// </summary>
+    public void ClearPromoCode()
+    {
+        AppliedPromoCodeId = null;
+        AppliedPromoCode = null;
+        PromoDiscountAmount = 0m;
+        PromoDiscountDescription = null;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Checks if a promo code is currently applied to the cart.
+    /// </summary>
+    public bool HasPromoCodeApplied => AppliedPromoCodeId.HasValue;
 
     /// <summary>
     /// Gets items grouped by seller/store.
