@@ -103,6 +103,8 @@ public sealed record InitiatePaymentResultDto(
     string? OrderNumber,
     string? PaymentRedirectUrl,
     bool RequiresRedirect,
+    bool RequiresBlikCode,
+    string? PendingTransactionId,
     bool HasValidationIssues,
     bool HasStockIssues,
     bool HasPriceChanges,
@@ -110,11 +112,15 @@ public sealed record InitiatePaymentResultDto(
 {
     public static InitiatePaymentResultDto Succeeded(Guid orderId, string orderNumber, string? redirectUrl = null)
         => new(true, null, orderId, orderNumber, redirectUrl, redirectUrl is not null,
-            false, false, false, null);
+            false, null, false, false, false, null);
+
+    public static InitiatePaymentResultDto RequiresBlik(Guid orderId, string orderNumber, string pendingTransactionId)
+        => new(true, null, orderId, orderNumber, null, false,
+            true, pendingTransactionId, false, false, false, null);
 
     public static InitiatePaymentResultDto Failed(string errorMessage)
         => new(false, errorMessage, null, null, null, false,
-            false, false, false, null);
+            false, null, false, false, false, null);
 
     public static InitiatePaymentResultDto ValidationFailed(
         string errorMessage,
@@ -122,7 +128,7 @@ public sealed record InitiatePaymentResultDto(
         bool hasPriceChanges,
         IReadOnlyList<CartItemValidationIssueDto> validationIssues)
         => new(false, errorMessage, null, null, null, false,
-            true, hasStockIssues, hasPriceChanges, validationIssues);
+            false, null, true, hasStockIssues, hasPriceChanges, validationIssues);
 }
 
 /// <summary>
@@ -196,3 +202,19 @@ public sealed record OrderSummaryDto(
     decimal TotalAmount,
     string Currency,
     DateTime CreatedAt);
+
+/// <summary>
+/// Result of submitting a BLIK code for payment.
+/// </summary>
+public sealed record SubmitBlikCodeResultDto(
+    bool IsSuccess,
+    string? ErrorMessage,
+    Guid? OrderId,
+    string? OrderNumber)
+{
+    public static SubmitBlikCodeResultDto Succeeded(Guid orderId, string orderNumber)
+        => new(true, null, orderId, orderNumber);
+
+    public static SubmitBlikCodeResultDto Failed(string errorMessage)
+        => new(false, errorMessage, null, null);
+}

@@ -14,12 +14,6 @@ namespace SD.Project.Application.Services;
 /// </summary>
 public sealed class CheckoutService
 {
-    /// <summary>
-    /// Prefix for simulated payment transaction IDs.
-    /// This identifies test/development transactions in logs.
-    /// </summary>
-    private const string SimulatedTransactionPrefix = "SIM-";
-
     private readonly ICartRepository _cartRepository;
     private readonly IProductRepository _productRepository;
     private readonly IStoreRepository _storeRepository;
@@ -29,6 +23,7 @@ public sealed class CheckoutService
     private readonly IOrderRepository _orderRepository;
     private readonly IUserRepository _userRepository;
     private readonly INotificationService _notificationService;
+    private readonly IPaymentProviderService _paymentProviderService;
     private readonly CheckoutValidationService _checkoutValidationService;
 
     public CheckoutService(
@@ -41,6 +36,7 @@ public sealed class CheckoutService
         IOrderRepository orderRepository,
         IUserRepository userRepository,
         INotificationService notificationService,
+        IPaymentProviderService paymentProviderService,
         CheckoutValidationService checkoutValidationService)
     {
         _cartRepository = cartRepository;
@@ -52,6 +48,7 @@ public sealed class CheckoutService
         _orderRepository = orderRepository;
         _userRepository = userRepository;
         _notificationService = notificationService;
+        _paymentProviderService = paymentProviderService;
         _checkoutValidationService = checkoutValidationService;
     }
 
@@ -330,6 +327,12 @@ public sealed class CheckoutService
             return InitiatePaymentResultDto.Failed("Payment method is not available.");
         }
 
+        // Check if payment method is enabled in current environment
+        if (!_paymentProviderService.IsPaymentMethodEnabled(paymentMethod.Type))
+        {
+            return InitiatePaymentResultDto.Failed($"Payment method '{paymentMethod.Name}' is not available in this environment.");
+        }
+
         // Get products and stores
         var productIds = cart.Items.Select(i => i.ProductId).ToList();
         var products = await _productRepository.GetByIdsAsync(productIds, cancellationToken);
@@ -459,6 +462,10 @@ public sealed class CheckoutService
         // Create shipments grouped by seller
         order.CreateShipments();
 
+        // Generate idempotency key for payment provider
+        var idempotencyKey = $"order-{order.Id:N}-{DateTime.UtcNow.Ticks}";
+        order.SetPaymentIdempotencyKey(idempotencyKey);
+
         // Save order and updated product stock
         // NOTE: When migrating to a relational database provider, wrap these operations
         // in a transaction (using TransactionScope or DbContext.Database.BeginTransactionAsync)
@@ -467,13 +474,55 @@ public sealed class CheckoutService
         await _productRepository.SaveChangesAsync(cancellationToken);
         await _orderRepository.SaveChangesAsync(cancellationToken);
 
-        // For this implementation, we simulate successful payment authorization
-        // In a real implementation, this would integrate with a payment provider (Stripe, PayPal, etc.)
-        // and potentially return a redirect URL for 3D Secure or PayPal authorization
+        // Initiate payment with the payment provider
+        var returnUrl = command.ReturnUrl ?? $"/Buyer/Checkout/Confirmation/{order.Id}";
+        var paymentResult = await _paymentProviderService.InitiatePaymentAsync(
+            order.Id,
+            order.TotalAmount,
+            order.Currency,
+            paymentMethod.Type,
+            idempotencyKey,
+            returnUrl,
+            cancellationToken);
 
-        // Simulate successful payment
-        order.ConfirmPayment($"{SimulatedTransactionPrefix}{Guid.NewGuid():N}");
+        if (!paymentResult.IsSuccess)
+        {
+            // Payment initiation failed - mark order as failed
+            order.FailPayment();
+            await _orderRepository.UpdateAsync(order, cancellationToken);
+            await _orderRepository.SaveChangesAsync(cancellationToken);
+            return InitiatePaymentResultDto.Failed(paymentResult.ErrorMessage ?? "Payment initiation failed.");
+        }
+
+        // Store the pending transaction ID
+        if (paymentResult.TransactionId is not null)
+        {
+            order.SetPendingTransactionId(paymentResult.TransactionId);
+            await _orderRepository.UpdateAsync(order, cancellationToken);
+            await _orderRepository.SaveChangesAsync(cancellationToken);
+        }
+
+        // Handle BLIK - requires code entry
+        if (paymentResult.RequiresBlikCode)
+        {
+            // Don't clear cart yet - user needs to enter BLIK code
+            return InitiatePaymentResultDto.RequiresBlik(
+                order.Id,
+                order.OrderNumber,
+                paymentResult.TransactionId!);
+        }
+
+        // Handle redirect-based payments (card, bank transfer)
+        if (paymentResult.RequiresRedirect && paymentResult.RedirectUrl is not null)
+        {
+            // Don't clear cart yet - payment not confirmed
+            return InitiatePaymentResultDto.Succeeded(order.Id, order.OrderNumber, paymentResult.RedirectUrl);
+        }
+
+        // For immediate success (e.g., digital wallet, cash on delivery)
+        order.ConfirmPayment(paymentResult.TransactionId);
         await _orderRepository.UpdateAsync(order, cancellationToken);
+        await _orderRepository.SaveChangesAsync(cancellationToken);
 
         // Clear the cart after successful order
         cart.Clear();
@@ -497,7 +546,89 @@ public sealed class CheckoutService
     }
 
     /// <summary>
+    /// Submits a BLIK code to complete payment.
+    /// </summary>
+    public async Task<SubmitBlikCodeResultDto> HandleAsync(
+        SubmitBlikCodeCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+
+        // Get the order
+        var order = await _orderRepository.GetByIdAsync(command.OrderId, cancellationToken);
+        if (order is null)
+        {
+            return SubmitBlikCodeResultDto.Failed("Order not found.");
+        }
+
+        // Verify the order belongs to the buyer
+        if (order.BuyerId != command.BuyerId)
+        {
+            return SubmitBlikCodeResultDto.Failed("Order not found.");
+        }
+
+        // Verify order is in pending status
+        if (order.Status != OrderStatus.Pending)
+        {
+            return SubmitBlikCodeResultDto.Failed("Order is not in pending payment status.");
+        }
+
+        // Verify we have a pending transaction ID
+        if (string.IsNullOrEmpty(order.PaymentTransactionId))
+        {
+            return SubmitBlikCodeResultDto.Failed("No pending payment found for this order.");
+        }
+
+        // Generate idempotency key for BLIK submission (without including sensitive BLIK code)
+        var idempotencyKey = $"blik-{order.Id:N}-{DateTime.UtcNow.Ticks}";
+
+        // Submit BLIK code to payment provider
+        var blikResult = await _paymentProviderService.SubmitBlikCodeAsync(
+            order.Id,
+            order.PaymentTransactionId,
+            command.BlikCode,
+            idempotencyKey,
+            cancellationToken);
+
+        if (!blikResult.IsSuccess)
+        {
+            // BLIK payment failed
+            return SubmitBlikCodeResultDto.Failed(blikResult.ErrorMessage ?? "BLIK payment failed.");
+        }
+
+        // Payment successful - confirm the order
+        order.ConfirmPayment(blikResult.TransactionId);
+        await _orderRepository.UpdateAsync(order, cancellationToken);
+        await _orderRepository.SaveChangesAsync(cancellationToken);
+
+        // Clear the buyer's cart
+        var cart = await _cartRepository.GetByBuyerIdAsync(command.BuyerId, cancellationToken);
+        if (cart is not null)
+        {
+            cart.Clear();
+            await _cartRepository.UpdateAsync(cart, cancellationToken);
+            await _cartRepository.SaveChangesAsync(cancellationToken);
+        }
+
+        // Send order confirmation notification
+        var buyer = await _userRepository.GetByIdAsync(command.BuyerId, cancellationToken);
+        if (buyer is not null)
+        {
+            await _notificationService.SendOrderConfirmationAsync(
+                order.Id,
+                buyer.Email.Value,
+                order.OrderNumber,
+                order.TotalAmount,
+                order.Currency,
+                cancellationToken);
+        }
+
+        return SubmitBlikCodeResultDto.Succeeded(order.Id, order.OrderNumber);
+    }
+
+    /// <summary>
     /// Confirms payment after return from payment provider.
+    /// Verifies the payment status with the provider and updates order accordingly.
     /// </summary>
     public async Task<ConfirmPaymentResultDto> HandleAsync(
         ConfirmPaymentCommand command,
@@ -511,6 +642,61 @@ public sealed class CheckoutService
             return ConfirmPaymentResultDto.Failed("Order not found.");
         }
 
+        // If transaction ID provided, verify with payment provider
+        if (!string.IsNullOrEmpty(command.TransactionId) && order.Status == OrderStatus.Pending)
+        {
+            var confirmationResult = await _paymentProviderService.ConfirmPaymentAsync(
+                order.Id,
+                command.TransactionId,
+                cancellationToken);
+
+            if (confirmationResult.Status == PaymentConfirmationStatus.Completed)
+            {
+                order.ConfirmPayment(confirmationResult.TransactionId);
+                await _orderRepository.UpdateAsync(order, cancellationToken);
+                await _orderRepository.SaveChangesAsync(cancellationToken);
+
+                // Clear the buyer's cart
+                var cart = await _cartRepository.GetByBuyerIdAsync(order.BuyerId, cancellationToken);
+                if (cart is not null)
+                {
+                    cart.Clear();
+                    await _cartRepository.UpdateAsync(cart, cancellationToken);
+                    await _cartRepository.SaveChangesAsync(cancellationToken);
+                }
+
+                // Send order confirmation notification
+                var buyer = await _userRepository.GetByIdAsync(order.BuyerId, cancellationToken);
+                if (buyer is not null)
+                {
+                    await _notificationService.SendOrderConfirmationAsync(
+                        order.Id,
+                        buyer.Email.Value,
+                        order.OrderNumber,
+                        order.TotalAmount,
+                        order.Currency,
+                        cancellationToken);
+                }
+
+                return ConfirmPaymentResultDto.Succeeded(order.Id, order.OrderNumber);
+            }
+            else if (confirmationResult.Status == PaymentConfirmationStatus.Failed ||
+                     confirmationResult.Status == PaymentConfirmationStatus.Cancelled ||
+                     confirmationResult.Status == PaymentConfirmationStatus.Expired)
+            {
+                order.FailPayment();
+                await _orderRepository.UpdateAsync(order, cancellationToken);
+                await _orderRepository.SaveChangesAsync(cancellationToken);
+                return ConfirmPaymentResultDto.Failed(confirmationResult.ErrorMessage ?? "Payment was not successful.");
+            }
+            else
+            {
+                // Payment still pending
+                return ConfirmPaymentResultDto.Failed("Payment is still being processed. Please wait.");
+            }
+        }
+
+        // Fallback to simple boolean confirmation (for backwards compatibility)
         if (command.IsSuccessful)
         {
             if (order.Status == OrderStatus.Pending)

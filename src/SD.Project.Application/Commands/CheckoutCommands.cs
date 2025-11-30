@@ -17,7 +17,8 @@ public sealed record InitiatePaymentCommand(
     Guid BuyerId,
     Guid DeliveryAddressId,
     Guid PaymentMethodId,
-    IReadOnlyDictionary<Guid, Guid> ShippingMethodsByStore);
+    IReadOnlyDictionary<Guid, Guid> ShippingMethodsByStore,
+    string? ReturnUrl = null);
 
 /// <summary>
 /// Command to confirm payment after return from payment provider.
@@ -26,6 +27,14 @@ public sealed record ConfirmPaymentCommand(
     Guid OrderId,
     string? TransactionId,
     bool IsSuccessful);
+
+/// <summary>
+/// Command to submit a BLIK code for payment.
+/// </summary>
+public sealed record SubmitBlikCodeCommand(
+    Guid OrderId,
+    Guid BuyerId,
+    string BlikCode);
 
 /// <summary>
 /// Command to cancel/retry a failed payment.

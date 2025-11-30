@@ -89,6 +89,12 @@ public class Order
     public string? PaymentTransactionId { get; private set; }
 
     /// <summary>
+    /// Idempotency key for payment provider retries.
+    /// Ensures the same payment is not processed multiple times.
+    /// </summary>
+    public string? PaymentIdempotencyKey { get; private set; }
+
+    /// <summary>
     /// Items subtotal before shipping.
     /// </summary>
     public decimal ItemSubtotal { get; private set; }
@@ -254,6 +260,36 @@ public class Order
             _shipments.Add(shipment);
         }
 
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Sets the idempotency key for payment processing.
+    /// Used to ensure duplicate payment requests are handled correctly.
+    /// </summary>
+    public void SetPaymentIdempotencyKey(string idempotencyKey)
+    {
+        if (string.IsNullOrWhiteSpace(idempotencyKey))
+        {
+            throw new ArgumentException("Idempotency key is required.", nameof(idempotencyKey));
+        }
+
+        PaymentIdempotencyKey = idempotencyKey;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Sets the pending payment transaction ID.
+    /// Used when payment is initiated but not yet confirmed (e.g., awaiting BLIK code).
+    /// </summary>
+    public void SetPendingTransactionId(string transactionId)
+    {
+        if (string.IsNullOrWhiteSpace(transactionId))
+        {
+            throw new ArgumentException("Transaction ID is required.", nameof(transactionId));
+        }
+
+        PaymentTransactionId = transactionId;
         UpdatedAt = DateTime.UtcNow;
     }
 
