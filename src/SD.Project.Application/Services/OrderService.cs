@@ -31,6 +31,14 @@ public sealed class OrderService
         EscrowService escrowService,
         IShipmentStatusHistoryRepository statusHistoryRepository)
     {
+        ArgumentNullException.ThrowIfNull(orderRepository);
+        ArgumentNullException.ThrowIfNull(storeRepository);
+        ArgumentNullException.ThrowIfNull(userRepository);
+        ArgumentNullException.ThrowIfNull(shippingMethodRepository);
+        ArgumentNullException.ThrowIfNull(notificationService);
+        ArgumentNullException.ThrowIfNull(escrowService);
+        ArgumentNullException.ThrowIfNull(statusHistoryRepository);
+
         _orderRepository = orderRepository;
         _storeRepository = storeRepository;
         _userRepository = userRepository;
@@ -823,24 +831,18 @@ public sealed class OrderService
         var historyLookup = orderStatusHistory.GroupBy(h => h.ShipmentId)
             .ToDictionary(g => g.Key, g => g.ToList());
 
-        // Get user names for status history entries
+        // Get user names for status history entries using bulk loading
         var changedByUserIds = orderStatusHistory
             .Where(h => h.ChangedByUserId.HasValue)
             .Select(h => h.ChangedByUserId!.Value)
             .Distinct()
             .ToList();
-        var userLookup = new Dictionary<Guid, string>();
-        foreach (var userId in changedByUserIds)
-        {
-            var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
-            if (user is not null)
-            {
-                var userName = user.FirstName is not null && user.LastName is not null
-                    ? $"{user.FirstName} {user.LastName}"
-                    : user.Email?.Value ?? userId.ToString();
-                userLookup[userId] = userName;
-            }
-        }
+        var users = await _userRepository.GetByIdsAsync(changedByUserIds, cancellationToken);
+        var userLookup = users.ToDictionary(
+            u => u.Id,
+            u => u.FirstName is not null && u.LastName is not null
+                ? $"{u.FirstName} {u.LastName}"
+                : u.Email?.Value ?? u.Id.ToString());
 
         var addressSummary = $"{order.DeliveryStreet}, {order.DeliveryCity}, {order.DeliveryPostalCode}, {order.DeliveryCountry}";
 
@@ -938,24 +940,18 @@ public sealed class OrderService
 
         var history = await _statusHistoryRepository.GetByShipmentIdAsync(query.ShipmentId, cancellationToken);
 
-        // Get user names for status history entries
+        // Get user names for status history entries using bulk loading
         var changedByUserIds = history
             .Where(h => h.ChangedByUserId.HasValue)
             .Select(h => h.ChangedByUserId!.Value)
             .Distinct()
             .ToList();
-        var userLookup = new Dictionary<Guid, string>();
-        foreach (var userId in changedByUserIds)
-        {
-            var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
-            if (user is not null)
-            {
-                var userName = user.FirstName is not null && user.LastName is not null
-                    ? $"{user.FirstName} {user.LastName}"
-                    : user.Email?.Value ?? userId.ToString();
-                userLookup[userId] = userName;
-            }
-        }
+        var users = await _userRepository.GetByIdsAsync(changedByUserIds, cancellationToken);
+        var userLookup = users.ToDictionary(
+            u => u.Id,
+            u => u.FirstName is not null && u.LastName is not null
+                ? $"{u.FirstName} {u.LastName}"
+                : u.Email?.Value ?? u.Id.ToString());
 
         return history.Select(h => new ShipmentStatusHistoryDto(
             h.Id,
