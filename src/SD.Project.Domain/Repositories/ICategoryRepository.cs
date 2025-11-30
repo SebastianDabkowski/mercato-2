@@ -9,6 +9,15 @@ public interface ICategoryRepository
 {
     Task<Category?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<Category?> GetByNameAsync(string name, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Gets categories by their names (case-insensitive).
+    /// </summary>
+    /// <param name="names">Collection of category names to lookup.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Collection of categories matching the names.</returns>
+    Task<IReadOnlyCollection<Category>> GetByNamesAsync(IEnumerable<string> names, CancellationToken cancellationToken = default);
+    
     Task<IReadOnlyCollection<Category>> GetAllAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyCollection<Category>> GetActiveAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyCollection<Category>> GetChildrenAsync(Guid parentId, CancellationToken cancellationToken = default);

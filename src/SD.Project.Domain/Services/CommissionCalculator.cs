@@ -33,6 +33,30 @@ public sealed record SellerCommission(
     decimal CommissionRate);
 
 /// <summary>
+/// Represents the result of commission calculation for a partial refund.
+/// </summary>
+public sealed record RefundCommission(
+    /// <summary>
+    /// The original commission amount before refund.
+    /// </summary>
+    Money OriginalCommissionAmount,
+
+    /// <summary>
+    /// The commission amount to be refunded (proportional to refund).
+    /// </summary>
+    Money RefundedCommissionAmount,
+
+    /// <summary>
+    /// The remaining commission amount after refund.
+    /// </summary>
+    Money RemainingCommissionAmount,
+
+    /// <summary>
+    /// The original commission rate that was applied.
+    /// </summary>
+    decimal CommissionRate);
+
+/// <summary>
 /// Domain service for calculating platform commissions from seller sales.
 /// Commission calculations are internal and not visible to buyers.
 /// This service ensures consistency with the central payments/settlements model.
@@ -67,7 +91,7 @@ public sealed class CommissionCalculator
             throw new ArgumentException("Commission rate must be between 0 and 100.", nameof(commissionRate));
         }
 
-        var commissionAmount = Math.Round(orderSubtotal * (rate / 100m), 2, MidpointRounding.ToEven);
+        var commissionAmount = CalculateCommissionAmount(orderSubtotal, rate);
         var sellerPayout = orderSubtotal - commissionAmount;
 
         return new SellerCommission(
@@ -93,5 +117,65 @@ public sealed class CommissionCalculator
         return sellerSubtotals.ToDictionary(
             kvp => kvp.Key,
             kvp => CalculateCommission(kvp.Key, kvp.Value, currency, commissionRate));
+    }
+
+    /// <summary>
+    /// Calculates the commission impact of a partial refund.
+    /// Uses the original commission rate to maintain consistency with historical orders.
+    /// </summary>
+    /// <param name="originalAmount">The original order subtotal.</param>
+    /// <param name="refundAmount">The amount being refunded.</param>
+    /// <param name="originalCommissionRate">The commission rate that was applied at payment confirmation.</param>
+    /// <param name="currency">The currency code.</param>
+    /// <returns>The refund commission breakdown.</returns>
+    public RefundCommission CalculateRefundCommission(
+        decimal originalAmount,
+        decimal refundAmount,
+        decimal originalCommissionRate,
+        string currency)
+    {
+        if (originalAmount <= 0)
+        {
+            throw new ArgumentException("Original amount must be greater than zero.", nameof(originalAmount));
+        }
+
+        if (refundAmount <= 0)
+        {
+            throw new ArgumentException("Refund amount must be greater than zero.", nameof(refundAmount));
+        }
+
+        if (refundAmount > originalAmount)
+        {
+            throw new ArgumentException("Refund amount cannot exceed original amount.", nameof(refundAmount));
+        }
+
+        if (originalCommissionRate < 0 || originalCommissionRate > 100)
+        {
+            throw new ArgumentException("Commission rate must be between 0 and 100.", nameof(originalCommissionRate));
+        }
+
+        var originalCommission = CalculateCommissionAmount(originalAmount, originalCommissionRate);
+        var remainingAmount = originalAmount - refundAmount;
+        var remainingCommission = CalculateCommissionAmount(remainingAmount, originalCommissionRate);
+        var refundedCommission = originalCommission - remainingCommission;
+
+        return new RefundCommission(
+            new Money(originalCommission, currency),
+            new Money(refundedCommission, currency),
+            new Money(remainingCommission, currency),
+            originalCommissionRate);
+    }
+
+    /// <summary>
+    /// Calculates the commission amount with high precision.
+    /// Uses banker's rounding (MidpointRounding.ToEven) for fairness.
+    /// </summary>
+    /// <param name="amount">The amount to calculate commission on.</param>
+    /// <param name="rate">The commission rate as a percentage.</param>
+    /// <returns>The commission amount rounded to 2 decimal places.</returns>
+    private static decimal CalculateCommissionAmount(decimal amount, decimal rate)
+    {
+        // Use high precision for intermediate calculation, round only at the end
+        return Math.Round(amount * (rate / 100m), 2, MidpointRounding.ToEven);
     }
 }

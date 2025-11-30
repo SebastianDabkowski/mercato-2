@@ -93,6 +93,24 @@ public class EscrowAllocation
     /// </summary>
     public string? RefundReference { get; private set; }
 
+    /// <summary>
+    /// Total amount that has been refunded from this allocation.
+    /// Includes both seller amount and shipping amount refunds.
+    /// </summary>
+    public decimal RefundedAmount { get; private set; }
+
+    /// <summary>
+    /// Seller amount (excluding shipping) that has been refunded.
+    /// Used to correctly calculate proportional commission refunds.
+    /// </summary>
+    public decimal RefundedSellerAmount { get; private set; }
+
+    /// <summary>
+    /// Commission amount that was refunded (proportional to refund).
+    /// Calculated using the original commission rate on the refunded seller amount.
+    /// </summary>
+    public decimal RefundedCommissionAmount { get; private set; }
+
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
     public DateTime? ReleasedAt { get; private set; }
@@ -170,6 +188,9 @@ public class EscrowAllocation
         SellerPayout = sellerAmount - commissionAmount + shippingAmount;
         Status = EscrowAllocationStatus.Held;
         IsEligibleForPayout = false;
+        RefundedAmount = 0m;
+        RefundedSellerAmount = 0m;
+        RefundedCommissionAmount = 0m;
         CreatedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
     }
@@ -207,7 +228,7 @@ public class EscrowAllocation
     }
 
     /// <summary>
-    /// Refunds the funds to the buyer.
+    /// Refunds the funds to the buyer (full refund).
     /// </summary>
     public void Refund(string? refundReference = null)
     {
@@ -216,10 +237,99 @@ public class EscrowAllocation
             throw new InvalidOperationException($"Cannot refund allocation in status {Status}.");
         }
 
+        // Full refund - refund entire amount and commission
+        RefundedAmount = TotalAmount;
+        RefundedSellerAmount = SellerAmount;
+        RefundedCommissionAmount = CommissionAmount;
         Status = EscrowAllocationStatus.Refunded;
         RefundReference = refundReference;
         RefundedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Applies a partial refund with proportional commission recalculation.
+    /// Uses the original commission rate to maintain consistency with historical orders.
+    /// </summary>
+    /// <param name="refundAmount">The total amount to refund (may include seller amount and/or shipping).</param>
+    /// <param name="refundReference">Optional reference ID from refund processing.</param>
+    public void ApplyPartialRefund(decimal refundAmount, string? refundReference = null)
+    {
+        if (Status != EscrowAllocationStatus.Held)
+        {
+            throw new InvalidOperationException($"Cannot apply partial refund to allocation in status {Status}.");
+        }
+
+        if (refundAmount <= 0)
+        {
+            throw new ArgumentException("Refund amount must be greater than zero.", nameof(refundAmount));
+        }
+
+        // Use small tolerance for decimal comparison to handle precision issues
+        const decimal tolerance = 0.01m;
+        var totalRemainingAmount = TotalAmount - RefundedAmount - refundAmount;
+        if (totalRemainingAmount < -tolerance)
+        {
+            throw new ArgumentException("Refund amount would exceed remaining allocation.", nameof(refundAmount));
+        }
+
+        // Calculate how much of the refund applies to seller amount vs shipping
+        // Refunds are applied to seller amount first, then shipping
+        var remainingSellerAmount = SellerAmount - RefundedSellerAmount;
+        var refundFromSellerAmount = Math.Min(refundAmount, remainingSellerAmount);
+        
+        // Calculate the proportional commission refund using original rate
+        // Commission is only on seller amount, not shipping
+        var proportionalCommissionRefund = Math.Round(
+            refundFromSellerAmount * (CommissionRate / 100m),
+            2,
+            MidpointRounding.ToEven);
+
+        RefundedAmount += refundAmount;
+        RefundedSellerAmount += refundFromSellerAmount;
+        RefundedCommissionAmount += proportionalCommissionRefund;
+        RefundReference = refundReference;
+        UpdatedAt = DateTime.UtcNow;
+
+        // If fully refunded (within tolerance), update status
+        if (Math.Abs(RefundedAmount - TotalAmount) <= tolerance || RefundedAmount >= TotalAmount)
+        {
+            Status = EscrowAllocationStatus.Refunded;
+            RefundedAt = DateTime.UtcNow;
+        }
+    }
+
+    /// <summary>
+    /// Gets the remaining amount after partial refunds.
+    /// </summary>
+    public decimal GetRemainingAmount()
+    {
+        return TotalAmount - RefundedAmount;
+    }
+
+    /// <summary>
+    /// Gets the remaining commission after partial refunds.
+    /// </summary>
+    public decimal GetRemainingCommission()
+    {
+        return CommissionAmount - RefundedCommissionAmount;
+    }
+
+    /// <summary>
+    /// Gets the remaining seller payout after partial refunds.
+    /// SellerPayout = SellerAmount - CommissionAmount + ShippingAmount
+    /// After refunds: remaining seller portion + remaining shipping - remaining commission
+    /// </summary>
+    public decimal GetRemainingSellerPayout()
+    {
+        var remainingSellerAmount = SellerAmount - RefundedSellerAmount;
+        var remainingShipping = ShippingAmount - (RefundedAmount - RefundedSellerAmount);
+        var remainingCommission = CommissionAmount - RefundedCommissionAmount;
+        
+        // Ensure shipping doesn't go negative (all shipping refunded)
+        remainingShipping = Math.Max(0, remainingShipping);
+        
+        return remainingSellerAmount - remainingCommission + remainingShipping;
     }
 
     /// <summary>
@@ -236,5 +346,20 @@ public class EscrowAllocation
     public bool CanBeRefunded()
     {
         return Status == EscrowAllocationStatus.Held;
+    }
+
+    /// <summary>
+    /// Checks if a partial refund can be applied.
+    /// Uses small tolerance for decimal precision issues.
+    /// </summary>
+    public bool CanApplyPartialRefund(decimal refundAmount)
+    {
+        if (Status != EscrowAllocationStatus.Held)
+        {
+            return false;
+        }
+
+        const decimal tolerance = 0.01m;
+        return refundAmount > 0 && (RefundedAmount + refundAmount) <= (TotalAmount + tolerance);
     }
 }

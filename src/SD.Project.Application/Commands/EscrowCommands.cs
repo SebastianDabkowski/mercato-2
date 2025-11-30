@@ -18,6 +18,15 @@ public sealed record RefundShipmentEscrowCommand(
     string? RefundReference = null);
 
 /// <summary>
+/// Command to apply a partial refund to an escrow allocation.
+/// Commission is recalculated proportionally using the original commission rate.
+/// </summary>
+public sealed record PartialRefundEscrowCommand(
+    Guid ShipmentId,
+    decimal RefundAmount,
+    string? RefundReference = null);
+
+/// <summary>
 /// Command to refund full escrow back to buyer.
 /// Called when an order is cancelled.
 /// </summary>

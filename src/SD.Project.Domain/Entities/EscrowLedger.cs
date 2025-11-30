@@ -267,4 +267,30 @@ public class EscrowLedger
             "Funds refunded to buyer",
             initiatedBy ?? "System");
     }
+
+    /// <summary>
+    /// Creates a ledger entry for partial refund.
+    /// </summary>
+    public static EscrowLedger CreatePartialRefundEntry(
+        EscrowPayment escrow,
+        EscrowAllocation allocation,
+        decimal refundAmount,
+        decimal refundedCommissionAmount,
+        string? refundReference,
+        string? initiatedBy = null)
+    {
+        return new EscrowLedger(
+            escrow.Id,
+            allocation.Id,
+            escrow.OrderId,
+            allocation.StoreId,
+            escrow.BuyerId,
+            EscrowLedgerAction.PartialRefund,
+            refundAmount,
+            escrow.Currency,
+            escrow.TotalAmount - escrow.ReleasedAmount - escrow.RefundedAmount,
+            refundReference,
+            $"Partial refund to buyer. Commission refunded: {refundedCommissionAmount:F2} (using original rate {allocation.CommissionRate}%)",
+            initiatedBy ?? "System");
+    }
 }
