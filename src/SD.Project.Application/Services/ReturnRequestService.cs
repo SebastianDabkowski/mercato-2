@@ -371,7 +371,16 @@ public sealed class ReturnRequestService
                 i.UnitPrice,
                 i.Quantity,
                 i.LineTotal,
-                i.ShippingMethodName))
+                i.ShippingMethodName,
+                i.Status.ToString(),
+                i.CarrierName,
+                i.TrackingNumber,
+                i.TrackingUrl,
+                i.ShippedAt,
+                i.DeliveredAt,
+                i.CancelledAt,
+                i.RefundedAt,
+                i.RefundedAmount))
             .ToList();
 
         return new SellerReturnRequestDto(

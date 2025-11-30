@@ -91,7 +91,16 @@ public sealed class OrderService
                     i.LineTotal,
                     i.ShippingMethodName,
                     i.ShippingCost,
-                    estimatedDelivery);
+                    estimatedDelivery,
+                    i.Status.ToString(),
+                    i.CarrierName,
+                    i.TrackingNumber,
+                    i.TrackingUrl,
+                    i.ShippedAt,
+                    i.DeliveredAt,
+                    i.CancelledAt,
+                    i.RefundedAt,
+                    i.RefundedAmount);
             }).ToList();
 
             // Calculate estimated delivery for this sub-order
@@ -296,7 +305,16 @@ public sealed class OrderService
             i.UnitPrice,
             i.Quantity,
             i.LineTotal,
-            i.ShippingMethodName)).ToList();
+            i.ShippingMethodName,
+            i.Status.ToString(),
+            i.CarrierName,
+            i.TrackingNumber,
+            i.TrackingUrl,
+            i.ShippedAt,
+            i.DeliveredAt,
+            i.CancelledAt,
+            i.RefundedAt,
+            i.RefundedAmount)).ToList();
 
         // Determine abstract payment status (not exposing sensitive financial data)
         var paymentStatus = order.Status switch

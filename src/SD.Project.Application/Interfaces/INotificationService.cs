@@ -164,4 +164,67 @@ public interface INotificationService
         string orderNumber,
         string buyerEmail,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a notification when an individual item's status changes (Phase 2: partial fulfilment).
+    /// </summary>
+    /// <param name="itemId">The ID of the order item.</param>
+    /// <param name="orderId">The ID of the parent order.</param>
+    /// <param name="buyerEmail">The buyer's email address.</param>
+    /// <param name="orderNumber">The order number for display.</param>
+    /// <param name="productName">The name of the product.</param>
+    /// <param name="previousStatus">The previous status.</param>
+    /// <param name="newStatus">The new status.</param>
+    /// <param name="trackingNumber">Optional tracking number if shipped.</param>
+    /// <param name="carrierName">Optional carrier name if shipped.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendItemStatusChangedAsync(
+        Guid itemId,
+        Guid orderId,
+        string buyerEmail,
+        string orderNumber,
+        string productName,
+        string previousStatus,
+        string newStatus,
+        string? trackingNumber,
+        string? carrierName,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a notification when multiple items' status changes at once (Phase 2: partial fulfilment).
+    /// </summary>
+    /// <param name="orderId">The ID of the parent order.</param>
+    /// <param name="buyerEmail">The buyer's email address.</param>
+    /// <param name="orderNumber">The order number for display.</param>
+    /// <param name="itemCount">The number of items affected.</param>
+    /// <param name="itemNames">Comma-separated list of product names.</param>
+    /// <param name="newStatus">The new status for all items.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendBatchItemStatusChangedAsync(
+        Guid orderId,
+        string buyerEmail,
+        string orderNumber,
+        int itemCount,
+        string itemNames,
+        string newStatus,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a notification when items are refunded (Phase 2: partial fulfilment).
+    /// </summary>
+    /// <param name="orderId">The ID of the parent order.</param>
+    /// <param name="buyerEmail">The buyer's email address.</param>
+    /// <param name="orderNumber">The order number for display.</param>
+    /// <param name="itemCount">The number of items refunded.</param>
+    /// <param name="refundAmount">The total refund amount.</param>
+    /// <param name="currency">The currency code.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendItemsRefundedAsync(
+        Guid orderId,
+        string buyerEmail,
+        string orderNumber,
+        int itemCount,
+        decimal refundAmount,
+        string currency,
+        CancellationToken cancellationToken = default);
 }

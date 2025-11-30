@@ -33,6 +33,7 @@ public sealed record SellerSubOrderDto(
 
 /// <summary>
 /// DTO representing an item in a seller sub-order.
+/// Includes item-level fulfilment status for Phase 2 partial fulfilment.
 /// </summary>
 public sealed record SellerSubOrderItemDto(
     Guid ItemId,
@@ -41,7 +42,16 @@ public sealed record SellerSubOrderItemDto(
     decimal UnitPrice,
     int Quantity,
     decimal LineTotal,
-    string? ShippingMethodName);
+    string? ShippingMethodName,
+    string Status,
+    string? CarrierName,
+    string? TrackingNumber,
+    string? TrackingUrl,
+    DateTime? ShippedAt,
+    DateTime? DeliveredAt,
+    DateTime? CancelledAt,
+    DateTime? RefundedAt,
+    decimal? RefundedAmount);
 
 /// <summary>
 /// DTO for seller's sub-order list summary view.
