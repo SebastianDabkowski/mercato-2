@@ -237,6 +237,21 @@ public class EscrowPayment
     }
 
     /// <summary>
+    /// Adds a partial refund amount to the escrow.
+    /// Used when a partial refund is applied to an allocation.
+    /// </summary>
+    public void AddPartialRefund(decimal refundAmount)
+    {
+        if (refundAmount <= 0)
+        {
+            throw new ArgumentException("Refund amount must be greater than zero.", nameof(refundAmount));
+        }
+
+        RefundedAmount += refundAmount;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
     /// Loads allocations from persistence.
     /// </summary>
     public void LoadAllocations(IEnumerable<EscrowAllocation> allocations)

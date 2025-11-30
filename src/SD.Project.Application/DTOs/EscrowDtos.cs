@@ -31,6 +31,8 @@ public sealed record EscrowAllocationDto(
     decimal CommissionAmount,
     decimal CommissionRate,
     decimal SellerPayout,
+    decimal RefundedAmount,
+    decimal RefundedCommissionAmount,
     string Status,
     bool IsEligibleForPayout,
     DateTime CreatedAt,
@@ -109,4 +111,28 @@ public sealed record RefundEscrowResultDto(
 
     public static RefundEscrowResultDto Failed(string errorMessage) =>
         new(false, errorMessage, null, null);
+}
+
+/// <summary>
+/// Result DTO for partial escrow refund operations with commission details.
+/// </summary>
+public sealed record PartialRefundEscrowResultDto(
+    bool IsSuccess,
+    string? ErrorMessage,
+    decimal? RefundedAmount,
+    decimal? RefundedCommissionAmount,
+    decimal? RemainingAmount,
+    decimal? RemainingCommission,
+    string? RefundReference)
+{
+    public static PartialRefundEscrowResultDto Succeeded(
+        decimal refundedAmount,
+        decimal refundedCommissionAmount,
+        decimal remainingAmount,
+        decimal remainingCommission,
+        string? refundReference) =>
+        new(true, null, refundedAmount, refundedCommissionAmount, remainingAmount, remainingCommission, refundReference);
+
+    public static PartialRefundEscrowResultDto Failed(string errorMessage) =>
+        new(false, errorMessage, null, null, null, null, null);
 }

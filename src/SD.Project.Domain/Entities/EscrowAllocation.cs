@@ -93,6 +93,18 @@ public class EscrowAllocation
     /// </summary>
     public string? RefundReference { get; private set; }
 
+    /// <summary>
+    /// Amount that has been refunded from this allocation.
+    /// Used for tracking partial refunds.
+    /// </summary>
+    public decimal RefundedAmount { get; private set; }
+
+    /// <summary>
+    /// Commission amount that was refunded (proportional to refund).
+    /// Used for tracking partial refund commission adjustments.
+    /// </summary>
+    public decimal RefundedCommissionAmount { get; private set; }
+
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
     public DateTime? ReleasedAt { get; private set; }
@@ -170,6 +182,8 @@ public class EscrowAllocation
         SellerPayout = sellerAmount - commissionAmount + shippingAmount;
         Status = EscrowAllocationStatus.Held;
         IsEligibleForPayout = false;
+        RefundedAmount = 0m;
+        RefundedCommissionAmount = 0m;
         CreatedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
     }
@@ -207,7 +221,7 @@ public class EscrowAllocation
     }
 
     /// <summary>
-    /// Refunds the funds to the buyer.
+    /// Refunds the funds to the buyer (full refund).
     /// </summary>
     public void Refund(string? refundReference = null)
     {
@@ -216,10 +230,85 @@ public class EscrowAllocation
             throw new InvalidOperationException($"Cannot refund allocation in status {Status}.");
         }
 
+        // Full refund - refund entire amount and commission
+        RefundedAmount = TotalAmount;
+        RefundedCommissionAmount = CommissionAmount;
         Status = EscrowAllocationStatus.Refunded;
         RefundReference = refundReference;
         RefundedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Applies a partial refund with proportional commission recalculation.
+    /// Uses the original commission rate to maintain consistency with historical orders.
+    /// </summary>
+    /// <param name="refundAmount">The amount to refund.</param>
+    /// <param name="refundReference">Optional reference ID from refund processing.</param>
+    public void ApplyPartialRefund(decimal refundAmount, string? refundReference = null)
+    {
+        if (Status != EscrowAllocationStatus.Held)
+        {
+            throw new InvalidOperationException($"Cannot apply partial refund to allocation in status {Status}.");
+        }
+
+        if (refundAmount <= 0)
+        {
+            throw new ArgumentException("Refund amount must be greater than zero.", nameof(refundAmount));
+        }
+
+        // Calculate the remaining amount after this refund
+        var totalRemainingAmount = TotalAmount - RefundedAmount - refundAmount;
+        if (totalRemainingAmount < 0)
+        {
+            throw new ArgumentException("Refund amount would exceed remaining allocation.", nameof(refundAmount));
+        }
+
+        // Calculate the proportional commission refund using original rate
+        // Commission is calculated on seller amount (not shipping)
+        // Calculate how much of the refund applies to seller amount vs shipping
+        var remainingSellerAmount = SellerAmount - RefundedAmount;
+        var refundFromSellerAmount = Math.Min(refundAmount, remainingSellerAmount);
+        var proportionalCommissionRefund = Math.Round(
+            refundFromSellerAmount * (CommissionRate / 100m),
+            2,
+            MidpointRounding.ToEven);
+
+        RefundedAmount += refundAmount;
+        RefundedCommissionAmount += proportionalCommissionRefund;
+        RefundReference = refundReference;
+        UpdatedAt = DateTime.UtcNow;
+
+        // If fully refunded, update status
+        if (RefundedAmount >= TotalAmount)
+        {
+            Status = EscrowAllocationStatus.Refunded;
+            RefundedAt = DateTime.UtcNow;
+        }
+    }
+
+    /// <summary>
+    /// Gets the remaining amount after partial refunds.
+    /// </summary>
+    public decimal GetRemainingAmount()
+    {
+        return TotalAmount - RefundedAmount;
+    }
+
+    /// <summary>
+    /// Gets the remaining commission after partial refunds.
+    /// </summary>
+    public decimal GetRemainingCommission()
+    {
+        return CommissionAmount - RefundedCommissionAmount;
+    }
+
+    /// <summary>
+    /// Gets the remaining seller payout after partial refunds.
+    /// </summary>
+    public decimal GetRemainingSellerPayout()
+    {
+        return SellerPayout - (RefundedAmount - RefundedCommissionAmount);
     }
 
     /// <summary>
@@ -236,5 +325,18 @@ public class EscrowAllocation
     public bool CanBeRefunded()
     {
         return Status == EscrowAllocationStatus.Held;
+    }
+
+    /// <summary>
+    /// Checks if a partial refund can be applied.
+    /// </summary>
+    public bool CanApplyPartialRefund(decimal refundAmount)
+    {
+        if (Status != EscrowAllocationStatus.Held)
+        {
+            return false;
+        }
+
+        return refundAmount > 0 && RefundedAmount + refundAmount <= TotalAmount;
     }
 }

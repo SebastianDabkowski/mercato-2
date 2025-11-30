@@ -16,17 +16,26 @@ public sealed class EscrowService
 {
     private readonly IEscrowRepository _escrowRepository;
     private readonly IOrderRepository _orderRepository;
+    private readonly ICommissionRuleRepository _commissionRuleRepository;
+    private readonly IProductRepository _productRepository;
+    private readonly ICategoryRepository _categoryRepository;
     private readonly INotificationService _notificationService;
     private readonly CommissionCalculator _commissionCalculator;
 
     public EscrowService(
         IEscrowRepository escrowRepository,
         IOrderRepository orderRepository,
+        ICommissionRuleRepository commissionRuleRepository,
+        IProductRepository productRepository,
+        ICategoryRepository categoryRepository,
         INotificationService notificationService,
         CommissionCalculator commissionCalculator)
     {
         _escrowRepository = escrowRepository;
         _orderRepository = orderRepository;
+        _commissionRuleRepository = commissionRuleRepository;
+        _productRepository = productRepository;
+        _categoryRepository = categoryRepository;
         _notificationService = notificationService;
         _commissionCalculator = commissionCalculator;
     }
@@ -34,6 +43,7 @@ public sealed class EscrowService
     /// <summary>
     /// Creates an escrow payment for an order after successful payment confirmation.
     /// Splits the payment into per-seller allocations with commission deduction.
+    /// Commission rates are determined by rules: seller-specific > category-specific > global > default.
     /// </summary>
     public async Task<CreateEscrowResultDto> CreateEscrowForOrderAsync(
         Order order,
@@ -48,6 +58,28 @@ public sealed class EscrowService
             return CreateEscrowResultDto.Succeeded(existingEscrow.Id);
         }
 
+        // Get product information to determine categories for commission rules
+        var productIds = order.Items.Select(i => i.ProductId).Distinct().ToList();
+        var products = await _productRepository.GetByIdsAsync(productIds, cancellationToken);
+        var productLookup = products.ToDictionary(p => p.Id);
+
+        // Get category IDs for looking up commission rules
+        var categoryNames = products
+            .Where(p => !string.IsNullOrWhiteSpace(p.Category))
+            .Select(p => p.Category)
+            .Distinct()
+            .ToList();
+        
+        var categories = new Dictionary<string, Guid>();
+        foreach (var categoryName in categoryNames)
+        {
+            var category = await _categoryRepository.GetByNameAsync(categoryName, cancellationToken);
+            if (category is not null)
+            {
+                categories[categoryName] = category.Id;
+            }
+        }
+
         // Create the escrow payment
         var escrow = new EscrowPayment(
             order.Id,
@@ -59,11 +91,21 @@ public sealed class EscrowService
         // Create allocations for each shipment (seller)
         foreach (var shipment in order.Shipments)
         {
+            // Get the commission rate for this seller
+            // Priority: seller-specific > category-specific > global > default
+            var commissionRate = await GetEffectiveCommissionRateAsync(
+                shipment.StoreId,
+                order.Items.Where(i => i.StoreId == shipment.StoreId).ToList(),
+                productLookup,
+                categories,
+                cancellationToken);
+
             // Calculate commission for the seller
             var commission = _commissionCalculator.CalculateCommission(
                 shipment.StoreId,
                 shipment.Subtotal,
-                order.Currency);
+                order.Currency,
+                commissionRate);
 
             escrow.AddAllocation(
                 shipment.StoreId,
@@ -90,6 +132,64 @@ public sealed class EscrowService
         await _escrowRepository.SaveChangesAsync(cancellationToken);
 
         return CreateEscrowResultDto.Succeeded(escrow.Id);
+    }
+
+    /// <summary>
+    /// Gets the effective commission rate for a seller based on commission rules.
+    /// Priority: seller-specific > category-specific > global > default.
+    /// </summary>
+    private async Task<decimal> GetEffectiveCommissionRateAsync(
+        Guid storeId,
+        IReadOnlyList<OrderItem> sellerItems,
+        Dictionary<Guid, Product> productLookup,
+        Dictionary<string, Guid> categoryLookup,
+        CancellationToken cancellationToken)
+    {
+        // 1. Check for seller-specific rule first
+        var sellerRule = await _commissionRuleRepository.GetActiveSellerRuleAsync(storeId, cancellationToken);
+        if (sellerRule is not null)
+        {
+            return sellerRule.CommissionRate;
+        }
+
+        // 2. Check for category-specific rules
+        // If items span multiple categories, use the highest commission rate (most conservative)
+        var categoryIds = sellerItems
+            .Select(item => productLookup.TryGetValue(item.ProductId, out var product) ? product.Category : null)
+            .Where(cat => !string.IsNullOrWhiteSpace(cat))
+            .Distinct()
+            .Select(cat => categoryLookup.TryGetValue(cat!, out var catId) ? catId : (Guid?)null)
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .ToList();
+
+        decimal? highestCategoryRate = null;
+        foreach (var categoryId in categoryIds)
+        {
+            var categoryRule = await _commissionRuleRepository.GetActiveCategoryRuleAsync(categoryId, cancellationToken);
+            if (categoryRule is not null)
+            {
+                if (!highestCategoryRate.HasValue || categoryRule.CommissionRate > highestCategoryRate.Value)
+                {
+                    highestCategoryRate = categoryRule.CommissionRate;
+                }
+            }
+        }
+
+        if (highestCategoryRate.HasValue)
+        {
+            return highestCategoryRate.Value;
+        }
+
+        // 3. Check for global rule
+        var globalRule = await _commissionRuleRepository.GetActiveGlobalRuleAsync(cancellationToken);
+        if (globalRule is not null)
+        {
+            return globalRule.CommissionRate;
+        }
+
+        // 4. Fall back to default rate
+        return CommissionCalculator.DefaultCommissionRate;
     }
 
     /// <summary>
@@ -414,11 +514,76 @@ public sealed class EscrowService
             allocation.CommissionAmount,
             allocation.CommissionRate,
             allocation.SellerPayout,
+            allocation.RefundedAmount,
+            allocation.RefundedCommissionAmount,
             allocation.Status.ToString(),
             allocation.IsEligibleForPayout,
             allocation.CreatedAt,
             allocation.ReleasedAt,
             allocation.RefundedAt,
             allocation.PayoutEligibleAt);
+    }
+
+    /// <summary>
+    /// Applies a partial refund to an escrow allocation.
+    /// Commission is recalculated proportionally using the original commission rate.
+    /// </summary>
+    public async Task<PartialRefundEscrowResultDto> HandleAsync(
+        PartialRefundEscrowCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+
+        var allocation = await _escrowRepository.GetAllocationByShipmentIdAsync(
+            command.ShipmentId, cancellationToken);
+
+        if (allocation is null)
+        {
+            return PartialRefundEscrowResultDto.Failed("Escrow allocation not found for this shipment.");
+        }
+
+        if (!allocation.CanApplyPartialRefund(command.RefundAmount))
+        {
+            return PartialRefundEscrowResultDto.Failed(
+                "Cannot apply partial refund. Allocation may be in wrong status or refund amount exceeds remaining.");
+        }
+
+        var escrow = await _escrowRepository.GetByIdAsync(allocation.EscrowPaymentId, cancellationToken);
+        if (escrow is null)
+        {
+            return PartialRefundEscrowResultDto.Failed("Escrow payment not found.");
+        }
+
+        // Calculate commission refund using CommissionCalculator for consistency
+        var refundCommission = _commissionCalculator.CalculateRefundCommission(
+            allocation.SellerAmount,
+            command.RefundAmount,
+            allocation.CommissionRate,
+            allocation.Currency);
+
+        // Apply the partial refund
+        allocation.ApplyPartialRefund(command.RefundAmount, command.RefundReference);
+
+        // Update escrow refunded amount
+        escrow.AddPartialRefund(command.RefundAmount);
+
+        // Create audit ledger entry for partial refund
+        var refundEntry = EscrowLedger.CreatePartialRefundEntry(
+            escrow, 
+            allocation, 
+            command.RefundAmount,
+            refundCommission.RefundedCommissionAmount.Amount,
+            command.RefundReference);
+        await _escrowRepository.AddLedgerEntryAsync(refundEntry, cancellationToken);
+
+        await _escrowRepository.UpdateAsync(escrow, cancellationToken);
+        await _escrowRepository.SaveChangesAsync(cancellationToken);
+
+        return PartialRefundEscrowResultDto.Succeeded(
+            allocation.RefundedAmount,
+            allocation.RefundedCommissionAmount,
+            allocation.GetRemainingAmount(),
+            allocation.GetRemainingCommission(),
+            command.RefundReference);
     }
 }
