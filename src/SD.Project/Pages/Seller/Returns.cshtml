@@ -112,19 +112,8 @@
                     <tbody>
                         @foreach (var request in Model.ReturnRequests.Items)
                         {
-                            var statusClass = request.Status switch
-                            {
-                                "Requested" => "bg-warning",
-                                "Approved" => "bg-info",
-                                "Rejected" => "bg-danger",
-                                "Completed" => "bg-success",
-                                _ => "bg-secondary"
-                            };
-                            var statusDisplay = request.Status switch
-                            {
-                                "Requested" => "Pending Review",
-                                _ => request.Status
-                            };
+                            var statusClass = SD.Project.ViewModels.ReturnRequestStatusHelper.GetStatusBadgeClass(request.Status);
+                            var statusDisplay = SD.Project.ViewModels.ReturnRequestStatusHelper.GetStatusDisplayName(request.Status);
 
                             <tr>
                                 <td>

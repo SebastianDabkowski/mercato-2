@@ -148,19 +148,8 @@
                 @* Return Request Alert *@
                 @if (Model.ReturnRequest is not null)
                 {
-                    var returnStatusClass = Model.ReturnRequest.Status switch
-                    {
-                        "Requested" => "alert-warning",
-                        "Approved" => "alert-info",
-                        "Rejected" => "alert-secondary",
-                        "Completed" => "alert-success",
-                        _ => "alert-secondary"
-                    };
-                    var returnStatusDisplay = Model.ReturnRequest.Status switch
-                    {
-                        "Requested" => "Pending Review",
-                        _ => Model.ReturnRequest.Status
-                    };
+                    var returnStatusClass = SD.Project.ViewModels.ReturnRequestStatusHelper.GetStatusAlertClass(Model.ReturnRequest.Status);
+                    var returnStatusDisplay = SD.Project.ViewModels.ReturnRequestStatusHelper.GetStatusDisplayName(Model.ReturnRequest.Status);
 
                     <div class="alert @returnStatusClass mb-4">
                         <div class="d-flex align-items-center justify-content-between">

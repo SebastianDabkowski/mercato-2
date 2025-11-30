@@ -19,19 +19,8 @@
     }
     else
     {
-        var statusClass = Model.ReturnRequest.Status switch
-        {
-            "Requested" => "bg-warning",
-            "Approved" => "bg-info",
-            "Rejected" => "bg-danger",
-            "Completed" => "bg-success",
-            _ => "bg-secondary"
-        };
-        var statusDisplay = Model.ReturnRequest.Status switch
-        {
-            "Requested" => "Pending Review",
-            _ => Model.ReturnRequest.Status
-        };
+        var statusClass = SD.Project.ViewModels.ReturnRequestStatusHelper.GetStatusBadgeClass(Model.ReturnRequest.Status);
+        var statusDisplay = SD.Project.ViewModels.ReturnRequestStatusHelper.GetStatusDisplayName(Model.ReturnRequest.Status);
 
         <!-- Header -->
         <div class="d-flex justify-content-between align-items-center mb-4">

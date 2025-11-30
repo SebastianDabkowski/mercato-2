@@ -63,3 +63,42 @@ public sealed record SellerReturnRequestDetailsViewModel(
     DateTime? RejectedAt,
     DateTime? CompletedAt,
     IReadOnlyList<SellerSubOrderItemViewModel> Items);
+
+/// <summary>
+/// Helper class for return request status display.
+/// </summary>
+public static class ReturnRequestStatusHelper
+{
+    /// <summary>
+    /// Gets the Bootstrap CSS class for a return request status badge.
+    /// </summary>
+    public static string GetStatusBadgeClass(string status) => status switch
+    {
+        "Requested" => "bg-warning",
+        "Approved" => "bg-info",
+        "Rejected" => "bg-danger",
+        "Completed" => "bg-success",
+        _ => "bg-secondary"
+    };
+
+    /// <summary>
+    /// Gets the Bootstrap CSS class for a return request status alert.
+    /// </summary>
+    public static string GetStatusAlertClass(string status) => status switch
+    {
+        "Requested" => "alert-warning",
+        "Approved" => "alert-info",
+        "Rejected" => "alert-secondary",
+        "Completed" => "alert-success",
+        _ => "alert-secondary"
+    };
+
+    /// <summary>
+    /// Gets a user-friendly display name for a return request status.
+    /// </summary>
+    public static string GetStatusDisplayName(string status) => status switch
+    {
+        "Requested" => "Pending Review",
+        _ => status
+    };
+}

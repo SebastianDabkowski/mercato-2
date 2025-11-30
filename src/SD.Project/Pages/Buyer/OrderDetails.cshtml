@@ -269,14 +269,7 @@
                                 @if (hasExistingReturn && existingReturn is not null)
                                 {
                                     <!-- Existing Return Request Status -->
-                                    var returnStatusClass = existingReturn.Status switch
-                                    {
-                                        "Requested" => "bg-warning",
-                                        "Approved" => "bg-info",
-                                        "Rejected" => "bg-danger",
-                                        "Completed" => "bg-success",
-                                        _ => "bg-secondary"
-                                    };
+                                    var returnStatusClass = SD.Project.ViewModels.ReturnRequestStatusHelper.GetStatusBadgeClass(existingReturn.Status);
                                     
                                     <div class="alert alert-info py-2 mt-3 mb-0">
                                         <div class="d-flex align-items-center justify-content-between">
