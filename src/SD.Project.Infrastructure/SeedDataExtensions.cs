@@ -323,5 +323,202 @@ public static class SeedDataExtensions
 
             await promoCodeRepo.SaveChangesAsync();
         }
+
+        // Seed sample orders for testing buyer order detail view
+        var orderRepo = scope.ServiceProvider.GetRequiredService<IOrderRepository>();
+        var addressRepo = scope.ServiceProvider.GetRequiredService<IDeliveryAddressRepository>();
+
+        var buyerId = Guid.Parse("33333333-3333-3333-3333-333333333333");
+        var orderStore = await storeRepo.GetBySlugAsync("demo-store");
+        var existingOrders = await orderRepo.GetByBuyerIdAsync(buyerId);
+
+        if (existingOrders.Count == 0 && orderStore is not null)
+        {
+            // Get or create a delivery address
+            var buyerAddresses = await addressRepo.GetByBuyerIdAsync(buyerId);
+            DeliveryAddress? deliveryAddress;
+            if (buyerAddresses.Count == 0)
+            {
+                var address = Address.Create("123 Main Street", null, "New York", "NY", "10001", "USA");
+                deliveryAddress = new DeliveryAddress(buyerId, "Demo Buyer", address, "+1234567890", "Home", true);
+                await addressRepo.AddAsync(deliveryAddress);
+                await addressRepo.SaveChangesAsync();
+            }
+            else
+            {
+                deliveryAddress = buyerAddresses.First();
+            }
+
+            // Get payment methods
+            var paymentMethods = await paymentMethodRepo.GetAllAsync();
+            var defaultPaymentMethod = paymentMethods.FirstOrDefault(p => p.IsDefault) ?? paymentMethods.First();
+
+            // Get products for order items
+            var allProducts = await productRepo.GetAllByStoreIdAsync(orderStore.Id);
+            var products = allProducts.Take(10).ToList();
+
+            // Order 1: Delivered order
+            var order1 = new Order(
+                buyerId,
+                "ORD-2024-0001",
+                deliveryAddress.Id,
+                deliveryAddress.RecipientName,
+                deliveryAddress.Street,
+                deliveryAddress.Street2,
+                deliveryAddress.City,
+                deliveryAddress.State,
+                deliveryAddress.PostalCode,
+                deliveryAddress.Country,
+                deliveryAddress.PhoneNumber,
+                "Please leave at door",
+                defaultPaymentMethod.Id,
+                defaultPaymentMethod.Name,
+                "USD");
+
+            if (products.Count > 0)
+            {
+                order1.AddItem(products[0].Id, orderStore.Id, products[0].Name, products[0].Price.Amount, 2, null, "Standard Shipping", 4.99m);
+            }
+            if (products.Count > 1)
+            {
+                order1.AddItem(products[1].Id, orderStore.Id, products[1].Name, products[1].Price.Amount, 1, null, "Standard Shipping", 0m);
+            }
+            order1.CreateShipments();
+            order1.ConfirmPayment("TXN-001-DEMO");
+            order1.StartProcessing();
+
+            // Ship the order
+            foreach (var shipment in order1.Shipments)
+            {
+                shipment.StartProcessing();
+                shipment.Ship("FedEx", "FX123456789", "https://www.fedex.com/apps/fedextrack/?tracknumbers=FX123456789");
+                shipment.MarkDelivered();
+            }
+            order1.MarkShipped();
+            order1.MarkDelivered();
+
+            await orderRepo.AddAsync(order1);
+
+            // Order 2: Cancelled order
+            var order2 = new Order(
+                buyerId,
+                "ORD-2024-0002",
+                deliveryAddress.Id,
+                deliveryAddress.RecipientName,
+                deliveryAddress.Street,
+                deliveryAddress.Street2,
+                deliveryAddress.City,
+                deliveryAddress.State,
+                deliveryAddress.PostalCode,
+                deliveryAddress.Country,
+                deliveryAddress.PhoneNumber,
+                null,
+                defaultPaymentMethod.Id,
+                defaultPaymentMethod.Name,
+                "USD");
+
+            if (products.Count > 0)
+            {
+                order2.AddItem(products[0].Id, orderStore.Id, products[0].Name, products[0].Price.Amount, 1, null, "Express Shipping", 9.99m);
+            }
+            order2.CreateShipments();
+            order2.Cancel();
+
+            await orderRepo.AddAsync(order2);
+
+            // Order 3: Refunded order
+            var order3 = new Order(
+                buyerId,
+                "ORD-2024-0003",
+                deliveryAddress.Id,
+                deliveryAddress.RecipientName,
+                deliveryAddress.Street,
+                deliveryAddress.Street2,
+                deliveryAddress.City,
+                deliveryAddress.State,
+                deliveryAddress.PostalCode,
+                deliveryAddress.Country,
+                deliveryAddress.PhoneNumber,
+                null,
+                defaultPaymentMethod.Id,
+                defaultPaymentMethod.Name,
+                "USD");
+
+            if (products.Count > 1)
+            {
+                order3.AddItem(products[1].Id, orderStore.Id, products[1].Name, products[1].Price.Amount, 2, null, "Standard Shipping", 4.99m);
+            }
+            order3.CreateShipments();
+            order3.ConfirmPayment("TXN-003-DEMO");
+            order3.StartProcessing();
+            order3.Refund();
+
+            await orderRepo.AddAsync(order3);
+
+            // Order 4: In processing
+            var order4 = new Order(
+                buyerId,
+                "ORD-2024-0004",
+                deliveryAddress.Id,
+                deliveryAddress.RecipientName,
+                deliveryAddress.Street,
+                deliveryAddress.Street2,
+                deliveryAddress.City,
+                deliveryAddress.State,
+                deliveryAddress.PostalCode,
+                deliveryAddress.Country,
+                deliveryAddress.PhoneNumber,
+                "Ring doorbell twice",
+                defaultPaymentMethod.Id,
+                defaultPaymentMethod.Name,
+                "USD");
+
+            if (products.Count > 2)
+            {
+                order4.AddItem(products[2].Id, orderStore.Id, products[2].Name, products[2].Price.Amount, 3, null, "Overnight Shipping", 19.99m);
+            }
+            order4.CreateShipments();
+            order4.ConfirmPayment("TXN-004-DEMO");
+            order4.StartProcessing();
+
+            await orderRepo.AddAsync(order4);
+
+            // Order 5: Shipped
+            var order5 = new Order(
+                buyerId,
+                "ORD-2024-0005",
+                deliveryAddress.Id,
+                deliveryAddress.RecipientName,
+                deliveryAddress.Street,
+                deliveryAddress.Street2,
+                deliveryAddress.City,
+                deliveryAddress.State,
+                deliveryAddress.PostalCode,
+                deliveryAddress.Country,
+                deliveryAddress.PhoneNumber,
+                null,
+                defaultPaymentMethod.Id,
+                defaultPaymentMethod.Name,
+                "USD");
+
+            if (products.Count > 0)
+            {
+                order5.AddItem(products[0].Id, orderStore.Id, products[0].Name, products[0].Price.Amount, 1, null, "Standard Shipping", 4.99m);
+            }
+            order5.CreateShipments();
+            order5.ConfirmPayment("TXN-005-DEMO");
+            order5.StartProcessing();
+
+            foreach (var shipment in order5.Shipments)
+            {
+                shipment.StartProcessing();
+                shipment.Ship("UPS", "1Z999AA10123456784", "https://www.ups.com/track?tracknum=1Z999AA10123456784");
+            }
+            order5.MarkShipped();
+
+            await orderRepo.AddAsync(order5);
+
+            await orderRepo.SaveChangesAsync();
+        }
     }
 }

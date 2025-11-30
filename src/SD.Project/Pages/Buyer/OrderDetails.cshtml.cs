@@ -88,7 +88,13 @@ public class OrderDetailsModel : PageModel
                 s.TrackingUrl,
                 s.ShippedAt,
                 s.DeliveredAt,
-                s.EstimatedDelivery)).ToList().AsReadOnly());
+                s.EstimatedDelivery,
+                s.CancelledAt,
+                s.RefundedAt,
+                s.RefundedAmount)).ToList().AsReadOnly(),
+            orderDetails.CancelledAt,
+            orderDetails.RefundedAt,
+            orderDetails.RefundedAmount);
 
         _logger.LogInformation("Order details viewed: {OrderNumber} with {SubOrderCount} seller sub-orders",
             Order.OrderNumber, Order.SellerSubOrders.Count);

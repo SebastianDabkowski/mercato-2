@@ -128,7 +128,10 @@ public sealed class OrderService
                 shipment.TrackingUrl,
                 shipment.ShippedAt,
                 shipment.DeliveredAt,
-                subOrderEstimatedDelivery));
+                subOrderEstimatedDelivery,
+                shipment.CancelledAt,
+                shipment.RefundedAt,
+                shipment.RefundedAmount));
         }
 
         // Calculate overall estimated delivery range
@@ -155,7 +158,10 @@ public sealed class OrderService
             order.Currency,
             order.CreatedAt,
             estimatedDeliveryRange,
-            sellerSubOrders.AsReadOnly());
+            sellerSubOrders.AsReadOnly(),
+            order.CancelledAt,
+            order.RefundedAt,
+            order.RefundedAmount);
     }
 
     /// <summary>
