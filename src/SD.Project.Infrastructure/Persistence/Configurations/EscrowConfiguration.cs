@@ -79,6 +79,10 @@ public class EscrowAllocationConfiguration : IEntityTypeConfiguration<EscrowAllo
             .HasPrecision(18, 2)
             .IsRequired();
 
+        builder.Property(a => a.RefundedSellerAmount)
+            .HasPrecision(18, 2)
+            .IsRequired();
+
         builder.Property(a => a.RefundedCommissionAmount)
             .HasPrecision(18, 2)
             .IsRequired();

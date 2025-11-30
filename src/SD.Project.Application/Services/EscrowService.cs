@@ -63,22 +63,18 @@ public sealed class EscrowService
         var products = await _productRepository.GetByIdsAsync(productIds, cancellationToken);
         var productLookup = products.ToDictionary(p => p.Id);
 
-        // Get category IDs for looking up commission rules
+        // Get category IDs for looking up commission rules - use bulk lookup to avoid N+1 queries
         var categoryNames = products
             .Where(p => !string.IsNullOrWhiteSpace(p.Category))
             .Select(p => p.Category)
             .Distinct()
             .ToList();
         
-        var categories = new Dictionary<string, Guid>();
-        foreach (var categoryName in categoryNames)
-        {
-            var category = await _categoryRepository.GetByNameAsync(categoryName, cancellationToken);
-            if (category is not null)
-            {
-                categories[categoryName] = category.Id;
-            }
-        }
+        var categoriesList = await _categoryRepository.GetByNamesAsync(categoryNames, cancellationToken);
+        var categories = categoriesList.ToDictionary(
+            c => c.Name, 
+            c => c.Id,
+            StringComparer.OrdinalIgnoreCase);
 
         // Create the escrow payment
         var escrow = new EscrowPayment(
@@ -515,6 +511,7 @@ public sealed class EscrowService
             allocation.CommissionRate,
             allocation.SellerPayout,
             allocation.RefundedAmount,
+            allocation.RefundedSellerAmount,
             allocation.RefundedCommissionAmount,
             allocation.Status.ToString(),
             allocation.IsEligibleForPayout,
