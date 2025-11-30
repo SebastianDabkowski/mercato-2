@@ -23,6 +23,20 @@ public sealed class UserRepository : IUserRepository
         return await _context.Users.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<User>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
+    {
+        var idList = ids.ToList();
+        if (idList.Count == 0)
+        {
+            return Array.Empty<User>();
+        }
+
+        return await _context.Users
+            .AsNoTracking()
+            .Where(x => idList.Contains(x.Id))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<User?> GetByEmailAsync(Email email, CancellationToken cancellationToken = default)
     {
         return await _context.Users.FirstOrDefaultAsync(x => x.Email == email, cancellationToken);

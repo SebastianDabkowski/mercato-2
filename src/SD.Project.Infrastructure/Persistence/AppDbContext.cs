@@ -55,6 +55,7 @@ public class AppDbContext : DbContext
     public DbSet<CreditNote> CreditNotes => Set<CreditNote>();
     public DbSet<CreditNoteLine> CreditNoteLines => Set<CreditNoteLine>();
     public DbSet<Refund> Refunds => Set<Refund>();
+    public DbSet<ShipmentStatusHistory> ShipmentStatusHistories => Set<ShipmentStatusHistory>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

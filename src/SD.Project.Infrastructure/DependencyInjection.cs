@@ -58,6 +58,7 @@ public static class DependencyInjection
         services.AddScoped<IPromoCodeRepository, PromoCodeRepository>();
         services.AddScoped<ICommissionInvoiceRepository, CommissionInvoiceRepository>();
         services.AddScoped<ICreditNoteRepository, CreditNoteRepository>();
+        services.AddScoped<IShipmentStatusHistoryRepository, ShipmentStatusHistoryRepository>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IPaymentProviderService, PaymentProviderService>();
         services.AddScoped<IRefundProviderService, RefundProviderService>();

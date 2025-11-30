@@ -1,0 +1,417 @@
+@page "{orderId:guid}"
+@model SD.Project.Pages.Admin.OrderDetailsModel
+@{
+    ViewData["Title"] = Model.Order is not null ? $"Order {Model.Order.OrderNumber}" : "Order Details";
+}
+
+<div class="container py-4">
+    @if (Model.Order is null)
+    {
+        <div class="text-center py-5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-question-circle text-muted mb-3" viewBox="0 0 16 16">
+                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                <path d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286m1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94"/>
+            </svg>
+            <h4 class="text-muted">Order not found</h4>
+            <p class="text-muted">The order you're looking for doesn't exist.</p>
+            <a asp-page="/Admin/Dashboard" class="btn btn-primary mt-3">Back to Dashboard</a>
+        </div>
+    }
+    else
+    {
+        var orderStatusClass = Model.Order.Status switch
+        {
+            "PaymentConfirmed" => "bg-success",
+            "Processing" => "bg-info",
+            "Shipped" => "bg-primary",
+            "Delivered" => "bg-success",
+            "Cancelled" => "bg-secondary",
+            "PaymentFailed" => "bg-danger",
+            "Refunded" => "bg-warning",
+            _ => "bg-warning"
+        };
+        var orderStatusDisplay = Model.Order.Status switch
+        {
+            "PaymentConfirmed" => "Confirmed",
+            "PaymentFailed" => "Failed",
+            _ => Model.Order.Status
+        };
+
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-1">
+                        <li class="breadcrumb-item"><a asp-page="/Admin/Dashboard">Dashboard</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">Order @Model.Order.OrderNumber</li>
+                    </ol>
+                </nav>
+                <h1 class="mb-0">Order @Model.Order.OrderNumber</h1>
+            </div>
+            <span class="badge @orderStatusClass fs-5">@orderStatusDisplay</span>
+        </div>
+
+        <div class="row">
+            <!-- Main Content -->
+            <div class="col-lg-8">
+                <!-- Order Overview -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-info-circle me-2" viewBox="0 0 16 16">
+                                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                                <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
+                            </svg>
+                            Order Overview
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Order ID:</strong> <code class="small">@Model.Order.OrderId</code></p>
+                                <p class="mb-1"><strong>Order Number:</strong> @Model.Order.OrderNumber</p>
+                                <p class="mb-1"><strong>Created:</strong> @Model.Order.CreatedAt.ToString("MMMM dd, yyyy 'at' h:mm tt")</p>
+                                @if (Model.Order.PaidAt.HasValue)
+                                {
+                                    <p class="mb-1"><strong>Paid:</strong> @Model.Order.PaidAt.Value.ToString("MMMM dd, yyyy 'at' h:mm tt")</p>
+                                }
+                                @if (Model.Order.CancelledAt.HasValue)
+                                {
+                                    <p class="mb-1"><strong>Cancelled:</strong> @Model.Order.CancelledAt.Value.ToString("MMMM dd, yyyy 'at' h:mm tt")</p>
+                                }
+                                @if (Model.Order.RefundedAt.HasValue)
+                                {
+                                    <p class="mb-1"><strong>Refunded:</strong> @Model.Order.RefundedAt.Value.ToString("MMMM dd, yyyy 'at' h:mm tt")</p>
+                                }
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Payment Status:</strong> <span class="badge @(Model.Order.PaymentStatus == "Paid" ? "bg-success" : "bg-warning")">@Model.Order.PaymentStatus</span></p>
+                                <p class="mb-1"><strong>Payment Method:</strong> @Model.Order.PaymentMethodName</p>
+                                @if (!string.IsNullOrEmpty(Model.Order.PaymentTransactionId))
+                                {
+                                    <p class="mb-1"><strong>Transaction ID:</strong> <code class="small">@Model.Order.PaymentTransactionId</code></p>
+                                }
+                                @if (Model.Order.RefundedAmount.HasValue)
+                                {
+                                    <p class="mb-1"><strong>Refunded Amount:</strong> @Model.Order.Currency @Model.Order.RefundedAmount.Value.ToString("N2")</p>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Buyer Information -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-person me-2" viewBox="0 0 16 16">
+                                <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10s-3.516.68-4.168 1.332c-.678.678-.83 1.418-.832 1.664z"/>
+                            </svg>
+                            Buyer Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Buyer ID:</strong> <code class="small">@Model.Order.BuyerId</code></p>
+                                <p class="mb-1"><strong>Name:</strong> @Model.Order.BuyerName</p>
+                                <p class="mb-1"><strong>Email:</strong> @(Model.Order.BuyerEmail ?? "N/A")</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Recipient:</strong> @Model.Order.RecipientName</p>
+                                <p class="mb-1"><strong>Delivery Address:</strong> @Model.Order.DeliveryAddressSummary</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shipments with Status History -->
+                @foreach (var shipment in Model.Order.Shipments)
+                {
+                    var shipmentStatusClass = shipment.Status switch
+                    {
+                        "Paid" => "bg-success",
+                        "Processing" => "bg-info",
+                        "Shipped" => "bg-primary",
+                        "Delivered" => "bg-success",
+                        "Cancelled" => "bg-secondary",
+                        "Refunded" => "bg-warning",
+                        _ => "bg-warning"
+                    };
+                    var shipmentStatusDisplay = shipment.Status switch
+                    {
+                        "Paid" => "Confirmed",
+                        _ => shipment.Status
+                    };
+
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-box-seam me-2" viewBox="0 0 16 16">
+                                        <path d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5l2.404.961L10.404 2zm3.564 1.426L5.596 5 8 5.961 14.154 3.5zm3.25 1.7-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.63 13.09a1 1 0 0 1-.63-.928V3.5a.5.5 0 0 1 .314-.464z"/>
+                                    </svg>
+                                    Shipment: @shipment.StoreName
+                                </h5>
+                                <span class="badge @shipmentStatusClass">@shipmentStatusDisplay</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- Shipment Details -->
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>Shipment ID:</strong> <code class="small">@shipment.ShipmentId</code></p>
+                                    <p class="mb-1"><strong>Store ID:</strong> <code class="small">@shipment.StoreId</code></p>
+                                    <p class="mb-1"><strong>Created:</strong> @shipment.CreatedAt.ToString("MMM dd, yyyy h:mm tt")</p>
+                                </div>
+                                <div class="col-md-6">
+                                    @if (shipment.ShippedAt.HasValue)
+                                    {
+                                        <p class="mb-1"><strong>Shipped:</strong> @shipment.ShippedAt.Value.ToString("MMM dd, yyyy h:mm tt")</p>
+                                    }
+                                    @if (shipment.DeliveredAt.HasValue)
+                                    {
+                                        <p class="mb-1"><strong>Delivered:</strong> @shipment.DeliveredAt.Value.ToString("MMM dd, yyyy h:mm tt")</p>
+                                    }
+                                    @if (!string.IsNullOrEmpty(shipment.TrackingNumber))
+                                    {
+                                        <p class="mb-1">
+                                            <strong>Tracking:</strong> 
+                                            @if (!string.IsNullOrEmpty(shipment.CarrierName))
+                                            {
+                                                @shipment.CarrierName<text> - </text>
+                                            }
+                                            @if (!string.IsNullOrEmpty(shipment.TrackingUrl))
+                                            {
+                                                <a href="@shipment.TrackingUrl" target="_blank" rel="noopener">@shipment.TrackingNumber</a>
+                                            }
+                                            else
+                                            {
+                                                @shipment.TrackingNumber
+                                            }
+                                        </p>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Items -->
+                            <h6 class="text-muted mb-2">Items</h6>
+                            <div class="table-responsive mb-3">
+                                <table class="table table-sm mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Product</th>
+                                            <th class="text-center">Price</th>
+                                            <th class="text-center">Qty</th>
+                                            <th class="text-center">Status</th>
+                                            <th class="text-end">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in shipment.Items)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    @item.ProductName
+                                                    @if (!string.IsNullOrEmpty(item.ShippingMethodName))
+                                                    {
+                                                        <br /><small class="text-muted">@item.ShippingMethodName</small>
+                                                    }
+                                                </td>
+                                                <td class="text-center">@Model.Order.Currency @item.UnitPrice.ToString("N2")</td>
+                                                <td class="text-center">@item.Quantity</td>
+                                                <td class="text-center"><span class="badge bg-secondary">@item.Status</span></td>
+                                                <td class="text-end">@Model.Order.Currency @item.LineTotal.ToString("N2")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                    <tfoot class="table-light">
+                                        <tr>
+                                            <td colspan="4" class="text-end"><small>Subtotal:</small></td>
+                                            <td class="text-end"><small>@Model.Order.Currency @shipment.Subtotal.ToString("N2")</small></td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="4" class="text-end"><small>Shipping:</small></td>
+                                            <td class="text-end"><small>@Model.Order.Currency @shipment.ShippingCost.ToString("N2")</small></td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="4" class="text-end fw-bold">Total:</td>
+                                            <td class="text-end fw-bold">@Model.Order.Currency @shipment.Total.ToString("N2")</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+
+                            <!-- Shipping Status History -->
+                            <h6 class="text-muted mb-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-clock-history me-1" viewBox="0 0 16 16">
+                                    <path d="M8.515 1.019A7 7 0 0 0 8 1V0a8 8 0 0 1 .589.022zm2.004.45a7 7 0 0 0-.985-.299l.219-.976q.576.129 1.126.342zm1.37.71a7 7 0 0 0-.439-.27l.493-.87a8 8 0 0 1 .979.654l-.615.789a7 7 0 0 0-.418-.302zm1.834 1.79a7 7 0 0 0-.653-.796l.724-.69q.406.429.747.91zm.744 1.352a7 7 0 0 0-.214-.468l.893-.45a8 8 0 0 1 .45 1.088l-.95.313a7 7 0 0 0-.179-.483m.53 2.507a7 7 0 0 0-.1-1.025l.985-.17q.1.58.116 1.17zm-.131 1.538q.05-.254.081-.51l.993.123a8 8 0 0 1-.23 1.155l-.964-.267q.069-.247.12-.501m-.952 2.379q.276-.436.486-.908l.914.405q-.24.54-.555 1.038zm-.964 1.205q.183-.183.35-.378l.758.653a8 8 0 0 1-.401.432z"/>
+                                    <path d="M8 1a7 7 0 1 0 4.95 11.95l.707.707A8.001 8.001 0 1 1 8 0z"/>
+                                    <path d="M7.5 3a.5.5 0 0 1 .5.5v5.21l3.248 1.856a.5.5 0 0 1-.496.868l-3.5-2A.5.5 0 0 1 7 9V3.5a.5.5 0 0 1 .5-.5"/>
+                                </svg>
+                                Shipping Status History
+                            </h6>
+                            @if (shipment.StatusHistory.Count == 0)
+                            {
+                                <div class="alert alert-info mb-0 py-2">
+                                    <small>No status change history recorded for this shipment yet.</small>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-striped mb-0">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Date/Time</th>
+                                                <th>Previous Status</th>
+                                                <th>New Status</th>
+                                                <th>Changed By</th>
+                                                <th>Actor Type</th>
+                                                <th>Tracking Info</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var history in shipment.StatusHistory)
+                                            {
+                                                <tr>
+                                                    <td>@history.ChangedAt.ToString("MMM dd, yyyy h:mm:ss tt")</td>
+                                                    <td><span class="badge bg-secondary">@history.PreviousStatus</span></td>
+                                                    <td><span class="badge bg-primary">@history.NewStatus</span></td>
+                                                    <td>
+                                                        @if (!string.IsNullOrEmpty(history.ChangedByUserName))
+                                                        {
+                                                            @history.ChangedByUserName
+                                                        }
+                                                        else if (history.ChangedByUserId.HasValue)
+                                                        {
+                                                            <code class="small">@history.ChangedByUserId.Value</code>
+                                                        }
+                                                        else
+                                                        {
+                                                            <em class="text-muted">System</em>
+                                                        }
+                                                    </td>
+                                                    <td>
+                                                        @{
+                                                            var actorBadge = history.ActorType switch
+                                                            {
+                                                                "Seller" => "bg-info",
+                                                                "Admin" => "bg-warning",
+                                                                "System" => "bg-secondary",
+                                                                _ => "bg-secondary"
+                                                            };
+                                                        }
+                                                        <span class="badge @actorBadge">@history.ActorType</span>
+                                                    </td>
+                                                    <td>
+                                                        @if (!string.IsNullOrEmpty(history.TrackingNumber))
+                                                        {
+                                                            @if (!string.IsNullOrEmpty(history.CarrierName))
+                                                            {
+                                                                @history.CarrierName<text>: </text>
+                                                            }
+                                                            @history.TrackingNumber
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted">-</span>
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <!-- Back Button -->
+                <div class="d-flex justify-content-between">
+                    <a asp-page="/Admin/Dashboard" class="btn btn-outline-secondary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left me-2" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/>
+                        </svg>
+                        Back to Dashboard
+                    </a>
+                </div>
+            </div>
+
+            <!-- Order Summary Sidebar -->
+            <div class="col-lg-4">
+                <div class="card sticky-top" style="top: 1rem;">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Order Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <small class="text-muted">Order Number</small>
+                            <p class="mb-0 fw-bold">@Model.Order.OrderNumber</p>
+                        </div>
+                        <div class="mb-3">
+                            <small class="text-muted">Order Status</small>
+                            <p class="mb-0"><span class="badge @orderStatusClass">@orderStatusDisplay</span></p>
+                        </div>
+                        <div class="mb-3">
+                            <small class="text-muted">Payment Status</small>
+                            <p class="mb-0"><span class="badge @(Model.Order.PaymentStatus == "Paid" ? "bg-success" : "bg-warning")">@Model.Order.PaymentStatus</span></p>
+                        </div>
+                        <div class="mb-3">
+                            <small class="text-muted">Order Date</small>
+                            <p class="mb-0">@Model.Order.CreatedAt.ToString("MMMM dd, yyyy")</p>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Items Subtotal</span>
+                            <span>@Model.Order.Currency @Model.Order.ItemSubtotal.ToString("N2")</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Shipping</span>
+                            <span>@Model.Order.Currency @Model.Order.TotalShipping.ToString("N2")</span>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between">
+                            <span class="fw-bold fs-5">Total</span>
+                            <span class="fw-bold fs-5 text-primary">@Model.Order.Currency @Model.Order.TotalAmount.ToString("N2")</span>
+                        </div>
+
+                        @if (Model.Order.RefundedAmount.HasValue)
+                        {
+                            <hr>
+                            <div class="d-flex justify-content-between text-danger">
+                                <span>Refunded</span>
+                                <span>-@Model.Order.Currency @Model.Order.RefundedAmount.Value.ToString("N2")</span>
+                            </div>
+                        }
+
+                        <!-- Shipment Summary -->
+                        @if (Model.Order.Shipments.Count > 1)
+                        {
+                            <hr>
+                            <small class="text-muted d-block mb-2">Shipments by Seller</small>
+                            @foreach (var shipment in Model.Order.Shipments)
+                            {
+                                var statusBadge = shipment.Status switch
+                                {
+                                    "Paid" => "bg-success",
+                                    "Processing" => "bg-info",
+                                    "Shipped" => "bg-primary",
+                                    "Delivered" => "bg-success",
+                                    "Cancelled" => "bg-secondary",
+                                    "Refunded" => "bg-warning",
+                                    _ => "bg-warning"
+                                };
+                                <div class="d-flex justify-content-between small mb-1">
+                                    <span class="text-truncate" style="max-width: 50%;">@shipment.StoreName</span>
+                                    <span class="badge @statusBadge">@(shipment.Status == "Paid" ? "Confirmed" : shipment.Status)</span>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>

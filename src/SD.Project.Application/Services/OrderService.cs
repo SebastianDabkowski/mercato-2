@@ -20,6 +20,7 @@ public sealed class OrderService
     private readonly IShippingMethodRepository _shippingMethodRepository;
     private readonly INotificationService _notificationService;
     private readonly EscrowService _escrowService;
+    private readonly IShipmentStatusHistoryRepository _statusHistoryRepository;
 
     public OrderService(
         IOrderRepository orderRepository,
@@ -27,14 +28,24 @@ public sealed class OrderService
         IUserRepository userRepository,
         IShippingMethodRepository shippingMethodRepository,
         INotificationService notificationService,
-        EscrowService escrowService)
+        EscrowService escrowService,
+        IShipmentStatusHistoryRepository statusHistoryRepository)
     {
+        ArgumentNullException.ThrowIfNull(orderRepository);
+        ArgumentNullException.ThrowIfNull(storeRepository);
+        ArgumentNullException.ThrowIfNull(userRepository);
+        ArgumentNullException.ThrowIfNull(shippingMethodRepository);
+        ArgumentNullException.ThrowIfNull(notificationService);
+        ArgumentNullException.ThrowIfNull(escrowService);
+        ArgumentNullException.ThrowIfNull(statusHistoryRepository);
+
         _orderRepository = orderRepository;
         _storeRepository = storeRepository;
         _userRepository = userRepository;
         _shippingMethodRepository = shippingMethodRepository;
         _notificationService = notificationService;
         _escrowService = escrowService;
+        _statusHistoryRepository = statusHistoryRepository;
     }
 
     /// <summary>
@@ -529,7 +540,7 @@ public sealed class OrderService
                 $"Cannot transition from {shipment.Status} to {targetStatus}.");
         }
 
-        var previousStatus = shipment.Status.ToString();
+        var previousStatus = shipment.Status;
 
         // Apply the status change
         try
@@ -570,8 +581,22 @@ public sealed class OrderService
             return new UpdateShipmentStatusResultDto(false, ex.Message);
         }
 
+        // Record status change history
+        var statusHistory = new ShipmentStatusHistory(
+            shipment.Id,
+            order.Id,
+            previousStatus,
+            shipment.Status,
+            command.UpdatedByUserId,
+            StatusChangeActorType.Seller,
+            command.CarrierName,
+            command.TrackingNumber,
+            command.TrackingUrl);
+        await _statusHistoryRepository.AddAsync(statusHistory, cancellationToken);
+
         // Save changes
         await _orderRepository.SaveChangesAsync(cancellationToken);
+        await _statusHistoryRepository.SaveChangesAsync(cancellationToken);
 
         // Send notification to buyer
         var buyer = await _userRepository.GetByIdAsync(order.BuyerId, cancellationToken);
@@ -582,7 +607,7 @@ public sealed class OrderService
                 order.Id,
                 buyer.Email.Value,
                 order.OrderNumber,
-                previousStatus,
+                previousStatus.ToString(),
                 shipment.Status.ToString(),
                 shipment.TrackingNumber,
                 shipment.CarrierName,
@@ -592,7 +617,7 @@ public sealed class OrderService
         return new UpdateShipmentStatusResultDto(
             true,
             null,
-            previousStatus,
+            previousStatus.ToString(),
             shipment.Status.ToString());
     }
 
@@ -681,7 +706,7 @@ public sealed class OrderService
             return new UpdateShipmentStatusResultDto(false, "Shipment does not belong to this store.");
         }
 
-        var previousStatus = shipment.Status.ToString();
+        var previousStatus = shipment.Status;
 
         // Cancel the shipment
         try
@@ -693,6 +718,16 @@ public sealed class OrderService
             return new UpdateShipmentStatusResultDto(false, ex.Message);
         }
 
+        // Record status change history
+        var statusHistory = new ShipmentStatusHistory(
+            shipment.Id,
+            order.Id,
+            previousStatus,
+            ShipmentStatus.Cancelled,
+            command.CancelledByUserId,
+            StatusChangeActorType.Seller);
+        await _statusHistoryRepository.AddAsync(statusHistory, cancellationToken);
+
         // Refund escrow allocation when shipment is cancelled
         await _escrowService.HandleAsync(
             new RefundShipmentEscrowCommand(command.ShipmentId),
@@ -700,6 +735,7 @@ public sealed class OrderService
 
         // Save changes
         await _orderRepository.SaveChangesAsync(cancellationToken);
+        await _statusHistoryRepository.SaveChangesAsync(cancellationToken);
 
         // Send notification to buyer
         var buyer = await _userRepository.GetByIdAsync(order.BuyerId, cancellationToken);
@@ -710,7 +746,7 @@ public sealed class OrderService
                 order.Id,
                 buyer.Email.Value,
                 order.OrderNumber,
-                previousStatus,
+                previousStatus.ToString(),
                 ShipmentStatus.Cancelled.ToString(),
                 null,
                 null,
@@ -720,7 +756,7 @@ public sealed class OrderService
         return new UpdateShipmentStatusResultDto(
             true,
             null,
-            previousStatus,
+            previousStatus.ToString(),
             ShipmentStatus.Cancelled.ToString());
     }
 
@@ -761,5 +797,177 @@ public sealed class OrderService
             availableTransitions.AsReadOnly(),
             canUpdateTracking,
             canCancel);
+    }
+
+    /// <summary>
+    /// Gets admin order details with full shipping status history.
+    /// </summary>
+    public async Task<AdminOrderDetailsDto?> HandleAsync(
+        GetAdminOrderDetailsQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var order = await _orderRepository.GetByIdAsync(query.OrderId, cancellationToken);
+        if (order is null)
+        {
+            return null;
+        }
+
+        // Get buyer information
+        var buyer = await _userRepository.GetByIdAsync(order.BuyerId, cancellationToken);
+        var buyerName = buyer?.FirstName is not null && buyer?.LastName is not null
+            ? $"{buyer.FirstName} {buyer.LastName}"
+            : order.RecipientName;
+        var buyerEmail = buyer?.Email?.Value;
+
+        // Get store names for all sellers
+        var storeIds = order.Shipments.Select(s => s.StoreId).Distinct().ToList();
+        var stores = await _storeRepository.GetByIdsAsync(storeIds, cancellationToken);
+        var storeLookup = stores.ToDictionary(s => s.Id);
+
+        // Get all status history for this order
+        var orderStatusHistory = await _statusHistoryRepository.GetByOrderIdAsync(order.Id, cancellationToken);
+        var historyLookup = orderStatusHistory.GroupBy(h => h.ShipmentId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        // Get user names for status history entries using bulk loading
+        var changedByUserIds = orderStatusHistory
+            .Where(h => h.ChangedByUserId.HasValue)
+            .Select(h => h.ChangedByUserId!.Value)
+            .Distinct()
+            .ToList();
+        var users = await _userRepository.GetByIdsAsync(changedByUserIds, cancellationToken);
+        var userLookup = users.ToDictionary(
+            u => u.Id,
+            u => u.FirstName is not null && u.LastName is not null
+                ? $"{u.FirstName} {u.LastName}"
+                : u.Email?.Value ?? u.Id.ToString());
+
+        var addressSummary = $"{order.DeliveryStreet}, {order.DeliveryCity}, {order.DeliveryPostalCode}, {order.DeliveryCountry}";
+
+        // Build shipments with status history
+        var shipmentDtos = new List<AdminShipmentDto>();
+        foreach (var shipment in order.Shipments)
+        {
+            var store = storeLookup.GetValueOrDefault(shipment.StoreId);
+            var storeName = store?.Name ?? "Unknown Seller";
+
+            // Get items for this shipment
+            var sellerItems = order.Items.Where(i => i.StoreId == shipment.StoreId).ToList();
+            var itemDtos = sellerItems.Select(i => new AdminOrderItemDto(
+                i.Id,
+                i.ProductId,
+                i.ProductName,
+                i.UnitPrice,
+                i.Quantity,
+                i.LineTotal,
+                i.ShippingMethodName,
+                i.Status.ToString())).ToList();
+
+            // Get status history for this shipment
+            var shipmentHistory = historyLookup.GetValueOrDefault(shipment.Id) ?? new List<ShipmentStatusHistory>();
+            var historyDtos = shipmentHistory.Select(h => new ShipmentStatusHistoryDto(
+                h.Id,
+                h.ShipmentId,
+                h.OrderId,
+                h.PreviousStatus.ToString(),
+                h.NewStatus.ToString(),
+                h.ChangedAt,
+                h.ChangedByUserId,
+                h.ChangedByUserId.HasValue && userLookup.TryGetValue(h.ChangedByUserId.Value, out var userName)
+                    ? userName
+                    : null,
+                h.ActorType.ToString(),
+                h.CarrierName,
+                h.TrackingNumber,
+                h.TrackingUrl,
+                h.Notes)).ToList();
+
+            shipmentDtos.Add(new AdminShipmentDto(
+                shipment.Id,
+                shipment.StoreId,
+                storeName,
+                shipment.Status.ToString(),
+                shipment.Subtotal,
+                shipment.ShippingCost,
+                shipment.Subtotal + shipment.ShippingCost,
+                shipment.CarrierName,
+                shipment.TrackingNumber,
+                shipment.TrackingUrl,
+                shipment.CreatedAt,
+                shipment.ShippedAt,
+                shipment.DeliveredAt,
+                shipment.CancelledAt,
+                shipment.RefundedAt,
+                shipment.RefundedAmount,
+                itemDtos.AsReadOnly(),
+                historyDtos.AsReadOnly()));
+        }
+
+        return new AdminOrderDetailsDto(
+            order.Id,
+            order.OrderNumber,
+            order.Status.ToString(),
+            order.PaymentStatus.ToString(),
+            order.BuyerId,
+            buyerName,
+            buyerEmail,
+            order.RecipientName,
+            addressSummary,
+            order.PaymentMethodName,
+            order.PaymentTransactionId,
+            order.ItemSubtotal,
+            order.TotalShipping,
+            order.TotalAmount,
+            order.Currency,
+            order.CreatedAt,
+            order.PaidAt,
+            order.CancelledAt,
+            order.RefundedAt,
+            order.RefundedAmount,
+            shipmentDtos.AsReadOnly());
+    }
+
+    /// <summary>
+    /// Gets shipping status history for a specific shipment.
+    /// </summary>
+    public async Task<IReadOnlyList<ShipmentStatusHistoryDto>> HandleAsync(
+        GetShipmentStatusHistoryQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var history = await _statusHistoryRepository.GetByShipmentIdAsync(query.ShipmentId, cancellationToken);
+
+        // Get user names for status history entries using bulk loading
+        var changedByUserIds = history
+            .Where(h => h.ChangedByUserId.HasValue)
+            .Select(h => h.ChangedByUserId!.Value)
+            .Distinct()
+            .ToList();
+        var users = await _userRepository.GetByIdsAsync(changedByUserIds, cancellationToken);
+        var userLookup = users.ToDictionary(
+            u => u.Id,
+            u => u.FirstName is not null && u.LastName is not null
+                ? $"{u.FirstName} {u.LastName}"
+                : u.Email?.Value ?? u.Id.ToString());
+
+        return history.Select(h => new ShipmentStatusHistoryDto(
+            h.Id,
+            h.ShipmentId,
+            h.OrderId,
+            h.PreviousStatus.ToString(),
+            h.NewStatus.ToString(),
+            h.ChangedAt,
+            h.ChangedByUserId,
+            h.ChangedByUserId.HasValue && userLookup.TryGetValue(h.ChangedByUserId.Value, out var userName)
+                ? userName
+                : null,
+            h.ActorType.ToString(),
+            h.CarrierName,
+            h.TrackingNumber,
+            h.TrackingUrl,
+            h.Notes)).ToList().AsReadOnly();
     }
 }

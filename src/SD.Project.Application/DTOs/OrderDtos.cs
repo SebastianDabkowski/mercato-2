@@ -111,3 +111,83 @@ public sealed record SellerSubOrderSectionDto(
     DateTime? CancelledAt,
     DateTime? RefundedAt,
     decimal? RefundedAmount);
+
+/// <summary>
+/// DTO representing a single shipping status change event.
+/// </summary>
+public sealed record ShipmentStatusHistoryDto(
+    Guid Id,
+    Guid ShipmentId,
+    Guid OrderId,
+    string PreviousStatus,
+    string NewStatus,
+    DateTime ChangedAt,
+    Guid? ChangedByUserId,
+    string? ChangedByUserName,
+    string ActorType,
+    string? CarrierName,
+    string? TrackingNumber,
+    string? TrackingUrl,
+    string? Notes);
+
+/// <summary>
+/// DTO for admin order details view with full status history.
+/// </summary>
+public sealed record AdminOrderDetailsDto(
+    Guid OrderId,
+    string OrderNumber,
+    string Status,
+    string PaymentStatus,
+    Guid BuyerId,
+    string BuyerName,
+    string? BuyerEmail,
+    string RecipientName,
+    string DeliveryAddressSummary,
+    string PaymentMethodName,
+    string? PaymentTransactionId,
+    decimal ItemSubtotal,
+    decimal TotalShipping,
+    decimal TotalAmount,
+    string Currency,
+    DateTime CreatedAt,
+    DateTime? PaidAt,
+    DateTime? CancelledAt,
+    DateTime? RefundedAt,
+    decimal? RefundedAmount,
+    IReadOnlyList<AdminShipmentDto> Shipments);
+
+/// <summary>
+/// DTO for a shipment in admin order details view with full status history.
+/// </summary>
+public sealed record AdminShipmentDto(
+    Guid ShipmentId,
+    Guid StoreId,
+    string StoreName,
+    string Status,
+    decimal Subtotal,
+    decimal ShippingCost,
+    decimal Total,
+    string? CarrierName,
+    string? TrackingNumber,
+    string? TrackingUrl,
+    DateTime CreatedAt,
+    DateTime? ShippedAt,
+    DateTime? DeliveredAt,
+    DateTime? CancelledAt,
+    DateTime? RefundedAt,
+    decimal? RefundedAmount,
+    IReadOnlyList<AdminOrderItemDto> Items,
+    IReadOnlyList<ShipmentStatusHistoryDto> StatusHistory);
+
+/// <summary>
+/// DTO for an item in admin order details view.
+/// </summary>
+public sealed record AdminOrderItemDto(
+    Guid ItemId,
+    Guid ProductId,
+    string ProductName,
+    decimal UnitPrice,
+    int Quantity,
+    decimal LineTotal,
+    string? ShippingMethodName,
+    string Status);
