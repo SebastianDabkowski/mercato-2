@@ -443,4 +443,61 @@ public sealed class NotificationService : INotificationService
             dueDate);
         return Task.CompletedTask;
     }
+
+    public Task SendRefundProviderErrorAsync(
+        Guid refundId,
+        Guid orderId,
+        string orderNumber,
+        decimal refundAmount,
+        string currency,
+        string? errorMessage,
+        string? errorCode,
+        Guid initiatorId,
+        string initiatorType,
+        bool canRetry,
+        CancellationToken cancellationToken = default)
+    {
+        // TODO: Replace logging with real notification integration.
+        // In a production environment, this would notify support agents via email,
+        // internal messaging system, or ticketing system about the failure.
+        // For seller-initiated refunds, the seller would also be notified.
+        var retryInfo = canRetry ? "Retry is available." : "Maximum retries exceeded.";
+        _logger.LogWarning(
+            "Refund provider error notification. Refund ID: {RefundId}, Order: {OrderNumber}. " +
+            "Amount: {Currency} {RefundAmount:N2}. Error: {ErrorMessage} ({ErrorCode}). " +
+            "Initiated by: {InitiatorType} {InitiatorId}. {RetryInfo}",
+            refundId,
+            orderNumber,
+            currency,
+            refundAmount,
+            errorMessage ?? "Unknown error",
+            errorCode ?? "N/A",
+            initiatorType,
+            initiatorId,
+            retryInfo);
+        return Task.CompletedTask;
+    }
+
+    public Task SendPartialRefundProcessedAsync(
+        Guid orderId,
+        string buyerEmail,
+        string orderNumber,
+        decimal refundAmount,
+        decimal remainingAmount,
+        string currency,
+        CancellationToken cancellationToken = default)
+    {
+        // TODO: Replace logging with real email/notification integration.
+        // Notify buyer when a partial refund has been processed for their order.
+        _logger.LogInformation(
+            "Partial refund processed notification sent to {BuyerEmail} for order {OrderNumber}. " +
+            "Refund amount: {RefundCurrency} {RefundAmount:N2}. Remaining amount: {RemainingCurrency} {RemainingAmount:N2}",
+            buyerEmail,
+            orderNumber,
+            currency,
+            refundAmount,
+            currency,
+            remainingAmount);
+        return Task.CompletedTask;
+    }
 }

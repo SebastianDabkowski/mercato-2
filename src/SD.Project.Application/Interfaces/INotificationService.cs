@@ -354,4 +354,51 @@ public interface INotificationService
         string currency,
         DateTime dueDate,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a notification when a refund processing fails due to provider error.
+    /// Used to notify support agents about failures that need attention.
+    /// </summary>
+    /// <param name="refundId">The ID of the failed refund.</param>
+    /// <param name="orderId">The ID of the order.</param>
+    /// <param name="orderNumber">The order number for display.</param>
+    /// <param name="refundAmount">The refund amount.</param>
+    /// <param name="currency">The currency code.</param>
+    /// <param name="errorMessage">The error message from the provider.</param>
+    /// <param name="errorCode">The error code from the provider.</param>
+    /// <param name="initiatorId">The ID of the user who initiated the refund.</param>
+    /// <param name="initiatorType">The type of initiator (SupportAgent, Seller).</param>
+    /// <param name="canRetry">Whether the refund can be retried.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendRefundProviderErrorAsync(
+        Guid refundId,
+        Guid orderId,
+        string orderNumber,
+        decimal refundAmount,
+        string currency,
+        string? errorMessage,
+        string? errorCode,
+        Guid initiatorId,
+        string initiatorType,
+        bool canRetry,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a notification when a partial refund is processed.
+    /// </summary>
+    /// <param name="orderId">The ID of the order.</param>
+    /// <param name="buyerEmail">The buyer's email address.</param>
+    /// <param name="orderNumber">The order number for display.</param>
+    /// <param name="refundAmount">The refunded amount.</param>
+    /// <param name="remainingAmount">The remaining order amount.</param>
+    /// <param name="currency">The currency code.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendPartialRefundProcessedAsync(
+        Guid orderId,
+        string buyerEmail,
+        string orderNumber,
+        decimal refundAmount,
+        decimal remainingAmount,
+        string currency,
+        CancellationToken cancellationToken = default);
 }

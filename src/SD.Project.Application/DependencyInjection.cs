@@ -40,6 +40,7 @@ public static class DependencyInjection
         services.AddScoped<ReturnRequestService>();
         services.AddScoped<PromoCodeService>();
         services.AddScoped<EscrowService>();
+        services.AddScoped<RefundService>();
         services.AddScoped<PaymentWebhookService>();
         services.AddScoped<CommissionInvoiceService>();
         services.AddScoped<IAuthorizationService, AuthorizationService>();
