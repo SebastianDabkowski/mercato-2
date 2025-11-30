@@ -96,7 +96,8 @@ public class PaymentWebhookModel : PageModel
                 payload.Status,
                 providerName,
                 signature,
-                rawPayload);
+                rawPayload,
+                payload.RefundAmount);
 
             var result = await _paymentWebhookService.HandleAsync(command, cancellationToken);
 
@@ -112,9 +113,9 @@ public class PaymentWebhookModel : PageModel
             }
             else
             {
-                // Return 200 even for "failed" processing to acknowledge receipt
-                // This prevents payment providers from retrying unnecessarily
-                // The actual error is logged for debugging
+                // Return 200 for business logic failures (e.g., order not found, invalid transition)
+                // to acknowledge receipt and prevent payment providers from retrying.
+                // The actual error is logged for debugging.
                 _logger.LogWarning("Payment webhook processing failed: {Message}", result.Message);
                 return new JsonResult(new
                 {
@@ -125,6 +126,7 @@ public class PaymentWebhookModel : PageModel
         }
         catch (Exception ex)
         {
+            // Return 500 for unexpected server errors to allow payment providers to retry
             _logger.LogError(ex, "Unexpected error processing payment webhook");
             return StatusCode(500, new { error = "Internal server error" });
         }

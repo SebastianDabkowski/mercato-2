@@ -109,7 +109,8 @@ public sealed class PaymentWebhookService
                     // Handle refund - order can be refunded from various states
                     if (order.CanTransitionTo(OrderStatus.Refunded))
                     {
-                        order.Refund(); // Will use TotalAmount if no specific amount provided
+                        // Use the provided refund amount if available, otherwise full refund
+                        order.Refund(command.RefundAmount);
                         await _orderRepository.UpdateAsync(order, cancellationToken);
                         await _orderRepository.SaveChangesAsync(cancellationToken);
 
@@ -150,30 +151,17 @@ public sealed class PaymentWebhookService
     {
         ArgumentNullException.ThrowIfNull(command);
 
+        // Pass refund amount to the webhook command for proper handling
         var webhookCommand = new ProcessPaymentWebhookCommand(
             command.OrderId,
             command.TransactionId,
             command.ProviderStatusCode,
-            command.ProviderName);
+            command.ProviderName,
+            null, // ProviderSignature
+            null, // RawPayload
+            command.RefundAmount);
 
-        var result = await HandleAsync(webhookCommand, cancellationToken);
-
-        // Handle specific refund amount if provided
-        if (result.Success && command.RefundAmount.HasValue && command.RefundAmount.Value > 0)
-        {
-            var order = await _orderRepository.GetByIdAsync(command.OrderId, cancellationToken);
-            if (order is not null && order.Status == OrderStatus.Refunded && 
-                order.RefundedAmount != command.RefundAmount)
-            {
-                // The refund amount was already set by the Refund() method
-                // For partial refunds, we would need additional logic
-                _logger.LogDebug(
-                    "Refund amount for order {OrderId}: {Amount}",
-                    command.OrderId, order.RefundedAmount);
-            }
-        }
-
-        return result;
+        return await HandleAsync(webhookCommand, cancellationToken);
     }
 
     /// <summary>

@@ -9,13 +9,15 @@ namespace SD.Project.Application.Commands;
 /// <param name="ProviderName">The name of the payment provider (e.g., "Stripe", "PayU").</param>
 /// <param name="ProviderSignature">Signature for webhook verification.</param>
 /// <param name="RawPayload">The raw webhook payload for logging.</param>
+/// <param name="RefundAmount">Optional refund amount if this is a refund notification.</param>
 public sealed record ProcessPaymentWebhookCommand(
     Guid OrderId,
     string TransactionId,
     string ProviderStatusCode,
     string? ProviderName = null,
     string? ProviderSignature = null,
-    string? RawPayload = null);
+    string? RawPayload = null,
+    decimal? RefundAmount = null);
 
 /// <summary>
 /// Command to update payment status based on provider callback.
