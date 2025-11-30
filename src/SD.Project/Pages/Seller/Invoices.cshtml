@@ -1,0 +1,368 @@
+@page
+@model SD.Project.Pages.Seller.InvoicesModel
+@{
+    ViewData["Title"] = "Commission Invoices";
+    var hasFilters = !string.IsNullOrEmpty(Model.Status) || Model.Year.HasValue;
+    var isInvoicesTab = Model.Tab != "creditnotes";
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1">Commission Invoices</h1>
+            @if (!string.IsNullOrEmpty(Model.StoreName))
+            {
+                <p class="text-muted mb-0">Invoices for @Model.StoreName</p>
+            }
+        </div>
+        <a asp-page="/Seller/Dashboard" class="btn btn-outline-secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left me-2" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/>
+            </svg>
+            Back to Dashboard
+        </a>
+    </div>
+
+    @if (!Model.StoreId.HasValue)
+    {
+        <div class="alert alert-warning">
+            <h5 class="alert-heading">Store Not Found</h5>
+            <p class="mb-0">You need to complete seller onboarding to view commission invoices.</p>
+            <a asp-page="/Seller/Onboarding" class="btn btn-primary mt-3">Complete Onboarding</a>
+        </div>
+    }
+    else
+    {
+        <!-- Tabs -->
+        <ul class="nav nav-tabs mb-4">
+            <li class="nav-item">
+                <a class="nav-link @(isInvoicesTab ? "active" : "")" asp-page="/Seller/Invoices" asp-route-Tab="invoices">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-text me-1" viewBox="0 0 16 16">
+                        <path d="M5 4a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1zm-.5 2.5A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5M5 8a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1z"/>
+                        <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1"/>
+                    </svg>
+                    Invoices
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(!isInvoicesTab ? "active" : "")" asp-page="/Seller/Invoices" asp-route-Tab="creditnotes">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-minus me-1" viewBox="0 0 16 16">
+                        <path d="M5.5 8a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 0 1H6a.5.5 0 0 1-.5-.5"/>
+                        <path d="M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zm0 1h8a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1"/>
+                    </svg>
+                    Credit Notes
+                </a>
+            </li>
+        </ul>
+
+        @if (isInvoicesTab)
+        {
+            <!-- Filters Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-funnel me-2" viewBox="0 0 16 16">
+                            <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5zm1 .5v1.308l4.372 4.858A.5.5 0 0 1 7 8.5v5.306l2-.666V8.5a.5.5 0 0 1 .128-.334L13.5 3.308V2z"/>
+                        </svg>
+                        Filter Invoices
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <input type="hidden" name="Tab" value="invoices" />
+                        <div class="col-md-4">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="Status">
+                                <option value="">All Statuses</option>
+                                @foreach (var status in Model.AvailableStatuses)
+                                {
+                                    if (Model.Status == status)
+                                    {
+                                        <option value="@status" selected>@status</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@status">@status</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="year" class="form-label">Year</label>
+                            <select class="form-select" id="year" name="Year">
+                                <option value="">All Years</option>
+                                @for (var y = DateTime.UtcNow.Year; y >= 2020; y--)
+                                {
+                                    if (Model.Year == y)
+                                    {
+                                        <option value="@y" selected>@y</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@y">@y</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end gap-2">
+                            <button type="submit" class="btn btn-primary flex-grow-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search me-1" viewBox="0 0 16 16">
+                                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
+                                </svg>
+                                Filter
+                            </button>
+                            @if (hasFilters)
+                            {
+                                <a asp-page="/Seller/Invoices" asp-route-Tab="invoices" class="btn btn-outline-secondary" title="Clear Filters">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16">
+                                        <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>
+                                    </svg>
+                                </a>
+                            }
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            @if (Model.Invoices.Count == 0 && !hasFilters)
+            {
+                <div class="text-center py-5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-file-text text-muted mb-3" viewBox="0 0 16 16">
+                        <path d="M5 4a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1zm-.5 2.5A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5M5 8a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1z"/>
+                        <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1"/>
+                    </svg>
+                    <h4 class="text-muted">No invoices yet</h4>
+                    <p class="text-muted">Commission invoices will be generated automatically based on your monthly settlements.</p>
+                </div>
+            }
+            else if (Model.Invoices.Count == 0 && hasFilters)
+            {
+                <div class="text-center py-5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-search text-muted mb-3" viewBox="0 0 16 16">
+                        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
+                    </svg>
+                    <h4 class="text-muted">No invoices match your filters</h4>
+                    <p class="text-muted">Try adjusting your filter criteria or clear filters to see all invoices.</p>
+                    <a asp-page="/Seller/Invoices" asp-route-Tab="invoices" class="btn btn-outline-primary mt-2">Clear Filters</a>
+                </div>
+            }
+            else
+            {
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <h5 class="mb-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-receipt me-2" viewBox="0 0 16 16">
+                                        <path d="M1.92.506a.5.5 0 0 1 .434.14L3 1.293l.646-.647a.5.5 0 0 1 .708 0L5 1.293l.646-.647a.5.5 0 0 1 .708 0L7 1.293l.646-.647a.5.5 0 0 1 .708 0L9 1.293l.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .801.13l.5 1A.5.5 0 0 1 15 2v12a.5.5 0 0 1-.053.224l-.5 1a.5.5 0 0 1-.8.13L13 14.707l-.646.647a.5.5 0 0 1-.708 0L11 14.707l-.646.647a.5.5 0 0 1-.708 0L9 14.707l-.646.647a.5.5 0 0 1-.708 0L7 14.707l-.646.647a.5.5 0 0 1-.708 0L5 14.707l-.646.647a.5.5 0 0 1-.708 0L3 14.707l-.646.647a.5.5 0 0 1-.801-.13l-.5-1A.5.5 0 0 1 1 14V2a.5.5 0 0 1 .053-.224l.5-1a.5.5 0 0 1 .367-.27m.217 1.338L2 2.118v11.764l.137.274.51-.51a.5.5 0 0 1 .707 0l.646.647.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.509.509.137-.274V2.118l-.137-.274-.51.51a.5.5 0 0 1-.707 0L12 1.707l-.646.647a.5.5 0 0 1-.708 0L10 1.707l-.646.647a.5.5 0 0 1-.708 0L8 1.707l-.646.647a.5.5 0 0 1-.708 0L6 1.707l-.646.647a.5.5 0 0 1-.708 0L4 1.707l-.646.647a.5.5 0 0 1-.708 0z"/>
+                                        <path d="M3 4.5a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5m0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5m0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5m0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5m8-6a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5m0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5m0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5m0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5"/>
+                                    </svg>
+                                    Your Invoices (@Model.TotalCount)
+                                    @if (hasFilters)
+                                    {
+                                        <span class="badge bg-info ms-2">Filtered</span>
+                                    }
+                                </h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col">Invoice Number</th>
+                                        <th scope="col">Period</th>
+                                        <th scope="col" class="text-center">Status</th>
+                                        <th scope="col">Issue Date</th>
+                                        <th scope="col">Due Date</th>
+                                        <th scope="col" class="text-end">Amount</th>
+                                        <th scope="col" class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var invoice in Model.Invoices)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <a asp-page="/Seller/InvoiceDetail" asp-route-invoiceId="@invoice.Id" class="text-decoration-none fw-medium">
+                                                    @invoice.InvoiceNumber
+                                                </a>
+                                                @if (invoice.HasCreditNote)
+                                                {
+                                                    <span class="badge bg-warning ms-1" title="Has credit note">CN</span>
+                                                }
+                                            </td>
+                                            <td>@invoice.PeriodDisplay</td>
+                                            <td class="text-center">
+                                                <span class="badge @invoice.StatusBadgeClass">@invoice.Status</span>
+                                                @if (invoice.IsOverdue)
+                                                {
+                                                    <br><small class="text-danger">Overdue</small>
+                                                }
+                                            </td>
+                                            <td>@invoice.IssueDate.ToString("MMM dd, yyyy")</td>
+                                            <td>@invoice.DueDate.ToString("MMM dd, yyyy")</td>
+                                            <td class="text-end fw-bold">@invoice.Currency @invoice.GrossAmount.ToString("N2")</td>
+                                            <td class="text-end">
+                                                <div class="btn-group">
+                                                    <a asp-page="/Seller/InvoiceDetail" asp-route-invoiceId="@invoice.Id" class="btn btn-sm btn-outline-primary">
+                                                        View
+                                                    </a>
+                                                    @if (invoice.Status != "Draft")
+                                                    {
+                                                        <a asp-page="/Api/InvoicePdf" asp-route-invoiceId="@invoice.Id" class="btn btn-sm btn-outline-secondary" title="Download PDF" target="_blank">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download" viewBox="0 0 16 16">
+                                                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
+                                                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/>
+                                                            </svg>
+                                                        </a>
+                                                    }
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    @if (Model.TotalPages > 1)
+                    {
+                        <div class="card-footer bg-light">
+                            <nav aria-label="Invoice pagination">
+                                <ul class="pagination justify-content-center mb-0">
+                                    <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                                        <a class="page-link" asp-page="/Seller/Invoices" 
+                                           asp-route-PageNumber="@(Model.CurrentPage - 1)"
+                                           asp-route-Tab="invoices"
+                                           asp-route-Status="@Model.Status"
+                                           asp-route-Year="@Model.Year">Previous</a>
+                                    </li>
+                                    @for (int i = Math.Max(1, Model.CurrentPage - 2); i <= Math.Min(Model.TotalPages, Model.CurrentPage + 2); i++)
+                                    {
+                                        <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                            <a class="page-link" asp-page="/Seller/Invoices"
+                                               asp-route-PageNumber="@i"
+                                               asp-route-Tab="invoices"
+                                               asp-route-Status="@Model.Status"
+                                               asp-route-Year="@Model.Year">@i</a>
+                                        </li>
+                                    }
+                                    <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                                        <a class="page-link" asp-page="/Seller/Invoices"
+                                           asp-route-PageNumber="@(Model.CurrentPage + 1)"
+                                           asp-route-Tab="invoices"
+                                           asp-route-Status="@Model.Status"
+                                           asp-route-Year="@Model.Year">Next</a>
+                                    </li>
+                                </ul>
+                            </nav>
+                            <p class="text-muted text-center mt-2 mb-0 small">
+                                Showing @Model.DisplayStartItem-@Model.DisplayEndItem of @Model.TotalCount invoices
+                            </p>
+                        </div>
+                    }
+                </div>
+            }
+        }
+        else
+        {
+            <!-- Credit Notes Tab -->
+            @if (Model.CreditNotes.Count == 0)
+            {
+                <div class="text-center py-5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-file-minus text-muted mb-3" viewBox="0 0 16 16">
+                        <path d="M5.5 8a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 0 1H6a.5.5 0 0 1-.5-.5"/>
+                        <path d="M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zm0 1h8a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1"/>
+                    </svg>
+                    <h4 class="text-muted">No credit notes</h4>
+                    <p class="text-muted">Credit notes will appear here when corrections are made to your invoices.</p>
+                </div>
+            }
+            else
+            {
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-file-minus me-2" viewBox="0 0 16 16">
+                                <path d="M5.5 8a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 0 1H6a.5.5 0 0 1-.5-.5"/>
+                                <path d="M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zm0 1h8a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1"/>
+                            </svg>
+                            Your Credit Notes (@Model.TotalCount)
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col">Credit Note Number</th>
+                                        <th scope="col">Original Invoice</th>
+                                        <th scope="col" class="text-center">Type</th>
+                                        <th scope="col">Issue Date</th>
+                                        <th scope="col">Reason</th>
+                                        <th scope="col" class="text-end">Amount</th>
+                                        <th scope="col" class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var creditNote in Model.CreditNotes)
+                                    {
+                                        <tr>
+                                            <td class="fw-medium">@creditNote.CreditNoteNumber</td>
+                                            <td>@creditNote.OriginalInvoiceNumber</td>
+                                            <td class="text-center">
+                                                <span class="badge @creditNote.TypeBadgeClass">@creditNote.Type</span>
+                                            </td>
+                                            <td>@creditNote.IssueDate.ToString("MMM dd, yyyy")</td>
+                                            <td>@(creditNote.Reason.Length > 50 ? creditNote.Reason.Substring(0, 50) + "..." : creditNote.Reason)</td>
+                                            <td class="text-end fw-bold text-danger">@creditNote.Currency @creditNote.GrossAmount.ToString("N2")</td>
+                                            <td class="text-end">
+                                                <a asp-page="/Api/CreditNotePdf" asp-route-creditNoteId="@creditNote.Id" class="btn btn-sm btn-outline-secondary" title="Download PDF" target="_blank">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download" viewBox="0 0 16 16">
+                                                        <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
+                                                        <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/>
+                                                    </svg>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    @if (Model.TotalPages > 1)
+                    {
+                        <div class="card-footer bg-light">
+                            <nav aria-label="Credit note pagination">
+                                <ul class="pagination justify-content-center mb-0">
+                                    <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                                        <a class="page-link" asp-page="/Seller/Invoices" 
+                                           asp-route-PageNumber="@(Model.CurrentPage - 1)"
+                                           asp-route-Tab="creditnotes">Previous</a>
+                                    </li>
+                                    @for (int i = Math.Max(1, Model.CurrentPage - 2); i <= Math.Min(Model.TotalPages, Model.CurrentPage + 2); i++)
+                                    {
+                                        <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                            <a class="page-link" asp-page="/Seller/Invoices"
+                                               asp-route-PageNumber="@i"
+                                               asp-route-Tab="creditnotes">@i</a>
+                                        </li>
+                                    }
+                                    <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                                        <a class="page-link" asp-page="/Seller/Invoices"
+                                           asp-route-PageNumber="@(Model.CurrentPage + 1)"
+                                           asp-route-Tab="creditnotes">Next</a>
+                                    </li>
+                                </ul>
+                            </nav>
+                            <p class="text-muted text-center mt-2 mb-0 small">
+                                Showing @Model.DisplayStartItem-@Model.DisplayEndItem of @Model.TotalCount credit notes
+                            </p>
+                        </div>
+                    }
+                </div>
+            }
+        }
+    }
+</div>
