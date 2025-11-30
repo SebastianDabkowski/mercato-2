@@ -280,7 +280,7 @@
                             </ul>
                         </nav>
                         <p class="text-muted text-center mt-2 mb-0 small">
-                            Showing @((Model.CurrentPage - 1) * Model.PageSize + 1)-@Math.Min(Model.CurrentPage * Model.PageSize, Model.TotalCount) of @Model.TotalCount orders
+                            Showing @Model.DisplayStartItem-@Model.DisplayEndItem of @Model.TotalCount orders
                         </p>
                     </div>
                 }

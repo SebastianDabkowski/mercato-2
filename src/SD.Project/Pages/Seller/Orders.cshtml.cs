@@ -30,6 +30,10 @@ public class OrdersModel : PageModel
     public int TotalPages { get; private set; }
     public int TotalCount { get; private set; }
 
+    // Pagination helper properties for display
+    public int DisplayStartItem => (CurrentPage - 1) * PageSize + 1;
+    public int DisplayEndItem => Math.Min(CurrentPage * PageSize, TotalCount);
+
     // Available statuses for filtering
     public IReadOnlyList<string> AvailableStatuses { get; } = new[]
     {
