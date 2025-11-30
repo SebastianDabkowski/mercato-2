@@ -73,7 +73,10 @@ public sealed record BuyerOrderDetailsDto(
     string Currency,
     DateTime CreatedAt,
     string? EstimatedDeliveryRange,
-    IReadOnlyList<SellerSubOrderSectionDto> SellerSubOrders);
+    IReadOnlyList<SellerSubOrderSectionDto> SellerSubOrders,
+    DateTime? CancelledAt,
+    DateTime? RefundedAt,
+    decimal? RefundedAmount);
 
 /// <summary>
 /// DTO for a seller sub-order section in buyer's order details view.
@@ -92,4 +95,7 @@ public sealed record SellerSubOrderSectionDto(
     string? TrackingUrl,
     DateTime? ShippedAt,
     DateTime? DeliveredAt,
-    string? EstimatedDelivery);
+    string? EstimatedDelivery,
+    DateTime? CancelledAt,
+    DateTime? RefundedAt,
+    decimal? RefundedAmount);

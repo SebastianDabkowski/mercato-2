@@ -16,7 +16,10 @@ public sealed record OrderDetailsViewModel(
     string Currency,
     DateTime CreatedAt,
     string? EstimatedDeliveryRange,
-    IReadOnlyList<SellerSubOrderViewModel> SellerSubOrders);
+    IReadOnlyList<SellerSubOrderViewModel> SellerSubOrders,
+    DateTime? CancelledAt,
+    DateTime? RefundedAt,
+    decimal? RefundedAmount);
 
 /// <summary>
 /// View model for a seller sub-order section.
@@ -35,7 +38,10 @@ public sealed record SellerSubOrderViewModel(
     string? TrackingUrl,
     DateTime? ShippedAt,
     DateTime? DeliveredAt,
-    string? EstimatedDelivery);
+    string? EstimatedDelivery,
+    DateTime? CancelledAt,
+    DateTime? RefundedAt,
+    decimal? RefundedAmount);
 
 /// <summary>
 /// View model for an order item.
