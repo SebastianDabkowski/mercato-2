@@ -314,4 +314,25 @@ public interface INotificationService
         string? errorMessage,
         bool canRetry,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a notification when a monthly settlement is generated.
+    /// </summary>
+    /// <param name="sellerId">The seller's user ID.</param>
+    /// <param name="settlementId">The ID of the settlement.</param>
+    /// <param name="settlementNumber">The settlement reference number.</param>
+    /// <param name="netPayable">The net amount payable.</param>
+    /// <param name="currency">The currency code.</param>
+    /// <param name="year">The settlement year.</param>
+    /// <param name="month">The settlement month.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendSettlementGeneratedNotificationAsync(
+        Guid sellerId,
+        Guid settlementId,
+        string settlementNumber,
+        decimal netPayable,
+        string currency,
+        int year,
+        int month,
+        CancellationToken cancellationToken = default);
 }

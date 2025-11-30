@@ -29,6 +29,7 @@ public static class DependencyInjection
         services.AddScoped<StoreService>();
         services.AddScoped<PayoutSettingsService>();
         services.AddScoped<PayoutScheduleService>();
+        services.AddScoped<SettlementService>();
         services.AddScoped<InternalUserService>();
         services.AddScoped<CartService>();
         services.AddScoped<DeliveryAddressService>();
