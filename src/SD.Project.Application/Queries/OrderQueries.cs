@@ -21,3 +21,26 @@ public sealed record GetSellerSubOrdersQuery(
 public sealed record GetSellerSubOrderDetailsQuery(
     Guid StoreId,
     Guid SubOrderId);
+
+/// <summary>
+/// Query to get seller's sub-orders with filtering and pagination.
+/// </summary>
+public sealed record GetFilteredSellerSubOrdersQuery(
+    Guid StoreId,
+    string? Status = null,
+    DateTime? FromDate = null,
+    DateTime? ToDate = null,
+    string? BuyerSearch = null,
+    int PageNumber = 1,
+    int PageSize = 20);
+
+/// <summary>
+/// Query to export seller's sub-orders with optional filters.
+/// </summary>
+public sealed record ExportSellerSubOrdersQuery(
+    Guid StoreId,
+    ExportFormat Format,
+    string? Status = null,
+    DateTime? FromDate = null,
+    DateTime? ToDate = null,
+    string? BuyerSearch = null);

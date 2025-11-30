@@ -61,6 +61,30 @@ public interface IOrderRepository
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets filtered and paginated shipments (sub-orders) for a specific store.
+    /// </summary>
+    Task<(IReadOnlyList<OrderShipment> Shipments, int TotalCount)> GetFilteredShipmentsByStoreIdAsync(
+        Guid storeId,
+        ShipmentStatus? status,
+        DateTime? fromDate,
+        DateTime? toDate,
+        string? buyerSearch,
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all shipments for a store with their associated orders for export.
+    /// </summary>
+    Task<IReadOnlyList<(OrderShipment Shipment, Order Order, IReadOnlyList<OrderItem> Items)>> GetAllShipmentsForExportAsync(
+        Guid storeId,
+        ShipmentStatus? status,
+        DateTime? fromDate,
+        DateTime? toDate,
+        string? buyerSearch,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets a specific shipment by ID with its associated order and items.
     /// </summary>
     Task<(OrderShipment? Shipment, Order? Order, IReadOnlyList<OrderItem> Items)> GetShipmentWithOrderAsync(
