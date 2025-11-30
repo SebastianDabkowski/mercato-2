@@ -188,5 +188,7 @@ public enum PaymentMethodType
     /// <summary>Buy now pay later services.</summary>
     BuyNowPayLater,
     /// <summary>Cash on delivery.</summary>
-    CashOnDelivery
+    CashOnDelivery,
+    /// <summary>BLIK instant payment (Polish mobile payment system).</summary>
+    Blik
 }

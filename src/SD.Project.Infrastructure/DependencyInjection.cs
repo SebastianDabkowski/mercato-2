@@ -52,6 +52,7 @@ public static class DependencyInjection
         services.AddScoped<IReturnRequestRepository, ReturnRequestRepository>();
         services.AddScoped<IPromoCodeRepository, PromoCodeRepository>();
         services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<IPaymentProviderService, PaymentProviderService>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IPasswordValidator, PasswordValidator>();
         services.AddScoped<ISecurityAlertService, SecurityAlertService>();
