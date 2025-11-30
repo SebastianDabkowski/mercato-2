@@ -96,14 +96,4 @@ public class OrdersModel : PageModel
 
         return Page();
     }
-
-    private Guid? GetBuyerId()
-    {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (Guid.TryParse(userIdClaim, out var buyerId))
-        {
-            return buyerId;
-        }
-        return null;
-    }
 }
