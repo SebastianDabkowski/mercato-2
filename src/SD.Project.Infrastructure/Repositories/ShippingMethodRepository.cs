@@ -42,6 +42,16 @@ public sealed class ShippingMethodRepository : IShippingMethodRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<ShippingMethod>> GetAllByStoreIdAsync(Guid storeId, CancellationToken cancellationToken = default)
+    {
+        return await _context.ShippingMethods
+            .Where(s => s.StoreId == storeId)
+            .OrderBy(s => s.DisplayOrder)
+            .ThenBy(s => s.Name)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyDictionary<Guid, IReadOnlyList<ShippingMethod>>> GetByStoreIdsAsync(
         IEnumerable<Guid> storeIds,
         CancellationToken cancellationToken = default)
@@ -86,6 +96,12 @@ public sealed class ShippingMethodRepository : IShippingMethodRepository
     public Task UpdateAsync(ShippingMethod shippingMethod, CancellationToken cancellationToken = default)
     {
         _context.ShippingMethods.Update(shippingMethod);
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteAsync(ShippingMethod shippingMethod, CancellationToken cancellationToken = default)
+    {
+        _context.ShippingMethods.Remove(shippingMethod);
         return Task.CompletedTask;
     }
 

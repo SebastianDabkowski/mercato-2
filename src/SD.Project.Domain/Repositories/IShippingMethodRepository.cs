@@ -23,6 +23,11 @@ public interface IShippingMethodRepository
     Task<IReadOnlyList<ShippingMethod>> GetByStoreIdAsync(Guid storeId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets all shipping methods for a store (including inactive) for settings management.
+    /// </summary>
+    Task<IReadOnlyList<ShippingMethod>> GetAllByStoreIdAsync(Guid storeId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets all active shipping methods for multiple stores.
     /// </summary>
     Task<IReadOnlyDictionary<Guid, IReadOnlyList<ShippingMethod>>> GetByStoreIdsAsync(
@@ -48,6 +53,11 @@ public interface IShippingMethodRepository
     /// Updates an existing shipping method.
     /// </summary>
     Task UpdateAsync(ShippingMethod shippingMethod, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes a shipping method.
+    /// </summary>
+    Task DeleteAsync(ShippingMethod shippingMethod, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Saves all changes to the database.

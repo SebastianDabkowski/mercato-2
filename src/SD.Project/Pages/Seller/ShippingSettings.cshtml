@@ -1,0 +1,312 @@
+@page
+@model SD.Project.Pages.Seller.ShippingSettingsModel
+@{
+    ViewData["Title"] = "Shipping Settings";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <h1 class="mb-4">Shipping Settings</h1>
+            <p class="text-muted">Configure shipping methods for your store. These will be available to buyers at checkout.</p>
+
+            @if (!Model.HasStore)
+            {
+                <div class="alert alert-warning">
+                    <strong>Store Required</strong>
+                    <p class="mb-0">You need to set up your store before configuring shipping methods.</p>
+                    <a asp-page="/Seller/StoreSettings" class="btn btn-primary mt-3">Set Up Store</a>
+                </div>
+            }
+            else
+            {
+                @if (Model.Errors.Any())
+                {
+                    <div class="alert alert-danger">
+                        <ul class="mb-0">
+                            @foreach (var error in Model.Errors)
+                            {
+                                <li>@error</li>
+                            }
+                        </ul>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+                {
+                    <div class="alert alert-success">
+                        @Model.SuccessMessage
+                    </div>
+                }
+
+                @if (Model.ShowForm)
+                {
+                    <!-- Add/Edit Shipping Method Form -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">@(Model.IsEditing ? "Edit Shipping Method" : "Add Shipping Method")</h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="post" asp-page-handler="Save">
+                                <input type="hidden" asp-for="EditingMethodId" />
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label asp-for="Input.Name" class="form-label"></label>
+                                        <input asp-for="Input.Name" class="form-control" placeholder="e.g., Standard Shipping" />
+                                        <span asp-validation-for="Input.Name" class="text-danger"></span>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label asp-for="Input.CarrierName" class="form-label"></label>
+                                        <input asp-for="Input.CarrierName" class="form-control" placeholder="e.g., UPS, FedEx, USPS" />
+                                        <span asp-validation-for="Input.CarrierName" class="text-danger"></span>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label asp-for="Input.Description" class="form-label"></label>
+                                    <textarea asp-for="Input.Description" class="form-control" rows="2" placeholder="Describe this shipping option..."></textarea>
+                                    <span asp-validation-for="Input.Description" class="text-danger"></span>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label asp-for="Input.AvailableRegions" class="form-label"></label>
+                                    <input asp-for="Input.AvailableRegions" class="form-control" placeholder="e.g., US, CA, UK or leave empty for all regions" />
+                                    <span asp-validation-for="Input.AvailableRegions" class="text-danger"></span>
+                                    <small class="text-muted">Comma-separated country/region codes. Leave empty to make available everywhere.</small>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label asp-for="Input.EstimatedDeliveryDaysMin" class="form-label"></label>
+                                        <input asp-for="Input.EstimatedDeliveryDaysMin" class="form-control" type="number" min="0" max="365" />
+                                        <span asp-validation-for="Input.EstimatedDeliveryDaysMin" class="text-danger"></span>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label asp-for="Input.EstimatedDeliveryDaysMax" class="form-label"></label>
+                                        <input asp-for="Input.EstimatedDeliveryDaysMax" class="form-control" type="number" min="0" max="365" />
+                                        <span asp-validation-for="Input.EstimatedDeliveryDaysMax" class="text-danger"></span>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label asp-for="Input.BaseCost" class="form-label"></label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">$</span>
+                                            <input asp-for="Input.BaseCost" class="form-control" type="number" step="0.01" min="0" />
+                                        </div>
+                                        <span asp-validation-for="Input.BaseCost" class="text-danger"></span>
+                                    </div>
+
+                                    <div class="col-md-4 mb-3">
+                                        <label asp-for="Input.CostPerItem" class="form-label"></label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">$</span>
+                                            <input asp-for="Input.CostPerItem" class="form-control" type="number" step="0.01" min="0" />
+                                        </div>
+                                        <span asp-validation-for="Input.CostPerItem" class="text-danger"></span>
+                                    </div>
+
+                                    <div class="col-md-4 mb-3">
+                                        <label asp-for="Input.FreeShippingThreshold" class="form-label"></label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">$</span>
+                                            <input asp-for="Input.FreeShippingThreshold" class="form-control" type="number" step="0.01" min="0" />
+                                        </div>
+                                        <span asp-validation-for="Input.FreeShippingThreshold" class="text-danger"></span>
+                                        <small class="text-muted">Leave empty for no free shipping.</small>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label asp-for="Input.Currency" class="form-label"></label>
+                                        <select asp-for="Input.Currency" class="form-select">
+                                            <option value="USD">USD - US Dollar</option>
+                                            <option value="EUR">EUR - Euro</option>
+                                            <option value="GBP">GBP - British Pound</option>
+                                            <option value="CAD">CAD - Canadian Dollar</option>
+                                            <option value="AUD">AUD - Australian Dollar</option>
+                                        </select>
+                                        <span asp-validation-for="Input.Currency" class="text-danger"></span>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label asp-for="Input.DisplayOrder" class="form-label"></label>
+                                        <input asp-for="Input.DisplayOrder" class="form-control" type="number" min="0" max="1000" />
+                                        <span asp-validation-for="Input.DisplayOrder" class="text-danger"></span>
+                                        <small class="text-muted">Lower numbers appear first.</small>
+                                    </div>
+                                </div>
+
+                                @if (!Model.IsEditing)
+                                {
+                                    <div class="mb-3 form-check">
+                                        <input asp-for="Input.IsDefault" class="form-check-input" type="checkbox" />
+                                        <label asp-for="Input.IsDefault" class="form-check-label"></label>
+                                        <small class="text-muted d-block">This will be pre-selected at checkout.</small>
+                                    </div>
+                                }
+
+                                <div class="d-flex justify-content-between">
+                                    <button type="submit" asp-page-handler="Cancel" class="btn btn-outline-secondary">Cancel</button>
+                                    <button type="submit" class="btn btn-primary">@(Model.IsEditing ? "Update Shipping Method" : "Add Shipping Method")</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <!-- Add New Button -->
+                    <div class="mb-4">
+                        <form method="post" asp-page-handler="ShowForm">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-plus-lg me-1"></i> Add Shipping Method
+                            </button>
+                        </form>
+                    </div>
+                }
+
+                <!-- Shipping Methods List -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Configured Shipping Methods</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (!Model.ShippingMethods.Any())
+                        {
+                            <div class="text-center py-5">
+                                <i class="bi bi-truck display-1 text-muted"></i>
+                                <h5 class="mt-3">No Shipping Methods Configured</h5>
+                                <p class="text-muted">Add shipping methods to let buyers choose how their orders are delivered.</p>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Delivery Time</th>
+                                            <th>Cost</th>
+                                            <th>Regions</th>
+                                            <th>Status</th>
+                                            <th class="text-end">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var method in Model.ShippingMethods)
+                                        {
+                                            <tr class="@(method.IsActive ? "" : "table-secondary")">
+                                                <td>
+                                                    <strong>@method.Name</strong>
+                                                    @if (method.IsDefault)
+                                                    {
+                                                        <span class="badge bg-primary ms-1">Default</span>
+                                                    }
+                                                    @if (!string.IsNullOrEmpty(method.CarrierName))
+                                                    {
+                                                        <br /><small class="text-muted">@method.CarrierName</small>
+                                                    }
+                                                    @if (!string.IsNullOrEmpty(method.Description))
+                                                    {
+                                                        <br /><small class="text-muted">@method.Description</small>
+                                                    }
+                                                </td>
+                                                <td>@method.DeliveryTimeDisplay</td>
+                                                <td>
+                                                    @if (method.BaseCost == 0 && method.CostPerItem == 0)
+                                                    {
+                                                        <span class="text-success">Free</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <text>$@method.BaseCost.ToString("N2")</text>
+                                                        @if (method.CostPerItem > 0)
+                                                        {
+                                                            <text> + $@method.CostPerItem.ToString("N2")/item</text>
+                                                        }
+                                                    }
+                                                    @if (method.FreeShippingThreshold.HasValue)
+                                                    {
+                                                        <br /><small class="text-success">Free over $@method.FreeShippingThreshold.Value.ToString("N2")</small>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @if (string.IsNullOrEmpty(method.AvailableRegions))
+                                                    {
+                                                        <span class="text-muted">All regions</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        @method.AvailableRegions
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <span class="badge @method.StatusBadgeClass">@method.StatusDisplay</span>
+                                                </td>
+                                                <td class="text-end">
+                                                    <div class="btn-group btn-group-sm">
+                                                        <a asp-page="/Seller/ShippingSettings" asp-route-edit="@method.Id" class="btn btn-outline-primary">
+                                                            Edit
+                                                        </a>
+                                                        <form method="post" asp-page-handler="ToggleStatus" class="d-inline">
+                                                            <input type="hidden" name="ToggleMethodId" value="@method.Id" />
+                                                            <input type="hidden" name="ToggleActiveStatus" value="@(!method.IsActive)" />
+                                                            <button type="submit" class="btn btn-outline-secondary">
+                                                                @(method.IsActive ? "Disable" : "Enable")
+                                                            </button>
+                                                        </form>
+                                                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal-@method.Id">
+                                                            Delete
+                                                        </button>
+                                                    </div>
+
+                                                    <!-- Delete Confirmation Modal -->
+                                                    <div class="modal fade" id="deleteModal-@method.Id" tabindex="-1">
+                                                        <div class="modal-dialog">
+                                                            <div class="modal-content">
+                                                                <div class="modal-header">
+                                                                    <h5 class="modal-title">Delete Shipping Method</h5>
+                                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                                </div>
+                                                                <div class="modal-body text-start">
+                                                                    <p>Are you sure you want to delete <strong>@method.Name</strong>?</p>
+                                                                    <p class="text-danger mb-0">This action cannot be undone. Existing orders will retain their original shipping information.</p>
+                                                                </div>
+                                                                <div class="modal-footer">
+                                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                                    <form method="post" asp-page-handler="Delete">
+                                                                        <input type="hidden" name="DeleteMethodId" value="@method.Id" />
+                                                                        <button type="submit" class="btn btn-danger">Delete</button>
+                                                                    </form>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <a asp-page="/Seller/Dashboard" class="btn btn-outline-secondary">Back to Dashboard</a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
