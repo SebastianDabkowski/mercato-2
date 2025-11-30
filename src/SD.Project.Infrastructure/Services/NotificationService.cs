@@ -491,7 +491,7 @@ public sealed class NotificationService : INotificationService
         // Notify buyer when a partial refund has been processed for their order.
         _logger.LogInformation(
             "Partial refund processed notification sent to {BuyerEmail} for order {OrderNumber}. " +
-            "Refund amount: {Currency} {RefundAmount:N2}. Remaining amount: {Currency} {RemainingAmount:N2}",
+            "Refund amount: {RefundCurrency} {RefundAmount:N2}. Remaining amount: {RemainingCurrency} {RemainingAmount:N2}",
             buyerEmail,
             orderNumber,
             currency,

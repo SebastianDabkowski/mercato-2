@@ -31,6 +31,11 @@ public sealed class RefundProviderService : IRefundProviderService
 {
     private const string SimulatedRefundPrefix = "REF-SIM-";
     
+    // Simulation test patterns for different error scenarios
+    private const string SimulatedFailureAmountSuffix = ".99";
+    private const string SimulatedRejectionAmountSuffix = ".98";
+    private const string SimulatedPendingAmountSuffix = ".97";
+    
     private readonly ILogger<RefundProviderService> _logger;
     private readonly RefundProviderSettings _settings;
 
@@ -140,9 +145,11 @@ public sealed class RefundProviderService : IRefundProviderService
             "Generated refund transaction ID: {RefundTransactionId}",
             refundType, orderId, refundTransactionId);
 
-        // Simulate some error scenarios for testing based on amount patterns
+        // Simulate error scenarios for testing based on amount patterns
+        var amountString = amount.ToString("F2");
+        
         // Amount ending in .99 simulates a provider error
-        if (amount.ToString("F2").EndsWith(".99"))
+        if (amountString.EndsWith(SimulatedFailureAmountSuffix))
         {
             _logger.LogWarning(
                 "Simulated refund failure for testing. Order: {OrderId}, Amount: {Amount}",
@@ -157,7 +164,7 @@ public sealed class RefundProviderService : IRefundProviderService
         }
 
         // Amount ending in .98 simulates a rejected refund
-        if (amount.ToString("F2").EndsWith(".98"))
+        if (amountString.EndsWith(SimulatedRejectionAmountSuffix))
         {
             _logger.LogWarning(
                 "Simulated refund rejection for testing. Order: {OrderId}, Amount: {Amount}",
@@ -172,7 +179,7 @@ public sealed class RefundProviderService : IRefundProviderService
         }
 
         // Amount ending in .97 simulates a pending async refund
-        if (amount.ToString("F2").EndsWith(".97"))
+        if (amountString.EndsWith(SimulatedPendingAmountSuffix))
         {
             _logger.LogInformation(
                 "Simulated pending refund for testing. Order: {OrderId}, Amount: {Amount}",

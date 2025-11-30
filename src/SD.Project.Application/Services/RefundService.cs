@@ -168,7 +168,7 @@ public sealed class RefundService
             var allocation = await _escrowRepository.GetAllocationByShipmentIdAsync(
                 command.ShipmentId.Value, cancellationToken);
             
-            if (allocation is not null && allocation.Status == EscrowAllocationStatus.Held)
+            if (allocation is not null && allocation.Status == EscrowAllocationStatus.Held && allocation.TotalAmount > 0)
             {
                 // Calculate proportional commission based on refund amount
                 var refundRatio = command.Amount / allocation.TotalAmount;
@@ -189,9 +189,12 @@ public sealed class RefundService
                 if (heldAllocations.Count > 0)
                 {
                     var totalHeld = heldAllocations.Sum(a => a.TotalAmount);
-                    var totalCommission = heldAllocations.Sum(a => a.CommissionAmount);
-                    var refundRatio = command.Amount / totalHeld;
-                    commissionRefundAmount = Math.Round(totalCommission * refundRatio, 2, MidpointRounding.ToEven);
+                    if (totalHeld > 0)
+                    {
+                        var totalCommission = heldAllocations.Sum(a => a.CommissionAmount);
+                        var refundRatio = command.Amount / totalHeld;
+                        commissionRefundAmount = Math.Round(totalCommission * refundRatio, 2, MidpointRounding.ToEven);
+                    }
                 }
             }
         }
@@ -261,7 +264,7 @@ public sealed class RefundService
             command.ShipmentId, cancellationToken);
         
         decimal commissionRefundAmount = 0m;
-        if (allocation is not null && allocation.Status == EscrowAllocationStatus.Held)
+        if (allocation is not null && allocation.Status == EscrowAllocationStatus.Held && allocation.TotalAmount > 0)
         {
             var refundRatio = refundAmount / allocation.TotalAmount;
             commissionRefundAmount = Math.Round(allocation.CommissionAmount * refundRatio, 2, MidpointRounding.ToEven);
@@ -571,7 +574,21 @@ public sealed class RefundService
             {
                 if (providerResult.Status == RefundProviderStatus.Completed)
                 {
-                    refund.Complete(providerResult.RefundTransactionId ?? $"REF-{Guid.NewGuid():N}");
+                    // Require a transaction ID from the provider for proper reconciliation
+                    if (string.IsNullOrWhiteSpace(providerResult.RefundTransactionId))
+                    {
+                        refund.Fail("Provider returned success but no transaction ID", "MISSING_TRANSACTION_ID");
+                        
+                        _logger.LogError(
+                            "Refund {RefundId} failed: provider returned success but no transaction ID",
+                            refund.Id);
+
+                        return ProcessRefundResultDto.Failed(
+                            "Provider did not return a transaction ID",
+                            refund.Status.ToString());
+                    }
+
+                    refund.Complete(providerResult.RefundTransactionId);
                     
                     // Update escrow and order
                     await UpdateEscrowAndOrderAfterRefundAsync(refund, order, cancellationToken);
@@ -681,26 +698,29 @@ public sealed class RefundService
                     if (heldAllocations.Count > 0)
                     {
                         var totalHeld = heldAllocations.Sum(a => a.TotalAmount);
-                        var remainingRefund = refund.Amount;
-
-                        foreach (var allocation in heldAllocations)
+                        if (totalHeld > 0)
                         {
-                            if (remainingRefund <= 0) break;
+                            var remainingRefund = refund.Amount;
 
-                            var proportionalRefund = Math.Min(
-                                Math.Round(refund.Amount * (allocation.TotalAmount / totalHeld), 2),
-                                allocation.GetRemainingAmount());
-
-                            if (proportionalRefund > 0)
+                            foreach (var allocation in heldAllocations)
                             {
-                                await _escrowService.HandleAsync(
-                                    new PartialRefundEscrowCommand(
-                                        allocation.ShipmentId,
-                                        proportionalRefund,
-                                        refund.RefundTransactionId),
-                                    cancellationToken);
+                                if (remainingRefund <= 0) break;
 
-                                remainingRefund -= proportionalRefund;
+                                var proportionalRefund = Math.Min(
+                                    Math.Round(refund.Amount * (allocation.TotalAmount / totalHeld), 2),
+                                    allocation.GetRemainingAmount());
+
+                                if (proportionalRefund > 0)
+                                {
+                                    await _escrowService.HandleAsync(
+                                        new PartialRefundEscrowCommand(
+                                            allocation.ShipmentId,
+                                            proportionalRefund,
+                                            refund.RefundTransactionId),
+                                        cancellationToken);
+
+                                    remainingRefund -= proportionalRefund;
+                                }
                             }
                         }
                     }
