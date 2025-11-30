@@ -286,4 +286,99 @@ public sealed class OrderService
             shipment.TrackingNumber,
             shipment.TrackingUrl);
     }
+
+    /// <summary>
+    /// Gets seller's sub-orders with filtering and pagination.
+    /// </summary>
+    public async Task<PagedResultDto<SellerSubOrderSummaryDto>> HandleAsync(
+        GetFilteredSellerSubOrdersQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        // Validate and normalize pagination
+        var pageNumber = Math.Max(1, query.PageNumber);
+        var pageSize = Math.Clamp(query.PageSize, 1, 100);
+        var skip = (pageNumber - 1) * pageSize;
+
+        // Parse status filter if provided
+        ShipmentStatus? statusFilter = null;
+        if (!string.IsNullOrWhiteSpace(query.Status) && 
+            Enum.TryParse<ShipmentStatus>(query.Status, ignoreCase: true, out var parsedStatus))
+        {
+            statusFilter = parsedStatus;
+        }
+
+        // Get filtered shipments from repository
+        var (shipments, totalCount) = await _orderRepository.GetFilteredShipmentsByStoreIdAsync(
+            query.StoreId,
+            statusFilter,
+            query.FromDate,
+            query.ToDate,
+            query.BuyerSearch,
+            skip,
+            pageSize,
+            cancellationToken);
+
+        if (shipments.Count == 0)
+        {
+            return PagedResultDto<SellerSubOrderSummaryDto>.Create(
+                Array.Empty<SellerSubOrderSummaryDto>(),
+                pageNumber,
+                pageSize,
+                totalCount);
+        }
+
+        // Get order details for all shipments
+        var orderIds = shipments.Select(s => s.OrderId).Distinct().ToList();
+        var orders = new Dictionary<Guid, Order>();
+        var buyers = new Dictionary<Guid, User?>();
+
+        foreach (var orderId in orderIds)
+        {
+            var order = await _orderRepository.GetByIdAsync(orderId, cancellationToken);
+            if (order is not null)
+            {
+                orders[orderId] = order;
+                if (!buyers.ContainsKey(order.BuyerId))
+                {
+                    buyers[order.BuyerId] = await _userRepository.GetByIdAsync(order.BuyerId, cancellationToken);
+                }
+            }
+        }
+
+        var result = new List<SellerSubOrderSummaryDto>();
+        foreach (var shipment in shipments)
+        {
+            if (!orders.TryGetValue(shipment.OrderId, out var order))
+            {
+                continue;
+            }
+
+            var buyer = buyers.GetValueOrDefault(order.BuyerId);
+            var buyerName = buyer?.FirstName is not null && buyer?.LastName is not null
+                ? $"{buyer.FirstName} {buyer.LastName}"
+                : order.RecipientName;
+
+            // Count items for this sub-order
+            var itemCount = order.Items.Count(i => i.StoreId == shipment.StoreId);
+
+            result.Add(new SellerSubOrderSummaryDto(
+                shipment.Id,
+                order.Id,
+                order.OrderNumber,
+                shipment.Status.ToString(),
+                itemCount,
+                shipment.Subtotal + shipment.ShippingCost,
+                order.Currency,
+                buyerName,
+                shipment.CreatedAt));
+        }
+
+        return PagedResultDto<SellerSubOrderSummaryDto>.Create(
+            result.AsReadOnly(),
+            pageNumber,
+            pageSize,
+            totalCount);
+    }
 }

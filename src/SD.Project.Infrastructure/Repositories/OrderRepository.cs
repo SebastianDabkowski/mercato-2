@@ -202,4 +202,148 @@ public sealed class OrderRepository : IOrderRepository
         return await _context.Orders
             .AnyAsync(o => o.PaymentTransactionId == transactionId, cancellationToken);
     }
+
+    public async Task<(IReadOnlyList<OrderShipment> Shipments, int TotalCount)> GetFilteredShipmentsByStoreIdAsync(
+        Guid storeId,
+        ShipmentStatus? status,
+        DateTime? fromDate,
+        DateTime? toDate,
+        string? buyerSearch,
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default)
+    {
+        // Start with shipments for the store
+        var shipmentsQuery = _context.OrderShipments
+            .Where(s => s.StoreId == storeId);
+
+        // Apply status filter
+        if (status.HasValue)
+        {
+            shipmentsQuery = shipmentsQuery.Where(s => s.Status == status.Value);
+        }
+
+        // Apply date range filter
+        if (fromDate.HasValue)
+        {
+            shipmentsQuery = shipmentsQuery.Where(s => s.CreatedAt >= fromDate.Value);
+        }
+        if (toDate.HasValue)
+        {
+            // Include the entire end date
+            var endOfDay = toDate.Value.Date.AddDays(1);
+            shipmentsQuery = shipmentsQuery.Where(s => s.CreatedAt < endOfDay);
+        }
+
+        // For buyer search, we need to join with orders
+        if (!string.IsNullOrWhiteSpace(buyerSearch))
+        {
+            var searchTerm = buyerSearch.Trim().ToLowerInvariant();
+            var orderIds = await _context.Orders
+                .Where(o => o.RecipientName.ToLower().Contains(searchTerm) ||
+                           o.OrderNumber.ToLower().Contains(searchTerm))
+                .Select(o => o.Id)
+                .ToListAsync(cancellationToken);
+
+            shipmentsQuery = shipmentsQuery.Where(s => orderIds.Contains(s.OrderId));
+        }
+
+        // Get total count before pagination
+        var totalCount = await shipmentsQuery.CountAsync(cancellationToken);
+
+        // Apply pagination and ordering
+        var shipments = await shipmentsQuery
+            .OrderByDescending(s => s.CreatedAt)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+
+        return (shipments.AsReadOnly(), totalCount);
+    }
+
+    public async Task<IReadOnlyList<(OrderShipment Shipment, Order Order, IReadOnlyList<OrderItem> Items)>> GetAllShipmentsForExportAsync(
+        Guid storeId,
+        ShipmentStatus? status,
+        DateTime? fromDate,
+        DateTime? toDate,
+        string? buyerSearch,
+        CancellationToken cancellationToken = default)
+    {
+        // Start with shipments for the store
+        var shipmentsQuery = _context.OrderShipments
+            .Where(s => s.StoreId == storeId);
+
+        // Apply status filter
+        if (status.HasValue)
+        {
+            shipmentsQuery = shipmentsQuery.Where(s => s.Status == status.Value);
+        }
+
+        // Apply date range filter
+        if (fromDate.HasValue)
+        {
+            shipmentsQuery = shipmentsQuery.Where(s => s.CreatedAt >= fromDate.Value);
+        }
+        if (toDate.HasValue)
+        {
+            var endOfDay = toDate.Value.Date.AddDays(1);
+            shipmentsQuery = shipmentsQuery.Where(s => s.CreatedAt < endOfDay);
+        }
+
+        // Get all matching shipments
+        var shipments = await shipmentsQuery
+            .OrderByDescending(s => s.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        if (shipments.Count == 0)
+        {
+            return Array.Empty<(OrderShipment, Order, IReadOnlyList<OrderItem>)>();
+        }
+
+        // Get all related orders
+        var orderIds = shipments.Select(s => s.OrderId).Distinct().ToList();
+        var orders = await _context.Orders
+            .Where(o => orderIds.Contains(o.Id))
+            .ToListAsync(cancellationToken);
+        var ordersDict = orders.ToDictionary(o => o.Id);
+
+        // Apply buyer search filter if specified
+        if (!string.IsNullOrWhiteSpace(buyerSearch))
+        {
+            var searchTerm = buyerSearch.Trim().ToLowerInvariant();
+            var matchingOrderIds = orders
+                .Where(o => o.RecipientName.ToLowerInvariant().Contains(searchTerm) ||
+                           o.OrderNumber.ToLowerInvariant().Contains(searchTerm))
+                .Select(o => o.Id)
+                .ToHashSet();
+            
+            shipments = shipments.Where(s => matchingOrderIds.Contains(s.OrderId)).ToList();
+            
+            if (shipments.Count == 0)
+            {
+                return Array.Empty<(OrderShipment, Order, IReadOnlyList<OrderItem>)>();
+            }
+        }
+
+        // Get all items for the shipments (store-specific)
+        var items = await _context.OrderItems
+            .Where(i => orderIds.Contains(i.OrderId) && i.StoreId == storeId)
+            .ToListAsync(cancellationToken);
+        var itemsByOrder = items.GroupBy(i => i.OrderId).ToDictionary(g => g.Key, g => g.ToList());
+
+        // Build result
+        var result = new List<(OrderShipment Shipment, Order Order, IReadOnlyList<OrderItem> Items)>();
+        foreach (var shipment in shipments)
+        {
+            if (ordersDict.TryGetValue(shipment.OrderId, out var order))
+            {
+                var shipmentItems = itemsByOrder.TryGetValue(shipment.OrderId, out var orderItems)
+                    ? orderItems.AsReadOnly()
+                    : (IReadOnlyList<OrderItem>)Array.Empty<OrderItem>();
+                result.Add((shipment, order, shipmentItems));
+            }
+        }
+
+        return result.AsReadOnly();
+    }
 }
