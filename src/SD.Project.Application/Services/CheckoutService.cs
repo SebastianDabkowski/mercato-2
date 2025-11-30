@@ -795,7 +795,8 @@ public sealed class CheckoutService
             // Prefer stored delivery time (historical value at order creation)
             // Fall back to current shipping method value for backwards compatibility
             string? estimatedDelivery = i.GetEstimatedDeliveryDisplay();
-            if (estimatedDelivery is null && i.ShippingMethodId.HasValue 
+            if (estimatedDelivery is null 
+                && i.ShippingMethodId.HasValue 
                 && shippingMethodLookup.TryGetValue(i.ShippingMethodId.Value, out var method))
             {
                 estimatedDelivery = method.GetDeliveryTimeDisplay();
