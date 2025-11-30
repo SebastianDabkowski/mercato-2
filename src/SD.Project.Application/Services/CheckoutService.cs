@@ -579,8 +579,8 @@ public sealed class CheckoutService
             return SubmitBlikCodeResultDto.Failed("No pending payment found for this order.");
         }
 
-        // Generate idempotency key for BLIK submission
-        var idempotencyKey = $"blik-{order.Id:N}-{command.BlikCode}-{DateTime.UtcNow.Ticks}";
+        // Generate idempotency key for BLIK submission (without including sensitive BLIK code)
+        var idempotencyKey = $"blik-{order.Id:N}-{DateTime.UtcNow.Ticks}";
 
         // Submit BLIK code to payment provider
         var blikResult = await _paymentProviderService.SubmitBlikCodeAsync(

@@ -45,6 +45,11 @@ public sealed class PaymentProviderSettings
     /// When true, no actual provider calls are made.
     /// </summary>
     public bool SimulatePayments { get; set; } = true;
+
+    /// <summary>
+    /// Base path for simulated payment redirect in development mode.
+    /// </summary>
+    public string SimulatedRedirectPath { get; set; } = "/Buyer/Checkout/PaymentRedirect";
 }
 
 /// <summary>
@@ -55,7 +60,6 @@ public sealed class PaymentProviderSettings
 public sealed class PaymentProviderService : IPaymentProviderService
 {
     private const string SimulatedTransactionPrefix = "SIM-";
-    private const string SimulatedRedirectUrlBase = "/Buyer/Checkout/PaymentRedirect";
 
     private readonly ILogger<PaymentProviderService> _logger;
     private readonly PaymentProviderSettings _settings;
@@ -203,7 +207,7 @@ public sealed class PaymentProviderService : IPaymentProviderService
         // Card and bank transfer use secure redirect
         if (paymentMethodType == PaymentMethodType.Card || paymentMethodType == PaymentMethodType.BankTransfer)
         {
-            var redirectUrl = $"{SimulatedRedirectUrlBase}?orderId={orderId}&transactionId={transactionId}&returnUrl={Uri.EscapeDataString(returnUrl)}";
+            var redirectUrl = $"{_settings.SimulatedRedirectPath}?orderId={orderId}&transactionId={transactionId}&returnUrl={Uri.EscapeDataString(returnUrl)}";
             return Task.FromResult(new PaymentInitiationResult(
                 true,
                 transactionId,
