@@ -588,7 +588,16 @@ public sealed class CheckoutService
                 i.LineTotal,
                 i.ShippingMethodName,
                 i.ShippingCost,
-                estimatedDelivery);
+                estimatedDelivery,
+                i.Status.ToString(),
+                i.CarrierName,
+                i.TrackingNumber,
+                i.TrackingUrl,
+                i.ShippedAt,
+                i.DeliveredAt,
+                i.CancelledAt,
+                i.RefundedAt,
+                i.RefundedAmount);
         }).ToList();
 
         // Calculate overall estimated delivery range

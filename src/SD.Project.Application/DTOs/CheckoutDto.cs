@@ -161,7 +161,8 @@ public sealed record OrderConfirmationDto(
     string? BuyerEmail);
 
 /// <summary>
-/// DTO for an order item in confirmation.
+/// DTO for an order item in confirmation and buyer order details.
+/// Includes item-level fulfilment status for Phase 2 partial fulfilment.
 /// </summary>
 public sealed record OrderItemDto(
     Guid ProductId,
@@ -173,7 +174,16 @@ public sealed record OrderItemDto(
     decimal LineTotal,
     string? ShippingMethodName,
     decimal ShippingCost,
-    string? EstimatedDelivery);
+    string? EstimatedDelivery,
+    string? Status = null,
+    string? CarrierName = null,
+    string? TrackingNumber = null,
+    string? TrackingUrl = null,
+    DateTime? ShippedAt = null,
+    DateTime? DeliveredAt = null,
+    DateTime? CancelledAt = null,
+    DateTime? RefundedAt = null,
+    decimal? RefundedAmount = null);
 
 /// <summary>
 /// DTO for order history list.

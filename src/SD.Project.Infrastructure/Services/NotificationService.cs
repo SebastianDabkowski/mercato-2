@@ -214,4 +214,77 @@ public sealed class NotificationService : INotificationService
             returnRequestId);
         return Task.CompletedTask;
     }
+
+    public Task SendItemStatusChangedAsync(
+        Guid itemId,
+        Guid orderId,
+        string buyerEmail,
+        string orderNumber,
+        string productName,
+        string previousStatus,
+        string newStatus,
+        string? trackingNumber,
+        string? carrierName,
+        CancellationToken cancellationToken = default)
+    {
+        // TODO: Replace logging with real email/notification integration.
+        // Phase 2: Partial fulfilment - notify buyer when individual item status changes.
+        var trackingInfo = !string.IsNullOrEmpty(trackingNumber)
+            ? $" Tracking: {carrierName ?? DefaultCarrierName} - {trackingNumber}"
+            : "";
+        _logger.LogInformation(
+            "Item status changed notification sent to {BuyerEmail} for order {OrderNumber}. " +
+            "Product: {ProductName}. Status: {PreviousStatus} -> {NewStatus}.{TrackingInfo}",
+            buyerEmail,
+            orderNumber,
+            productName,
+            previousStatus,
+            newStatus,
+            trackingInfo);
+        return Task.CompletedTask;
+    }
+
+    public Task SendBatchItemStatusChangedAsync(
+        Guid orderId,
+        string buyerEmail,
+        string orderNumber,
+        int itemCount,
+        string itemNames,
+        string newStatus,
+        CancellationToken cancellationToken = default)
+    {
+        // TODO: Replace logging with real email/notification integration.
+        // Phase 2: Partial fulfilment - notify buyer when multiple items' status changes.
+        _logger.LogInformation(
+            "Batch item status changed notification sent to {BuyerEmail} for order {OrderNumber}. " +
+            "{ItemCount} items ({ItemNames}) changed to status {NewStatus}",
+            buyerEmail,
+            orderNumber,
+            itemCount,
+            itemNames,
+            newStatus);
+        return Task.CompletedTask;
+    }
+
+    public Task SendItemsRefundedAsync(
+        Guid orderId,
+        string buyerEmail,
+        string orderNumber,
+        int itemCount,
+        decimal refundAmount,
+        string currency,
+        CancellationToken cancellationToken = default)
+    {
+        // TODO: Replace logging with real email/notification integration.
+        // Phase 2: Partial fulfilment - notify buyer when items are refunded.
+        _logger.LogInformation(
+            "Items refunded notification sent to {BuyerEmail} for order {OrderNumber}. " +
+            "{ItemCount} items refunded for {Currency} {RefundAmount:N2}",
+            buyerEmail,
+            orderNumber,
+            itemCount,
+            currency,
+            refundAmount);
+        return Task.CompletedTask;
+    }
 }
