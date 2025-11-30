@@ -32,6 +32,7 @@ public sealed record EscrowAllocationDto(
     decimal CommissionRate,
     decimal SellerPayout,
     decimal RefundedAmount,
+    decimal RefundedSellerAmount,
     decimal RefundedCommissionAmount,
     string Status,
     bool IsEligibleForPayout,
