@@ -50,4 +50,26 @@ public interface IOrderRepository
     /// Generates a unique order number.
     /// </summary>
     Task<string> GenerateOrderNumberAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all shipments (sub-orders) for a specific store.
+    /// </summary>
+    Task<IReadOnlyList<OrderShipment>> GetShipmentsByStoreIdAsync(
+        Guid storeId,
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets a specific shipment by ID with its associated order and items.
+    /// </summary>
+    Task<(OrderShipment? Shipment, Order? Order, IReadOnlyList<OrderItem> Items)> GetShipmentWithOrderAsync(
+        Guid shipmentId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Checks if an order with the given payment transaction ID already exists.
+    /// Used for idempotency to prevent duplicate orders from payment callbacks.
+    /// </summary>
+    Task<bool> ExistsByPaymentTransactionIdAsync(string transactionId, CancellationToken cancellationToken = default);
 }

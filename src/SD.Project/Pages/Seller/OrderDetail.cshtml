@@ -1,0 +1,265 @@
+@page "{subOrderId:guid}"
+@model SD.Project.Pages.Seller.OrderDetailModel
+@{
+    ViewData["Title"] = Model.SubOrder is not null ? $"Order {Model.SubOrder.OrderNumber}" : "Order Details";
+}
+
+<div class="container py-4">
+    @if (Model.SubOrder is null)
+    {
+        <div class="text-center py-5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-question-circle text-muted mb-3" viewBox="0 0 16 16">
+                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                <path d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286m1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94"/>
+            </svg>
+            <h4 class="text-muted">Order not found</h4>
+            <p class="text-muted">The order you're looking for doesn't exist or doesn't belong to your store.</p>
+            <a asp-page="/Seller/Orders" class="btn btn-primary mt-3">Back to Orders</a>
+        </div>
+    }
+    else
+    {
+        var statusClass = Model.SubOrder.Status switch
+        {
+            "Paid" => "bg-success",
+            "Processing" => "bg-info",
+            "Shipped" => "bg-primary",
+            "Delivered" => "bg-success",
+            "Cancelled" => "bg-secondary",
+            "Refunded" => "bg-warning",
+            _ => "bg-warning"
+        };
+        var statusDisplay = Model.SubOrder.Status switch
+        {
+            "Paid" => "Confirmed",
+            _ => Model.SubOrder.Status
+        };
+
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-1">
+                        <li class="breadcrumb-item"><a asp-page="/Seller/Dashboard">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a asp-page="/Seller/Orders">Orders</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">@Model.SubOrder.OrderNumber</li>
+                    </ol>
+                </nav>
+                <h1 class="mb-0">Order @Model.SubOrder.OrderNumber</h1>
+            </div>
+            <span class="badge @statusClass fs-5">@statusDisplay</span>
+        </div>
+
+        <div class="row">
+            <!-- Main Content -->
+            <div class="col-lg-8">
+                <!-- Order Status Timeline -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-clock-history me-2" viewBox="0 0 16 16">
+                                <path d="M8.515 1.019A7 7 0 0 0 8 1V0a8 8 0 0 1 .589.022zm2.004.45a7 7 0 0 0-.985-.299l.219-.976q.576.129 1.126.342zm1.37.71a7 7 0 0 0-.439-.27l.493-.87a8 8 0 0 1 .979.654l-.615.789a7 7 0 0 0-.418-.302zm1.834 1.79a7 7 0 0 0-.653-.796l.724-.69q.406.429.747.91zm.744 1.352a7 7 0 0 0-.214-.468l.893-.45a8 8 0 0 1 .45 1.088l-.95.313a7 7 0 0 0-.179-.483m.53 2.507a7 7 0 0 0-.1-1.025l.985-.17q.1.58.116 1.17zm-.131 1.538q.05-.254.081-.51l.993.123a8 8 0 0 1-.23 1.155l-.964-.267q.069-.247.12-.501m-.952 2.379q.276-.436.486-.908l.914.405q-.24.54-.555 1.038zm-.964 1.205q.183-.183.35-.378l.758.653a8 8 0 0 1-.401.432z"/>
+                                <path d="M8 1a7 7 0 1 0 4.95 11.95l.707.707A8.001 8.001 0 1 1 8 0z"/>
+                                <path d="M7.5 3a.5.5 0 0 1 .5.5v5.21l3.248 1.856a.5.5 0 0 1-.496.868l-3.5-2A.5.5 0 0 1 7 9V3.5a.5.5 0 0 1 .5-.5"/>
+                            </svg>
+                            Order Status
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div class="text-center flex-fill">
+                                <div class="rounded-circle d-inline-flex align-items-center justify-content-center @(Model.SubOrder.Status != "Pending" ? "bg-success" : "bg-secondary") text-white" style="width: 40px; height: 40px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-check" viewBox="0 0 16 16">
+                                        <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425z"/>
+                                    </svg>
+                                </div>
+                                <p class="mt-2 mb-0 small">Confirmed</p>
+                            </div>
+                            <div class="text-center flex-fill">
+                                <div class="rounded-circle d-inline-flex align-items-center justify-content-center @(Model.SubOrder.Status == "Processing" || Model.SubOrder.Status == "Shipped" || Model.SubOrder.Status == "Delivered" ? "bg-success" : "bg-secondary") text-white" style="width: 40px; height: 40px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-box-seam" viewBox="0 0 16 16">
+                                        <path d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5l2.404.961L10.404 2zm3.564 1.426L5.596 5 8 5.961 14.154 3.5zm3.25 1.7-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.63 13.09a1 1 0 0 1-.63-.928V3.5a.5.5 0 0 1 .314-.464z"/>
+                                    </svg>
+                                </div>
+                                <p class="mt-2 mb-0 small">Processing</p>
+                            </div>
+                            <div class="text-center flex-fill">
+                                <div class="rounded-circle d-inline-flex align-items-center justify-content-center @(Model.SubOrder.Status == "Shipped" || Model.SubOrder.Status == "Delivered" ? "bg-success" : "bg-secondary") text-white" style="width: 40px; height: 40px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-truck" viewBox="0 0 16 16">
+                                        <path d="M0 3.5A1.5 1.5 0 0 1 1.5 2h9A1.5 1.5 0 0 1 12 3.5V5h1.02a1.5 1.5 0 0 1 1.17.563l1.481 1.85a1.5 1.5 0 0 1 .329.938V10.5a1.5 1.5 0 0 1-1.5 1.5H14a2 2 0 1 1-4 0H5a2 2 0 1 1-3.998-.085A1.5 1.5 0 0 1 0 10.5zm1.294 7.456A2 2 0 0 1 4.732 11h5.536a2 2 0 0 1 .732-.732V3.5a.5.5 0 0 0-.5-.5h-9a.5.5 0 0 0-.5.5v7a.5.5 0 0 0 .294.456M12 10a2 2 0 0 1 1.732 1h.768a.5.5 0 0 0 .5-.5V8.35a.5.5 0 0 0-.11-.312l-1.48-1.85A.5.5 0 0 0 13.02 6H12zm-9 1a1 1 0 1 0 0 2 1 1 0 0 0 0-2m9 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2"/>
+                                    </svg>
+                                </div>
+                                <p class="mt-2 mb-0 small">Shipped</p>
+                                @if (Model.SubOrder.ShippedAt.HasValue)
+                                {
+                                    <p class="mb-0 text-muted" style="font-size: 0.7rem;">@Model.SubOrder.ShippedAt.Value.ToString("MMM dd")</p>
+                                }
+                            </div>
+                            <div class="text-center flex-fill">
+                                <div class="rounded-circle d-inline-flex align-items-center justify-content-center @(Model.SubOrder.Status == "Delivered" ? "bg-success" : "bg-secondary") text-white" style="width: 40px; height: 40px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-house-check" viewBox="0 0 16 16">
+                                        <path d="M7.293 1.5a1 1 0 0 1 1.414 0L11 3.793V2.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v3.293l2.354 2.353a.5.5 0 0 1-.708.708L8 2.207l-5 5V13.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 2 13.5V8.207l-.646.647a.5.5 0 1 1-.708-.708z"/>
+                                        <path d="M12.5 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7m1.679-4.493-1.335 2.226a.75.75 0 0 1-1.174.144l-.774-.773a.5.5 0 0 1 .708-.707l.547.547 1.17-1.951a.5.5 0 1 1 .858.514"/>
+                                    </svg>
+                                </div>
+                                <p class="mt-2 mb-0 small">Delivered</p>
+                                @if (Model.SubOrder.DeliveredAt.HasValue)
+                                {
+                                    <p class="mb-0 text-muted" style="font-size: 0.7rem;">@Model.SubOrder.DeliveredAt.Value.ToString("MMM dd")</p>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Order Items -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-bag-check me-2" viewBox="0 0 16 16">
+                                <path fill-rule="evenodd" d="M10.854 8.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 0 1 .708-.708L7.5 10.793l2.646-2.647a.5.5 0 0 1 .708 0"/>
+                                <path d="M8 1a2.5 2.5 0 0 1 2.5 2.5V4h-5v-.5A2.5 2.5 0 0 1 8 1m3.5 3v-.5a3.5 3.5 0 1 0-7 0V4H1v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4zM2 5h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/>
+                            </svg>
+                            Order Items (@Model.SubOrder.Items.Count)
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col">Product</th>
+                                        <th scope="col" class="text-center">Unit Price</th>
+                                        <th scope="col" class="text-center">Quantity</th>
+                                        <th scope="col" class="text-end">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in Model.SubOrder.Items)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <strong>@item.ProductName</strong>
+                                                @if (!string.IsNullOrEmpty(item.ShippingMethodName))
+                                                {
+                                                    <br />
+                                                    <small class="text-muted">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-truck me-1" viewBox="0 0 16 16">
+                                                            <path d="M0 3.5A1.5 1.5 0 0 1 1.5 2h9A1.5 1.5 0 0 1 12 3.5V5h1.02a1.5 1.5 0 0 1 1.17.563l1.481 1.85a1.5 1.5 0 0 1 .329.938V10.5a1.5 1.5 0 0 1-1.5 1.5H14a2 2 0 1 1-4 0H5a2 2 0 1 1-3.998-.085A1.5 1.5 0 0 1 0 10.5zm1.294 7.456A2 2 0 0 1 4.732 11h5.536a2 2 0 0 1 .732-.732V3.5a.5.5 0 0 0-.5-.5h-9a.5.5 0 0 0-.5.5v7a.5.5 0 0 0 .294.456M12 10a2 2 0 0 1 1.732 1h.768a.5.5 0 0 0 .5-.5V8.35a.5.5 0 0 0-.11-.312l-1.48-1.85A.5.5 0 0 0 13.02 6H12zm-9 1a1 1 0 1 0 0 2 1 1 0 0 0 0-2m9 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2"/>
+                                                        </svg>
+                                                        @item.ShippingMethodName
+                                                    </small>
+                                                }
+                                            </td>
+                                            <td class="text-center align-middle">@Model.SubOrder.Currency @item.UnitPrice.ToString("N2")</td>
+                                            <td class="text-center align-middle">@item.Quantity</td>
+                                            <td class="text-end align-middle fw-bold">@Model.SubOrder.Currency @item.LineTotal.ToString("N2")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shipping Information -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-geo-alt me-2" viewBox="0 0 16 16">
+                                <path d="M12.166 8.94c-.524 1.062-1.234 2.12-1.96 3.07A32 32 0 0 1 8 14.58a32 32 0 0 1-2.206-2.57c-.726-.95-1.436-2.008-1.96-3.07C3.304 7.867 3 6.862 3 6a5 5 0 0 1 10 0c0 .862-.305 1.867-.834 2.94M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10"/>
+                                <path d="M8 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4m0 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6"/>
+                            </svg>
+                            Shipping Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="text-muted mb-2">Customer</h6>
+                                <p class="mb-3"><strong>@Model.SubOrder.BuyerName</strong></p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-muted mb-2">Delivery Address</h6>
+                                <p class="mb-0">@Model.SubOrder.DeliveryAddress</p>
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(Model.SubOrder.TrackingNumber))
+                        {
+                            <hr>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6 class="text-muted mb-2">Carrier</h6>
+                                    <p class="mb-0">@(Model.SubOrder.CarrierName ?? "Not specified")</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="text-muted mb-2">Tracking Number</h6>
+                                    <p class="mb-0">
+                                        @if (!string.IsNullOrEmpty(Model.SubOrder.TrackingUrl))
+                                        {
+                                            <a href="@Model.SubOrder.TrackingUrl" target="_blank" rel="noopener">@Model.SubOrder.TrackingNumber</a>
+                                        }
+                                        else
+                                        {
+                                            @Model.SubOrder.TrackingNumber
+                                        }
+                                    </p>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="d-flex justify-content-between">
+                    <a asp-page="/Seller/Orders" class="btn btn-outline-secondary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left me-2" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/>
+                        </svg>
+                        Back to Orders
+                    </a>
+                </div>
+            </div>
+
+            <!-- Order Summary Sidebar -->
+            <div class="col-lg-4">
+                <div class="card sticky-top" style="top: 1rem;">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Order Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <small class="text-muted">Order Number</small>
+                            <p class="mb-0 fw-bold">@Model.SubOrder.OrderNumber</p>
+                        </div>
+                        <div class="mb-3">
+                            <small class="text-muted">Order Date</small>
+                            <p class="mb-0">@Model.SubOrder.CreatedAt.ToString("MMMM dd, yyyy 'at' h:mm tt")</p>
+                        </div>
+                        <div class="mb-3">
+                            <small class="text-muted">Status</small>
+                            <p class="mb-0">
+                                <span class="badge @statusClass">@statusDisplay</span>
+                            </p>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Items Subtotal</span>
+                            <span>@Model.SubOrder.Currency @Model.SubOrder.Subtotal.ToString("N2")</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Shipping</span>
+                            <span>@Model.SubOrder.Currency @Model.SubOrder.ShippingCost.ToString("N2")</span>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between">
+                            <span class="fw-bold fs-5">Total</span>
+                            <span class="fw-bold fs-5 text-primary">@Model.SubOrder.Currency @Model.SubOrder.Total.ToString("N2")</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
