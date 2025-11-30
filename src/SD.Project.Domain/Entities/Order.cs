@@ -69,6 +69,11 @@ public class Order
     public string? DeliveryPhoneNumber { get; private set; }
 
     /// <summary>
+    /// Special instructions for delivery.
+    /// </summary>
+    public string? DeliveryInstructions { get; private set; }
+
+    /// <summary>
     /// Selected payment method ID.
     /// </summary>
     public Guid PaymentMethodId { get; private set; }
@@ -137,6 +142,7 @@ public class Order
         string deliveryPostalCode,
         string deliveryCountry,
         string? deliveryPhoneNumber,
+        string? deliveryInstructions,
         Guid paymentMethodId,
         string paymentMethodName,
         string currency)
@@ -184,6 +190,7 @@ public class Order
         DeliveryPostalCode = deliveryPostalCode;
         DeliveryCountry = deliveryCountry;
         DeliveryPhoneNumber = deliveryPhoneNumber;
+        DeliveryInstructions = deliveryInstructions?.Trim();
         PaymentMethodId = paymentMethodId;
         PaymentMethodName = paymentMethodName;
         Currency = currency.ToUpperInvariant();

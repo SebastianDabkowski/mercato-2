@@ -385,6 +385,7 @@ public sealed class CheckoutService
             address.PostalCode,
             address.Country,
             address.PhoneNumber,
+            null, // Delivery instructions - can be added via checkout extension
             command.PaymentMethodId,
             paymentMethod.Name,
             currency);

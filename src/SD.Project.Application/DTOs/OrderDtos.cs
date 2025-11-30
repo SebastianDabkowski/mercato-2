@@ -2,22 +2,31 @@ namespace SD.Project.Application.DTOs;
 
 /// <summary>
 /// DTO representing a seller sub-order (shipment) for seller view.
+/// Includes buyer contact information and delivery details for fulfilment.
 /// </summary>
 public sealed record SellerSubOrderDto(
     Guid SubOrderId,
     Guid OrderId,
     string OrderNumber,
     string Status,
+    string PaymentStatus,
     decimal Subtotal,
     decimal ShippingCost,
     decimal Total,
     string Currency,
     string BuyerName,
+    string? BuyerEmail,
+    string? BuyerPhone,
     string DeliveryAddress,
+    string? DeliveryInstructions,
+    string? ShippingMethodName,
     IReadOnlyList<SellerSubOrderItemDto> Items,
     DateTime CreatedAt,
+    DateTime? PaidAt,
     DateTime? ShippedAt,
     DateTime? DeliveredAt,
+    DateTime? CancelledAt,
+    DateTime? RefundedAt,
     string? CarrierName,
     string? TrackingNumber,
     string? TrackingUrl);
