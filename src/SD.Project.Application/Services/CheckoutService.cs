@@ -813,6 +813,8 @@ public sealed class CheckoutService
             order.Id,
             order.OrderNumber,
             order.Status.ToString(),
+            order.PaymentStatus.ToString(),
+            PaymentStatusMapper.GetBuyerFriendlyMessage(order.PaymentStatus),
             order.RecipientName,
             addressSummary,
             order.PaymentMethodName,
@@ -823,7 +825,8 @@ public sealed class CheckoutService
             order.Currency,
             order.CreatedAt,
             estimatedDeliveryRange,
-            buyerEmail);
+            buyerEmail,
+            order.RefundedAmount);
     }
 
     /// <summary>

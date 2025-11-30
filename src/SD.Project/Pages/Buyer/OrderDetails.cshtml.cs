@@ -68,6 +68,8 @@ public class OrderDetailsModel : PageModel
             orderDetails.OrderId,
             orderDetails.OrderNumber,
             orderDetails.Status,
+            orderDetails.PaymentStatus,
+            orderDetails.PaymentStatusMessage,
             orderDetails.RecipientName,
             orderDetails.DeliveryAddressSummary,
             orderDetails.PaymentMethodName,
