@@ -63,6 +63,16 @@ public class OrderItem
     public decimal ShippingCost { get; private set; }
 
     /// <summary>
+    /// Estimated delivery time in business days (minimum) at time of order.
+    /// </summary>
+    public int? EstimatedDeliveryDaysMin { get; private set; }
+
+    /// <summary>
+    /// Estimated delivery time in business days (maximum) at time of order.
+    /// </summary>
+    public int? EstimatedDeliveryDaysMax { get; private set; }
+
+    /// <summary>
     /// Current fulfilment status of this item (Phase 2: partial fulfilment).
     /// </summary>
     public OrderItemStatus Status { get; private set; }
@@ -128,7 +138,9 @@ public class OrderItem
         int quantity,
         Guid? shippingMethodId = null,
         string? shippingMethodName = null,
-        decimal shippingCost = 0m)
+        decimal shippingCost = 0m,
+        int? estimatedDeliveryDaysMin = null,
+        int? estimatedDeliveryDaysMax = null)
     {
         if (orderId == Guid.Empty)
         {
@@ -176,6 +188,8 @@ public class OrderItem
         ShippingMethodId = shippingMethodId;
         ShippingMethodName = shippingMethodName;
         ShippingCost = shippingCost;
+        EstimatedDeliveryDaysMin = estimatedDeliveryDaysMin;
+        EstimatedDeliveryDaysMax = estimatedDeliveryDaysMax;
         Status = OrderItemStatus.New;
         CreatedAt = DateTime.UtcNow;
     }
@@ -344,5 +358,26 @@ public class OrderItem
     public decimal GetRefundableAmount()
     {
         return LineTotal + ShippingCost;
+    }
+
+    /// <summary>
+    /// Gets a formatted estimated delivery time string.
+    /// Returns null if no delivery time information is available.
+    /// </summary>
+    public string? GetEstimatedDeliveryDisplay()
+    {
+        if (!EstimatedDeliveryDaysMin.HasValue || !EstimatedDeliveryDaysMax.HasValue)
+        {
+            return null;
+        }
+
+        if (EstimatedDeliveryDaysMin == EstimatedDeliveryDaysMax)
+        {
+            return EstimatedDeliveryDaysMin == 1
+                ? "1 business day"
+                : $"{EstimatedDeliveryDaysMin} business days";
+        }
+
+        return $"{EstimatedDeliveryDaysMin}-{EstimatedDeliveryDaysMax} business days";
     }
 }

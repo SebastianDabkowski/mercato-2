@@ -57,6 +57,7 @@ public sealed class CheckoutService
 
     /// <summary>
     /// Gets available shipping methods for the checkout shipping step.
+    /// Filters methods based on delivery address region availability.
     /// </summary>
     public async Task<CheckoutShippingDto?> HandleAsync(
         GetCheckoutShippingQuery query,
@@ -70,6 +71,10 @@ public sealed class CheckoutService
         {
             return null;
         }
+
+        // Get delivery address for region filtering
+        var deliveryAddress = await _deliveryAddressRepository.GetByIdAsync(query.DeliveryAddressId, cancellationToken);
+        var deliveryCountry = deliveryAddress?.Country;
 
         // Get products for pricing
         var productIds = cart.Items.Select(i => i.ProductId).ToList();
@@ -119,16 +124,20 @@ public sealed class CheckoutService
                 ? storeMethods
                 : platformMethods;
 
-            var methodDtos = methods
-                .Where(m => m.IsActive)
+            // Filter methods based on delivery address region availability
+            var availableMethods = methods
+                .Where(m => m.IsActive && m.IsAvailableForRegion(deliveryCountry))
+                .ToList();
+
+            var methodDtos = availableMethods
                 .OrderBy(m => m.DisplayOrder)
                 .ThenBy(m => m.BaseCost)
                 .Select(m => MapToShippingMethodDto(m, sellerSubtotal, itemCount))
                 .ToList();
 
-            // Find default method
-            var defaultMethod = methods.FirstOrDefault(m => m.IsDefault && m.IsActive)
-                ?? methods.FirstOrDefault(m => m.IsActive);
+            // Find default method from available methods
+            var defaultMethod = availableMethods.FirstOrDefault(m => m.IsDefault)
+                ?? availableMethods.FirstOrDefault();
 
             if (defaultMethod is not null)
             {
@@ -422,6 +431,17 @@ public sealed class CheckoutService
                 shippingMethod = await _shippingMethodRepository.GetByIdAsync(methodId, cancellationToken);
                 if (shippingMethod is not null)
                 {
+                    // Validate shipping method is active and available for the delivery region
+                    if (!shippingMethod.IsActive)
+                    {
+                        return InitiatePaymentResultDto.Failed($"Selected shipping method '{shippingMethod.Name}' is no longer available.");
+                    }
+
+                    if (!shippingMethod.IsAvailableForRegion(address.Country))
+                    {
+                        return InitiatePaymentResultDto.Failed($"Selected shipping method '{shippingMethod.Name}' is not available for delivery to {address.Country}.");
+                    }
+
                     shippingCost = shippingMethod.CalculateCost(sellerSubtotal, itemCount);
                 }
             }
@@ -444,7 +464,7 @@ public sealed class CheckoutService
                             $"Unable to complete order: '{product.Name}' has insufficient stock. Please refresh your cart and try again.");
                     }
 
-                    // Store snapshot of current price with the order
+                    // Store snapshot of current price and delivery time with the order
                     order.AddItem(
                         item.ProductId,
                         item.StoreId,
@@ -453,7 +473,9 @@ public sealed class CheckoutService
                         item.Quantity,
                         shippingMethod?.Id,
                         shippingMethod?.Name,
-                        shippingPerItem * item.Quantity);
+                        shippingPerItem * item.Quantity,
+                        shippingMethod?.EstimatedDeliveryDaysMin,
+                        shippingMethod?.EstimatedDeliveryDaysMax);
 
                     // Reduce stock for the product
                     product.UpdateStock(newStock);
@@ -770,8 +792,11 @@ public sealed class CheckoutService
 
         var itemDtos = order.Items.Select(i =>
         {
-            string? estimatedDelivery = null;
-            if (i.ShippingMethodId.HasValue && shippingMethodLookup.TryGetValue(i.ShippingMethodId.Value, out var method))
+            // Prefer stored delivery time (historical value at order creation)
+            // Fall back to current shipping method value for backwards compatibility
+            string? estimatedDelivery = i.GetEstimatedDeliveryDisplay();
+            if (estimatedDelivery is null && i.ShippingMethodId.HasValue 
+                && shippingMethodLookup.TryGetValue(i.ShippingMethodId.Value, out var method))
             {
                 estimatedDelivery = method.GetDeliveryTimeDisplay();
             }
@@ -798,10 +823,24 @@ public sealed class CheckoutService
                 i.RefundedAmount);
         }).ToList();
 
-        // Calculate overall estimated delivery range
+        // Calculate overall estimated delivery range from stored order item values
+        // Fall back to current shipping method values for backwards compatibility
         string? estimatedDeliveryRange = null;
-        if (shippingMethods.Count > 0)
+        var itemsWithDeliveryTime = order.Items
+            .Where(i => i.EstimatedDeliveryDaysMin.HasValue && i.EstimatedDeliveryDaysMax.HasValue)
+            .ToList();
+        
+        if (itemsWithDeliveryTime.Count > 0)
         {
+            var minDays = itemsWithDeliveryTime.Min(i => i.EstimatedDeliveryDaysMin!.Value);
+            var maxDays = itemsWithDeliveryTime.Max(i => i.EstimatedDeliveryDaysMax!.Value);
+            var minDate = order.CreatedAt.AddDays(minDays).ToString("MMM dd");
+            var maxDate = order.CreatedAt.AddDays(maxDays).ToString("MMM dd, yyyy");
+            estimatedDeliveryRange = $"{minDate} - {maxDate}";
+        }
+        else if (shippingMethods.Count > 0)
+        {
+            // Backwards compatibility: fall back to current shipping method values
             var minDays = shippingMethods.Min(m => m.EstimatedDeliveryDaysMin);
             var maxDays = shippingMethods.Max(m => m.EstimatedDeliveryDaysMax);
             var minDate = order.CreatedAt.AddDays(minDays).ToString("MMM dd");
