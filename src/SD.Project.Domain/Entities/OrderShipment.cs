@@ -221,10 +221,34 @@ public class OrderShipment
             ShipmentStatus.Processing => Status == ShipmentStatus.Paid,
             ShipmentStatus.Shipped => Status == ShipmentStatus.Paid || Status == ShipmentStatus.Processing,
             ShipmentStatus.Delivered => Status == ShipmentStatus.Shipped,
-            ShipmentStatus.Cancelled => Status != ShipmentStatus.Shipped && Status != ShipmentStatus.Delivered && Status != ShipmentStatus.Refunded && Status != ShipmentStatus.Cancelled,
-            ShipmentStatus.Refunded => Status == ShipmentStatus.Paid || Status == ShipmentStatus.Processing || Status == ShipmentStatus.Shipped || Status == ShipmentStatus.Delivered,
+            ShipmentStatus.Cancelled => CanBeCancelled(),
+            ShipmentStatus.Refunded => CanBeRefunded(),
             _ => false
         };
+    }
+
+    /// <summary>
+    /// Checks if the shipment is in a state that allows cancellation.
+    /// Shipments cannot be cancelled once shipped, delivered, refunded, or already cancelled.
+    /// </summary>
+    private bool CanBeCancelled()
+    {
+        return Status != ShipmentStatus.Shipped && 
+               Status != ShipmentStatus.Delivered && 
+               Status != ShipmentStatus.Refunded && 
+               Status != ShipmentStatus.Cancelled;
+    }
+
+    /// <summary>
+    /// Checks if the shipment is in a state that allows refund.
+    /// Shipments can be refunded after payment is confirmed.
+    /// </summary>
+    private bool CanBeRefunded()
+    {
+        return Status == ShipmentStatus.Paid || 
+               Status == ShipmentStatus.Processing || 
+               Status == ShipmentStatus.Shipped || 
+               Status == ShipmentStatus.Delivered;
     }
 }
 
