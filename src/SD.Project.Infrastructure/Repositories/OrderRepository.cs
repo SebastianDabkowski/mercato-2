@@ -152,4 +152,54 @@ public sealed class OrderRepository : IOrderRepository
         var randomPart = Guid.NewGuid().ToString("N")[..5].ToUpperInvariant();
         return Task.FromResult($"MKT-{datePart}-{randomPart}");
     }
+
+    public async Task<IReadOnlyList<OrderShipment>> GetShipmentsByStoreIdAsync(
+        Guid storeId,
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default)
+    {
+        var shipments = await _context.OrderShipments
+            .Where(s => s.StoreId == storeId)
+            .OrderByDescending(s => s.CreatedAt)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+
+        return shipments.AsReadOnly();
+    }
+
+    public async Task<(OrderShipment? Shipment, Order? Order, IReadOnlyList<OrderItem> Items)> GetShipmentWithOrderAsync(
+        Guid shipmentId,
+        CancellationToken cancellationToken = default)
+    {
+        var shipment = await _context.OrderShipments
+            .FirstOrDefaultAsync(s => s.Id == shipmentId, cancellationToken);
+
+        if (shipment is null)
+        {
+            return (null, null, Array.Empty<OrderItem>());
+        }
+
+        var order = await _context.Orders
+            .FirstOrDefaultAsync(o => o.Id == shipment.OrderId, cancellationToken);
+
+        // Get only items for this shipment's store
+        var items = await _context.OrderItems
+            .Where(i => i.OrderId == shipment.OrderId && i.StoreId == shipment.StoreId)
+            .ToListAsync(cancellationToken);
+
+        return (shipment, order, items.AsReadOnly());
+    }
+
+    public async Task<bool> ExistsByPaymentTransactionIdAsync(string transactionId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(transactionId))
+        {
+            return false;
+        }
+
+        return await _context.Orders
+            .AnyAsync(o => o.PaymentTransactionId == transactionId, cancellationToken);
+    }
 }

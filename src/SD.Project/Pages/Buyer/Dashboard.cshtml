@@ -114,7 +114,7 @@
                                 };
                                 <tr>
                                     <td>
-                                        <a asp-page="/Buyer/OrderConfirmation" asp-route-orderId="@order.OrderId" class="fw-bold text-decoration-none">
+                                        <a asp-page="/Buyer/OrderDetails" asp-route-orderId="@order.OrderId" class="fw-bold text-decoration-none">
                                             @order.OrderNumber
                                         </a>
                                     </td>
@@ -125,7 +125,7 @@
                                     </td>
                                     <td class="text-end fw-bold">@order.Currency @order.TotalAmount.ToString("N2")</td>
                                     <td class="text-end">
-                                        <a asp-page="/Buyer/OrderConfirmation" asp-route-orderId="@order.OrderId" class="btn btn-sm btn-outline-primary">
+                                        <a asp-page="/Buyer/OrderDetails" asp-route-orderId="@order.OrderId" class="btn btn-sm btn-outline-primary">
                                             View Details
                                         </a>
                                     </td>

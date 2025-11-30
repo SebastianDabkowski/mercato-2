@@ -1,0 +1,118 @@
+@page
+@model SD.Project.Pages.Seller.OrdersModel
+@{
+    ViewData["Title"] = "My Orders";
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1">Orders</h1>
+            @if (!string.IsNullOrEmpty(Model.StoreName))
+            {
+                <p class="text-muted mb-0">Orders for @Model.StoreName</p>
+            }
+        </div>
+        <a asp-page="/Seller/Dashboard" class="btn btn-outline-secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left me-2" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/>
+            </svg>
+            Back to Dashboard
+        </a>
+    </div>
+
+    @if (!Model.StoreId.HasValue)
+    {
+        <div class="alert alert-warning">
+            <h5 class="alert-heading">Store Not Found</h5>
+            <p class="mb-0">You need to complete seller onboarding to view orders.</p>
+            <a asp-page="/Seller/Onboarding" class="btn btn-primary mt-3">Complete Onboarding</a>
+        </div>
+    }
+    else if (Model.SubOrders.Count == 0)
+    {
+        <div class="text-center py-5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-bag-x text-muted mb-3" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M6.146 8.146a.5.5 0 0 1 .708 0L8 9.293l1.146-1.147a.5.5 0 1 1 .708.708L8.707 10l1.147 1.146a.5.5 0 0 1-.708.708L8 10.707l-1.146 1.147a.5.5 0 0 1-.708-.708L7.293 10 6.146 8.854a.5.5 0 0 1 0-.708"/>
+                <path d="M8 1a2.5 2.5 0 0 1 2.5 2.5V4h-5v-.5A2.5 2.5 0 0 1 8 1m3.5 3v-.5a3.5 3.5 0 1 0-7 0V4H1v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4zM2 5h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/>
+            </svg>
+            <h4 class="text-muted">No orders yet</h4>
+            <p class="text-muted">When customers purchase your products, their orders will appear here.</p>
+            <a asp-page="/Seller/Products" class="btn btn-primary mt-2">Manage Products</a>
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-header bg-light">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h5 class="mb-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-bag-check me-2" viewBox="0 0 16 16">
+                                <path fill-rule="evenodd" d="M10.854 8.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 0 1 .708-.708L7.5 10.793l2.646-2.647a.5.5 0 0 1 .708 0"/>
+                                <path d="M8 1a2.5 2.5 0 0 1 2.5 2.5V4h-5v-.5A2.5 2.5 0 0 1 8 1m3.5 3v-.5a3.5 3.5 0 1 0-7 0V4H1v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4zM2 5h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/>
+                            </svg>
+                            Your Orders (@Model.SubOrders.Count)
+                        </h5>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col">Order #</th>
+                                <th scope="col">Customer</th>
+                                <th scope="col">Date</th>
+                                <th scope="col" class="text-center">Items</th>
+                                <th scope="col" class="text-center">Status</th>
+                                <th scope="col" class="text-end">Amount</th>
+                                <th scope="col" class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var order in Model.SubOrders)
+                            {
+                                var statusClass = order.Status switch
+                                {
+                                    "Paid" => "bg-success",
+                                    "Processing" => "bg-info",
+                                    "Shipped" => "bg-primary",
+                                    "Delivered" => "bg-success",
+                                    "Cancelled" => "bg-secondary",
+                                    "Refunded" => "bg-warning",
+                                    _ => "bg-warning"
+                                };
+                                var statusDisplay = order.Status switch
+                                {
+                                    "Paid" => "Confirmed",
+                                    _ => order.Status
+                                };
+                                <tr>
+                                    <td>
+                                        <a asp-page="/Seller/OrderDetail" asp-route-subOrderId="@order.SubOrderId" class="fw-bold text-decoration-none">
+                                            @order.OrderNumber
+                                        </a>
+                                    </td>
+                                    <td>@order.BuyerName</td>
+                                    <td>@order.CreatedAt.ToString("MMM dd, yyyy")</td>
+                                    <td class="text-center">@order.ItemCount</td>
+                                    <td class="text-center">
+                                        <span class="badge @statusClass">@statusDisplay</span>
+                                    </td>
+                                    <td class="text-end fw-bold">@order.Currency @order.Total.ToString("N2")</td>
+                                    <td class="text-end">
+                                        <a asp-page="/Seller/OrderDetail" asp-route-subOrderId="@order.SubOrderId" class="btn btn-sm btn-outline-primary">
+                                            View Details
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>

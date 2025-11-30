@@ -1,0 +1,303 @@
+@page "{orderId:guid}"
+@model SD.Project.Pages.Buyer.OrderDetailsModel
+@{
+    ViewData["Title"] = "Order Details";
+}
+
+<div class="container py-4">
+    @if (Model.Order is null)
+    {
+        <div class="text-center py-5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-question-circle text-muted mb-3" viewBox="0 0 16 16">
+                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                <path d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286m1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94"/>
+            </svg>
+            <h4 class="text-muted">Order not found</h4>
+            <p class="text-muted">The order you're looking for doesn't exist or you don't have permission to view it.</p>
+            <a asp-page="/Buyer/Dashboard" class="btn btn-primary mt-3">Go to Dashboard</a>
+        </div>
+    }
+    else
+    {
+        <!-- Order Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="mb-1">Order @Model.Order.OrderNumber</h1>
+                <p class="text-muted mb-0">
+                    Placed on @Model.Order.CreatedAt.ToString("MMMM dd, yyyy 'at' h:mm tt")
+                </p>
+            </div>
+            <div>
+                @{
+                    var statusClass = Model.Order.Status switch
+                    {
+                        "PaymentConfirmed" => "bg-success",
+                        "Processing" => "bg-info",
+                        "Shipped" => "bg-primary",
+                        "Delivered" => "bg-success",
+                        "Cancelled" => "bg-secondary",
+                        "PaymentFailed" => "bg-danger",
+                        "Refunded" => "bg-warning",
+                        _ => "bg-warning"
+                    };
+                    var statusDisplay = Model.Order.Status switch
+                    {
+                        "PaymentConfirmed" => "Confirmed",
+                        "PaymentFailed" => "Failed",
+                        _ => Model.Order.Status
+                    };
+                }
+                <span class="badge @statusClass fs-6">@statusDisplay</span>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Main Content -->
+            <div class="col-lg-8">
+                <!-- Seller Sub-Orders Section -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-shop me-2" viewBox="0 0 16 16">
+                                <path d="M2.97 1.35A1 1 0 0 1 3.73 1h8.54a1 1 0 0 1 .76.35l2.609 3.044A1.5 1.5 0 0 1 16 5.37v.255a2.375 2.375 0 0 1-4.25 1.458A2.371 2.371 0 0 1 9.875 8 2.37 2.37 0 0 1 8 7.083 2.37 2.37 0 0 1 6.125 8a2.37 2.37 0 0 1-1.875-.917A2.375 2.375 0 0 1 0 5.625V5.37a1.5 1.5 0 0 1 .361-.976l2.61-3.045zm1.78 4.275a1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0 1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0 1.375 1.375 0 1 0 2.75 0V5.37a.5.5 0 0 0-.12-.325L12.27 2H3.73L1.12 5.045A.5.5 0 0 0 1 5.37v.255a1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0M1.5 8.5A.5.5 0 0 1 2 9v6h1v-5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v5h6V9a.5.5 0 0 1 1 0v6h.5a.5.5 0 0 1 0 1H.5a.5.5 0 0 1 0-1H1V9a.5.5 0 0 1 .5-.5M4 15h3v-5H4zm5-5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1zm2 0h-1v3h2v-3z"/>
+                            </svg>
+                            Order by Seller (@Model.Order.SellerSubOrders.Count @(Model.Order.SellerSubOrders.Count == 1 ? "seller" : "sellers"))
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        @foreach (var subOrder in Model.Order.SellerSubOrders)
+                        {
+                            var subOrderStatusClass = subOrder.Status switch
+                            {
+                                "Paid" => "bg-success",
+                                "Processing" => "bg-info",
+                                "Shipped" => "bg-primary",
+                                "Delivered" => "bg-success",
+                                "Cancelled" => "bg-secondary",
+                                "Refunded" => "bg-warning",
+                                _ => "bg-warning"
+                            };
+                            var subOrderStatusDisplay = subOrder.Status switch
+                            {
+                                "Paid" => "Confirmed",
+                                _ => subOrder.Status
+                            };
+
+                            <div class="border-bottom p-3">
+                                <!-- Seller Header -->
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <div>
+                                        <h6 class="mb-0">
+                                            <a asp-page="/Store" asp-route-slug="@subOrder.StoreId" class="text-decoration-none">
+                                                @subOrder.StoreName
+                                            </a>
+                                        </h6>
+                                        @if (!string.IsNullOrEmpty(subOrder.EstimatedDelivery))
+                                        {
+                                            <small class="text-muted">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-calendar3 me-1" viewBox="0 0 16 16">
+                                                    <path d="M14 0H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2M1 3.857C1 3.384 1.448 3 2 3h12c.552 0 1 .384 1 .857v10.286c0 .473-.448.857-1 .857H2c-.552 0-1-.384-1-.857z"/>
+                                                    <path d="M6.5 7a1 1 0 1 0 0-2 1 1 0 0 0 0 2m3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2m3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2m-9 3a1 1 0 1 0 0-2 1 1 0 0 0 0 2m3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2m3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2m3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2m-9 3a1 1 0 1 0 0-2 1 1 0 0 0 0 2m3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2m3 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2"/>
+                                                </svg>
+                                                Est. delivery: @subOrder.EstimatedDelivery
+                                            </small>
+                                        }
+                                    </div>
+                                    <span class="badge @subOrderStatusClass">@subOrderStatusDisplay</span>
+                                </div>
+
+                                <!-- Tracking Info (if shipped) -->
+                                @if (!string.IsNullOrEmpty(subOrder.TrackingNumber))
+                                {
+                                    <div class="alert alert-info py-2 mb-3">
+                                        <div class="d-flex align-items-center">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-truck me-2" viewBox="0 0 16 16">
+                                                <path d="M0 3.5A1.5 1.5 0 0 1 1.5 2h9A1.5 1.5 0 0 1 12 3.5V5h1.02a1.5 1.5 0 0 1 1.17.563l1.481 1.85a1.5 1.5 0 0 1 .329.938V10.5a1.5 1.5 0 0 1-1.5 1.5H14a2 2 0 1 1-4 0H5a2 2 0 1 1-3.998-.085A1.5 1.5 0 0 1 0 10.5zm1.294 7.456A2 2 0 0 1 4.732 11h5.536a2 2 0 0 1 .732-.732V3.5a.5.5 0 0 0-.5-.5h-9a.5.5 0 0 0-.5.5v7a.5.5 0 0 0 .294.456M12 10a2 2 0 0 1 1.732 1h.768a.5.5 0 0 0 .5-.5V8.35a.5.5 0 0 0-.11-.312l-1.48-1.85A.5.5 0 0 0 13.02 6H12zm-9 1a1 1 0 1 0 0 2 1 1 0 0 0 0-2m9 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2"/>
+                                            </svg>
+                                            <span>
+                                                @if (!string.IsNullOrEmpty(subOrder.CarrierName))
+                                                {
+                                                    <strong>@subOrder.CarrierName:</strong>
+                                                }
+                                                @if (!string.IsNullOrEmpty(subOrder.TrackingUrl))
+                                                {
+                                                    <a href="@subOrder.TrackingUrl" target="_blank" rel="noopener">@subOrder.TrackingNumber</a>
+                                                }
+                                                else
+                                                {
+                                                    @subOrder.TrackingNumber
+                                                }
+                                            </span>
+                                            @if (subOrder.ShippedAt.HasValue)
+                                            {
+                                                <span class="ms-auto text-muted small">
+                                                    Shipped @subOrder.ShippedAt.Value.ToString("MMM dd, yyyy")
+                                                </span>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+
+                                <!-- Items Table -->
+                                <div class="table-responsive">
+                                    <table class="table table-sm mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Product</th>
+                                                <th class="text-center">Price</th>
+                                                <th class="text-center">Qty</th>
+                                                <th class="text-end">Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var item in subOrder.Items)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        <a asp-page="/Buyer/Product" asp-route-id="@item.ProductId" class="text-decoration-none">
+                                                            @item.ProductName
+                                                        </a>
+                                                        @if (!string.IsNullOrEmpty(item.ShippingMethodName))
+                                                        {
+                                                            <br />
+                                                            <small class="text-muted">@item.ShippingMethodName</small>
+                                                        }
+                                                    </td>
+                                                    <td class="text-center">@Model.Order.Currency @item.UnitPrice.ToString("N2")</td>
+                                                    <td class="text-center">@item.Quantity</td>
+                                                    <td class="text-end">@Model.Order.Currency @item.LineTotal.ToString("N2")</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                        <tfoot class="table-light">
+                                            <tr>
+                                                <td colspan="3" class="text-end"><small>Items Subtotal:</small></td>
+                                                <td class="text-end"><small>@Model.Order.Currency @subOrder.Subtotal.ToString("N2")</small></td>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="3" class="text-end"><small>Shipping:</small></td>
+                                                <td class="text-end"><small>@Model.Order.Currency @subOrder.ShippingCost.ToString("N2")</small></td>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="3" class="text-end fw-bold">Seller Total:</td>
+                                                <td class="text-end fw-bold">@Model.Order.Currency @subOrder.Total.ToString("N2")</td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Delivery Address -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-geo-alt me-2" viewBox="0 0 16 16">
+                                <path d="M12.166 8.94c-.524 1.062-1.234 2.12-1.96 3.07A32 32 0 0 1 8 14.58a32 32 0 0 1-2.206-2.57c-.726-.95-1.436-2.008-1.96-3.07C3.304 7.867 3 6.862 3 6a5 5 0 0 1 10 0c0 .862-.305 1.867-.834 2.94M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10"/>
+                                <path d="M8 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4m0 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6"/>
+                            </svg>
+                            Delivery Address
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-1"><strong>@Model.Order.RecipientName</strong></p>
+                        <p class="mb-0 text-muted">@Model.Order.DeliveryAddressSummary</p>
+                    </div>
+                </div>
+
+                <!-- Payment Method -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-credit-card me-2" viewBox="0 0 16 16">
+                                <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm2-1a1 1 0 0 0-1 1v1h14V4a1 1 0 0 0-1-1zm13 4H1v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1z"/>
+                                <path d="M2 10a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/>
+                            </svg>
+                            Payment Method
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-0">@Model.Order.PaymentMethodName</p>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="d-flex justify-content-between">
+                    <a asp-page="/Buyer/Dashboard" class="btn btn-outline-secondary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left me-2" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/>
+                        </svg>
+                        Back to Orders
+                    </a>
+                    <a asp-page="/Buyer/Search" class="btn btn-primary">
+                        Continue Shopping
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right ms-2" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Order Summary Sidebar -->
+            <div class="col-lg-4">
+                <div class="card sticky-top" style="top: 1rem;">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Order Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <small class="text-muted">Order Number</small>
+                            <p class="mb-0 fw-bold">@Model.Order.OrderNumber</p>
+                        </div>
+                        <div class="mb-3">
+                            <small class="text-muted">Order Date</small>
+                            <p class="mb-0">@Model.Order.CreatedAt.ToString("MMMM dd, yyyy")</p>
+                        </div>
+                        @if (!string.IsNullOrEmpty(Model.Order.EstimatedDeliveryRange))
+                        {
+                            <div class="mb-3">
+                                <small class="text-muted">Estimated Delivery</small>
+                                <p class="mb-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-truck me-1" viewBox="0 0 16 16">
+                                        <path d="M0 3.5A1.5 1.5 0 0 1 1.5 2h9A1.5 1.5 0 0 1 12 3.5V5h1.02a1.5 1.5 0 0 1 1.17.563l1.481 1.85a1.5 1.5 0 0 1 .329.938V10.5a1.5 1.5 0 0 1-1.5 1.5H14a2 2 0 1 1-4 0H5a2 2 0 1 1-3.998-.085A1.5 1.5 0 0 1 0 10.5zm1.294 7.456A2 2 0 0 1 4.732 11h5.536a2 2 0 0 1 .732-.732V3.5a.5.5 0 0 0-.5-.5h-9a.5.5 0 0 0-.5.5v7a.5.5 0 0 0 .294.456M12 10a2 2 0 0 1 1.732 1h.768a.5.5 0 0 0 .5-.5V8.35a.5.5 0 0 0-.11-.312l-1.48-1.85A.5.5 0 0 0 13.02 6H12zm-9 1a1 1 0 1 0 0 2 1 1 0 0 0 0-2m9 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2"/>
+                                    </svg>
+                                    @Model.Order.EstimatedDeliveryRange
+                                </p>
+                            </div>
+                        }
+                        <hr>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Items (@Model.Order.SellerSubOrders.Sum(s => s.Items.Count))</span>
+                            <span>@Model.Order.Currency @Model.Order.ItemSubtotal.ToString("N2")</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Shipping</span>
+                            <span>@Model.Order.Currency @Model.Order.TotalShipping.ToString("N2")</span>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between">
+                            <span class="fw-bold fs-5">Total</span>
+                            <span class="fw-bold fs-5 text-primary">@Model.Order.Currency @Model.Order.TotalAmount.ToString("N2")</span>
+                        </div>
+
+                        <!-- Seller Breakdown -->
+                        @if (Model.Order.SellerSubOrders.Count > 1)
+                        {
+                            <hr>
+                            <small class="text-muted d-block mb-2">Breakdown by Seller</small>
+                            @foreach (var subOrder in Model.Order.SellerSubOrders)
+                            {
+                                <div class="d-flex justify-content-between small mb-1">
+                                    <span class="text-truncate" style="max-width: 60%;">@subOrder.StoreName</span>
+                                    <span>@Model.Order.Currency @subOrder.Total.ToString("N2")</span>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
