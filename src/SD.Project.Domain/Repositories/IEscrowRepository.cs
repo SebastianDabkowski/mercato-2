@@ -37,6 +37,13 @@ public interface IEscrowRepository
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets escrow allocation by ID.
+    /// </summary>
+    Task<EscrowAllocation?> GetAllocationByIdAsync(
+        Guid allocationId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets all escrow allocations that are eligible for payout.
     /// </summary>
     Task<IReadOnlyList<EscrowAllocation>> GetEligibleForPayoutAsync(

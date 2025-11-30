@@ -205,11 +205,19 @@ public sealed class PayoutScheduleService
             // Release the escrow allocations
             foreach (var item in payout.Items)
             {
-                var allocation = await _escrowRepository.GetAllocationByShipmentIdAsync(
+                var allocation = await _escrowRepository.GetAllocationByIdAsync(
                     item.EscrowAllocationId, cancellationToken);
                 
-                // Note: In production, we would get the allocation by its ID directly
-                // This is a simplification - the allocation might need to be retrieved differently
+                if (allocation is not null)
+                {
+                    allocation.Release(payoutReference);
+                    // The allocation update will be handled by the escrow repository
+                    var escrow = await _escrowRepository.GetByIdAsync(allocation.EscrowPaymentId, cancellationToken);
+                    if (escrow is not null)
+                    {
+                        await _escrowRepository.UpdateAsync(escrow, cancellationToken);
+                    }
+                }
             }
 
             payout.MarkPaid(payoutReference);

@@ -94,7 +94,6 @@ public class SellerPayoutItemConfiguration : IEntityTypeConfiguration<SellerPayo
 
         // Indexes
         builder.HasIndex(i => i.SellerPayoutId);
-        builder.HasIndex(i => i.EscrowAllocationId);
 
         // Unique constraint - each allocation can only be in one payout
         builder.HasIndex(i => i.EscrowAllocationId)
