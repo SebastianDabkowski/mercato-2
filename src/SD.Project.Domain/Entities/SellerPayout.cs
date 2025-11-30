@@ -241,6 +241,11 @@ public class SellerPayout
     }
 
     /// <summary>
+    /// Retry delay hours by attempt number.
+    /// </summary>
+    private static readonly int[] RetryDelayHours = { 1, 4, 16 };
+
+    /// <summary>
     /// Marks the payout as failed.
     /// </summary>
     public void MarkFailed(string? errorReference, string? errorMessage)
@@ -258,10 +263,10 @@ public class SellerPayout
         UpdatedAt = DateTime.UtcNow;
 
         // Schedule next retry if retries remaining
-        if (RetryCount < MaxRetries)
+        if (RetryCount < MaxRetries && RetryCount <= RetryDelayHours.Length)
         {
-            // Exponential backoff: 1 hour, 4 hours, 16 hours
-            var delayHours = Math.Pow(4, RetryCount);
+            // Exponential backoff using lookup table: 1 hour, 4 hours, 16 hours
+            var delayHours = RetryDelayHours[RetryCount - 1];
             NextRetryAt = DateTime.UtcNow.AddHours(delayHours);
         }
         else

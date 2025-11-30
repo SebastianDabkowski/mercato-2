@@ -35,6 +35,11 @@ public sealed class PayoutScheduleService
     /// </summary>
     public const DayOfWeek DefaultPayoutDay = DayOfWeek.Friday;
 
+    /// <summary>
+    /// Default currency when none is available from allocations or payouts.
+    /// </summary>
+    public const string DefaultCurrency = "EUR";
+
     public PayoutScheduleService(
         ISellerPayoutRepository payoutRepository,
         IEscrowRepository escrowRepository,
@@ -200,7 +205,7 @@ public sealed class PayoutScheduleService
 
             // In a real implementation, this would call the payment provider
             // For now, we'll simulate success with a generated reference
-            var payoutReference = $"PO-{DateTime.UtcNow:yyyyMMddHHmmss}-{payout.Id.ToString()[..8]}";
+            var payoutReference = GeneratePayoutReference(payout.Id);
 
             // Release the escrow allocations
             foreach (var item in payout.Items)
@@ -264,8 +269,9 @@ public sealed class PayoutScheduleService
     {
         var results = new List<ProcessPayoutResultDto>();
 
+        // Process payouts scheduled for today or earlier
         var scheduledPayouts = await _payoutRepository.GetScheduledForProcessingAsync(
-            DateTime.UtcNow.Date.AddDays(1), cancellationToken);
+            DateTime.UtcNow, cancellationToken);
 
         foreach (var payout in scheduledPayouts)
         {
@@ -359,7 +365,7 @@ public sealed class PayoutScheduleService
         var processingPayouts = payouts.Where(p => p.Status == SellerPayoutStatus.Processing).ToList();
         var failedPayouts = payouts.Where(p => p.Status == SellerPayoutStatus.Failed).ToList();
 
-        var currency = eligibleAllocations.FirstOrDefault()?.Currency ?? payouts.FirstOrDefault()?.Currency ?? "USD";
+        var currency = eligibleAllocations.FirstOrDefault()?.Currency ?? payouts.FirstOrDefault()?.Currency ?? DefaultCurrency;
 
         return new SellerPayoutSummaryDto(
             query.StoreId,
@@ -422,6 +428,17 @@ public sealed class PayoutScheduleService
         var firstOfNextMonth = new DateTime(today.Year, today.Month, 1).AddMonths(1);
         var daysUntilPayoutDay = ((int)payoutDay - (int)firstOfNextMonth.DayOfWeek + 7) % 7;
         return firstOfNextMonth.AddDays(daysUntilPayoutDay);
+    }
+
+    /// <summary>
+    /// Generates a payout reference for tracking purposes.
+    /// Format: PO-{timestamp}-{payoutId first 8 chars}
+    /// </summary>
+    private static string GeneratePayoutReference(Guid payoutId)
+    {
+        var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+        var shortId = payoutId.ToString("N")[..8].ToUpperInvariant();
+        return $"PO-{timestamp}-{shortId}";
     }
 
     private static SellerPayoutDto MapToDto(SellerPayout payout)

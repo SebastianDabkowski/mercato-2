@@ -159,10 +159,11 @@ public sealed class SellerPayoutRepository : ISellerPayoutRepository
         _context.SellerPayouts.Update(payout);
 
         // Add any new items
-        var existingItemIds = await _context.SellerPayoutItems
+        var existingItemIds = (await _context.SellerPayoutItems
             .Where(i => i.SellerPayoutId == payout.Id)
             .Select(i => i.Id)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken))
+            .ToHashSet();
 
         foreach (var item in payout.Items)
         {
