@@ -2,14 +2,16 @@ namespace SD.Project.Domain.Entities;
 
 /// <summary>
 /// Represents the status of an order.
+/// Statuses: new (Pending), paid (PaymentConfirmed), preparing (Processing), shipped, delivered, cancelled, refunded.
+/// State transitions are constrained (e.g., cannot move from delivered back to preparing).
 /// </summary>
 public enum OrderStatus
 {
-    /// <summary>Order is being created during checkout.</summary>
+    /// <summary>Order is newly created and awaiting payment confirmation (new).</summary>
     Pending,
-    /// <summary>Payment has been authorized or confirmed.</summary>
+    /// <summary>Payment has been authorized or confirmed (paid).</summary>
     PaymentConfirmed,
-    /// <summary>Order is being processed by sellers.</summary>
+    /// <summary>Order is being prepared by sellers (preparing).</summary>
     Processing,
     /// <summary>All items have been shipped.</summary>
     Shipped,
@@ -18,7 +20,9 @@ public enum OrderStatus
     /// <summary>Order was cancelled before shipment.</summary>
     Cancelled,
     /// <summary>Payment failed or was declined.</summary>
-    PaymentFailed
+    PaymentFailed,
+    /// <summary>Order has been refunded after a processed refund.</summary>
+    Refunded
 }
 
 /// <summary>
@@ -105,6 +109,13 @@ public class Order
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
     public DateTime? PaidAt { get; private set; }
+    public DateTime? RefundedAt { get; private set; }
+    public DateTime? CancelledAt { get; private set; }
+
+    /// <summary>
+    /// The refunded amount if the order has been refunded.
+    /// </summary>
+    public decimal? RefundedAmount { get; private set; }
 
     private Order()
     {
@@ -240,7 +251,8 @@ public class Order
     }
 
     /// <summary>
-    /// Marks the order as payment confirmed.
+    /// Marks the order as payment confirmed (paid).
+    /// Also sets all associated shipments to paid status.
     /// </summary>
     public void ConfirmPayment(string? transactionId)
     {
@@ -253,6 +265,15 @@ public class Order
         PaymentTransactionId = transactionId;
         PaidAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
+
+        // Set all shipments to paid status
+        foreach (var shipment in _shipments)
+        {
+            if (shipment.Status == ShipmentStatus.Pending)
+            {
+                shipment.ConfirmPayment();
+            }
+        }
     }
 
     /// <summary>
@@ -270,17 +291,31 @@ public class Order
     }
 
     /// <summary>
-    /// Cancels the order.
+    /// Cancels the order. Can only be done before shipment.
+    /// Also cancels all associated shipments.
     /// </summary>
     public void Cancel()
     {
-        if (Status == OrderStatus.Shipped || Status == OrderStatus.Delivered)
+        if (Status == OrderStatus.Shipped || Status == OrderStatus.Delivered || Status == OrderStatus.Refunded)
         {
             throw new InvalidOperationException($"Cannot cancel order in status {Status}.");
         }
 
         Status = OrderStatus.Cancelled;
+        CancelledAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
+
+        // Cancel all shipments
+        foreach (var shipment in _shipments)
+        {
+            if (shipment.Status != ShipmentStatus.Shipped && 
+                shipment.Status != ShipmentStatus.Delivered && 
+                shipment.Status != ShipmentStatus.Cancelled &&
+                shipment.Status != ShipmentStatus.Refunded)
+            {
+                shipment.Cancel();
+            }
+        }
     }
 
     /// <summary>
@@ -295,6 +330,159 @@ public class Order
 
         Status = OrderStatus.Processing;
         UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Marks the order as shipped. Only valid when all shipments have shipped.
+    /// </summary>
+    public void MarkShipped()
+    {
+        if (Status != OrderStatus.Processing && Status != OrderStatus.PaymentConfirmed)
+        {
+            throw new InvalidOperationException($"Cannot mark order as shipped in status {Status}.");
+        }
+
+        // Verify all active shipments are shipped (cancelled/refunded shipments don't block)
+        var activeShipments = _shipments.Where(s => 
+            s.Status != ShipmentStatus.Cancelled && 
+            s.Status != ShipmentStatus.Refunded);
+        
+        if (activeShipments.Any(s => s.Status != ShipmentStatus.Shipped && s.Status != ShipmentStatus.Delivered))
+        {
+            throw new InvalidOperationException("Cannot mark order as shipped until all active shipments are shipped.");
+        }
+
+        Status = OrderStatus.Shipped;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Marks the order as delivered. Only valid when all shipments have been delivered.
+    /// </summary>
+    public void MarkDelivered()
+    {
+        if (Status != OrderStatus.Shipped)
+        {
+            throw new InvalidOperationException($"Cannot mark order as delivered in status {Status}.");
+        }
+
+        // Verify all active shipments are delivered (cancelled/refunded shipments don't block)
+        var activeShipments = _shipments.Where(s => 
+            s.Status != ShipmentStatus.Cancelled && 
+            s.Status != ShipmentStatus.Refunded);
+        
+        if (activeShipments.Any(s => s.Status != ShipmentStatus.Delivered))
+        {
+            throw new InvalidOperationException("Cannot mark order as delivered until all active shipments are delivered.");
+        }
+
+        Status = OrderStatus.Delivered;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Refunds the order. Sets status to 'refunded' and records the refunded amount.
+    /// Can be called after payment has been confirmed (paid, preparing, shipped, delivered).
+    /// </summary>
+    /// <param name="refundedAmount">The amount being refunded. If null, defaults to TotalAmount.</param>
+    public void Refund(decimal? refundedAmount = null)
+    {
+        // Can only refund orders that have been paid
+        if (Status == OrderStatus.Pending || Status == OrderStatus.PaymentFailed || Status == OrderStatus.Cancelled)
+        {
+            throw new InvalidOperationException($"Cannot refund order in status {Status}.");
+        }
+
+        if (Status == OrderStatus.Refunded)
+        {
+            throw new InvalidOperationException("Order has already been refunded.");
+        }
+
+        var amount = refundedAmount ?? TotalAmount;
+        if (amount <= 0)
+        {
+            throw new ArgumentException("Refunded amount must be greater than zero.", nameof(refundedAmount));
+        }
+
+        if (amount > TotalAmount)
+        {
+            throw new ArgumentException("Refunded amount cannot exceed total order amount.", nameof(refundedAmount));
+        }
+
+        Status = OrderStatus.Refunded;
+        RefundedAmount = amount;
+        RefundedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+
+        // Refund shipments proportionally based on the refund amount
+        var refundableShipments = _shipments
+            .Where(s => s.Status != ShipmentStatus.Refunded && s.Status != ShipmentStatus.Cancelled)
+            .ToList();
+        
+        if (refundableShipments.Count > 0)
+        {
+            var totalRefundableAmount = refundableShipments.Sum(s => s.Subtotal + s.ShippingCost);
+            var refundRatio = totalRefundableAmount > 0 ? amount / totalRefundableAmount : 0;
+            
+            foreach (var shipment in refundableShipments)
+            {
+                var shipmentTotal = shipment.Subtotal + shipment.ShippingCost;
+                var shipmentRefundAmount = shipmentTotal * refundRatio;
+                
+                // Full refund if ratio is 1 or very close
+                if (refundRatio >= 1m || shipmentRefundAmount >= shipmentTotal)
+                {
+                    shipment.Refund();
+                }
+                else if (shipmentRefundAmount > 0)
+                {
+                    shipment.Refund(shipmentRefundAmount);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Checks if the order can transition to the specified status.
+    /// </summary>
+    public bool CanTransitionTo(OrderStatus targetStatus)
+    {
+        return targetStatus switch
+        {
+            OrderStatus.Pending => false, // Cannot go back to pending
+            OrderStatus.PaymentConfirmed => Status == OrderStatus.Pending,
+            OrderStatus.Processing => Status == OrderStatus.PaymentConfirmed,
+            OrderStatus.Shipped => Status == OrderStatus.Processing || Status == OrderStatus.PaymentConfirmed,
+            OrderStatus.Delivered => Status == OrderStatus.Shipped,
+            OrderStatus.Cancelled => CanBeCancelled(),
+            OrderStatus.PaymentFailed => Status == OrderStatus.Pending,
+            OrderStatus.Refunded => CanBeRefunded(),
+            _ => false
+        };
+    }
+
+    /// <summary>
+    /// Checks if the order is in a state that allows cancellation.
+    /// Orders cannot be cancelled once shipped, delivered, refunded, or already cancelled.
+    /// </summary>
+    private bool CanBeCancelled()
+    {
+        return Status != OrderStatus.Shipped && 
+               Status != OrderStatus.Delivered && 
+               Status != OrderStatus.Refunded && 
+               Status != OrderStatus.Cancelled;
+    }
+
+    /// <summary>
+    /// Checks if the order is in a state that allows refund.
+    /// Orders can be refunded after payment is confirmed.
+    /// </summary>
+    private bool CanBeRefunded()
+    {
+        return Status == OrderStatus.PaymentConfirmed || 
+               Status == OrderStatus.Processing || 
+               Status == OrderStatus.Shipped || 
+               Status == OrderStatus.Delivered;
     }
 
     private void RecalculateTotals()
