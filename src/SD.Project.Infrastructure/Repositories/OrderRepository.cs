@@ -117,6 +117,93 @@ public sealed class OrderRepository : IOrderRepository
         return orders.AsReadOnly();
     }
 
+    public async Task<(IReadOnlyList<Order> Orders, int TotalCount)> GetFilteredByBuyerIdAsync(
+        Guid buyerId,
+        OrderStatus? status,
+        DateTime? fromDate,
+        DateTime? toDate,
+        Guid? sellerId,
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default)
+    {
+        // Start with orders for the buyer
+        var ordersQuery = _context.Orders
+            .Where(o => o.BuyerId == buyerId);
+
+        // Apply status filter
+        if (status.HasValue)
+        {
+            ordersQuery = ordersQuery.Where(o => o.Status == status.Value);
+        }
+
+        // Apply date range filter
+        if (fromDate.HasValue)
+        {
+            ordersQuery = ordersQuery.Where(o => o.CreatedAt >= fromDate.Value);
+        }
+        if (toDate.HasValue)
+        {
+            // Include the entire end date
+            var endOfDay = toDate.Value.Date.AddDays(1);
+            ordersQuery = ordersQuery.Where(o => o.CreatedAt < endOfDay);
+        }
+
+        // For seller filter, we need to find orders that have items from that store
+        if (sellerId.HasValue)
+        {
+            var orderIdsWithSeller = await _context.OrderItems
+                .Where(i => i.StoreId == sellerId.Value)
+                .Select(i => i.OrderId)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            ordersQuery = ordersQuery.Where(o => orderIdsWithSeller.Contains(o.Id));
+        }
+
+        // Get total count before pagination
+        var totalCount = await ordersQuery.CountAsync(cancellationToken);
+
+        // Apply pagination and ordering
+        var orders = await ordersQuery
+            .OrderByDescending(o => o.CreatedAt)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+
+        // Load items and shipments for each order
+        if (orders.Count > 0)
+        {
+            var orderIds = orders.Select(o => o.Id).ToList();
+            var allItems = await _context.OrderItems
+                .Where(i => orderIds.Contains(i.OrderId))
+                .ToListAsync(cancellationToken);
+
+            var itemsByOrder = allItems.GroupBy(i => i.OrderId).ToDictionary(g => g.Key, g => g.ToList());
+
+            var allShipments = await _context.OrderShipments
+                .Where(s => orderIds.Contains(s.OrderId))
+                .ToListAsync(cancellationToken);
+
+            var shipmentsByOrder = allShipments.GroupBy(s => s.OrderId).ToDictionary(g => g.Key, g => g.ToList());
+
+            foreach (var order in orders)
+            {
+                if (itemsByOrder.TryGetValue(order.Id, out var items))
+                {
+                    order.LoadItems(items);
+                }
+
+                if (shipmentsByOrder.TryGetValue(order.Id, out var shipments))
+                {
+                    order.LoadShipments(shipments);
+                }
+            }
+        }
+
+        return (orders.AsReadOnly(), totalCount);
+    }
+
     public async Task AddAsync(Order order, CancellationToken cancellationToken = default)
     {
         await _context.Orders.AddAsync(order, cancellationToken);

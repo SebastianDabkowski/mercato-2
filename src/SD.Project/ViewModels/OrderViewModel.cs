@@ -99,3 +99,15 @@ public sealed record SellerSubOrderItemViewModel(
     int Quantity,
     decimal LineTotal,
     string? ShippingMethodName);
+
+/// <summary>
+/// View model for buyer's order list item.
+/// </summary>
+public sealed record BuyerOrderListItemViewModel(
+    Guid OrderId,
+    string OrderNumber,
+    string Status,
+    int ItemCount,
+    decimal TotalAmount,
+    string Currency,
+    DateTime CreatedAt);

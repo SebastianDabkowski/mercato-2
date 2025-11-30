@@ -39,3 +39,15 @@ public sealed record GetBuyerOrdersQuery(
     Guid BuyerId,
     int Skip = 0,
     int Take = 20);
+
+/// <summary>
+/// Query to get buyer's orders with filtering and pagination.
+/// </summary>
+public sealed record GetFilteredBuyerOrdersQuery(
+    Guid BuyerId,
+    string? Status = null,
+    DateTime? FromDate = null,
+    DateTime? ToDate = null,
+    Guid? SellerId = null,
+    int PageNumber = 1,
+    int PageSize = 20);

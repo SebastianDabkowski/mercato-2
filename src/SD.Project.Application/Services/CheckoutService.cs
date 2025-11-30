@@ -643,6 +643,55 @@ public sealed class CheckoutService
             o.CreatedAt)).ToList().AsReadOnly();
     }
 
+    /// <summary>
+    /// Gets buyer's orders with filtering and pagination.
+    /// </summary>
+    public async Task<PagedResultDto<OrderSummaryDto>> HandleAsync(
+        GetFilteredBuyerOrdersQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        // Validate and normalize pagination
+        var pageNumber = Math.Max(1, query.PageNumber);
+        var pageSize = Math.Clamp(query.PageSize, 1, 100);
+        var skip = (pageNumber - 1) * pageSize;
+
+        // Parse status filter if provided
+        OrderStatus? statusFilter = null;
+        if (!string.IsNullOrWhiteSpace(query.Status) &&
+            Enum.TryParse<OrderStatus>(query.Status, ignoreCase: true, out var parsedStatus))
+        {
+            statusFilter = parsedStatus;
+        }
+
+        // Get filtered orders from repository
+        var (orders, totalCount) = await _orderRepository.GetFilteredByBuyerIdAsync(
+            query.BuyerId,
+            statusFilter,
+            query.FromDate,
+            query.ToDate,
+            query.SellerId,
+            skip,
+            pageSize,
+            cancellationToken);
+
+        var orderDtos = orders.Select(o => new OrderSummaryDto(
+            o.Id,
+            o.OrderNumber,
+            o.Status.ToString(),
+            o.Items.Sum(i => i.Quantity),
+            o.TotalAmount,
+            o.Currency,
+            o.CreatedAt)).ToList().AsReadOnly();
+
+        return PagedResultDto<OrderSummaryDto>.Create(
+            orderDtos,
+            pageNumber,
+            pageSize,
+            totalCount);
+    }
+
     private async Task<Cart?> GetCartAsync(Guid? buyerId, string? sessionId, CancellationToken cancellationToken)
     {
         if (buyerId.HasValue && buyerId.Value != Guid.Empty)
