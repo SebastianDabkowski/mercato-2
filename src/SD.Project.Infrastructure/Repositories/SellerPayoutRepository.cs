@@ -99,11 +99,10 @@ public sealed class SellerPayoutRepository : ISellerPayoutRepository
             query = query.Where(p => p.ScheduledDate < endDate);
         }
 
-        var orderedQuery = query.OrderByDescending(p => p.ScheduledDate);
-
         var totalCount = await query.CountAsync(cancellationToken);
 
-        var payouts = await orderedQuery
+        var payouts = await query
+            .OrderByDescending(p => p.ScheduledDate)
             .Skip(skip)
             .Take(take)
             .ToListAsync(cancellationToken);
