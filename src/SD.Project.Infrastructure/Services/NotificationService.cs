@@ -8,6 +8,7 @@ namespace SD.Project.Infrastructure.Services;
 /// </summary>
 public sealed class NotificationService : INotificationService
 {
+    private const string DefaultCarrierName = "Unknown Carrier";
     private readonly ILogger<NotificationService> _logger;
 
     public NotificationService(ILogger<NotificationService> logger)
@@ -109,6 +110,35 @@ public sealed class NotificationService : INotificationService
             currency,
             totalAmount,
             confirmationLink);
+        return Task.CompletedTask;
+    }
+
+    public Task SendShipmentStatusChangedAsync(
+        Guid shipmentId,
+        Guid orderId,
+        string buyerEmail,
+        string orderNumber,
+        string previousStatus,
+        string newStatus,
+        string? trackingNumber,
+        string? carrierName,
+        CancellationToken cancellationToken = default)
+    {
+        // TODO: Replace logging with real email/notification integration.
+        // In a production environment, this would send an email notification to the buyer
+        // when the shipment status changes (e.g., preparing, shipped, delivered).
+        // For shipped status, include tracking information if available.
+        var trackingInfo = !string.IsNullOrEmpty(trackingNumber)
+            ? $" Tracking: {carrierName ?? DefaultCarrierName} - {trackingNumber}"
+            : "";
+        _logger.LogInformation(
+            "Shipment status changed notification sent to {BuyerEmail} for order {OrderNumber}. " +
+            "Status: {PreviousStatus} -> {NewStatus}.{TrackingInfo}",
+            buyerEmail,
+            orderNumber,
+            previousStatus,
+            newStatus,
+            trackingInfo);
         return Task.CompletedTask;
     }
 }

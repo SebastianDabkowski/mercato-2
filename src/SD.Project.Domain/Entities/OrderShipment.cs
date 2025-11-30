@@ -128,6 +128,23 @@ public class OrderShipment
     }
 
     /// <summary>
+    /// Updates tracking information for a shipped order.
+    /// Can only be done when the shipment is in Shipped status.
+    /// </summary>
+    public void UpdateTrackingInfo(string? carrierName, string? trackingNumber, string? trackingUrl)
+    {
+        if (Status != ShipmentStatus.Shipped)
+        {
+            throw new InvalidOperationException($"Cannot update tracking info for shipment in status {Status}. Shipment must be shipped first.");
+        }
+
+        CarrierName = carrierName;
+        TrackingNumber = trackingNumber;
+        TrackingUrl = trackingUrl;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
     /// Starts processing the shipment (seller preparing shipment).
     /// Can only be done from Paid status.
     /// </summary>
