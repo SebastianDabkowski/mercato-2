@@ -101,13 +101,13 @@ public sealed class OrderService
             {
                 var relevantMethods = itemShippingMethodIds
                     .Select(id => shippingMethodLookup.GetValueOrDefault(id))
-                    .Where(m => m is not null)
+                    .OfType<ShippingMethod>()
                     .ToList();
 
                 if (relevantMethods.Count > 0)
                 {
-                    var minDays = relevantMethods.Min(m => m!.EstimatedDeliveryDaysMin);
-                    var maxDays = relevantMethods.Max(m => m!.EstimatedDeliveryDaysMax);
+                    var minDays = relevantMethods.Min(m => m.EstimatedDeliveryDaysMin);
+                    var maxDays = relevantMethods.Max(m => m.EstimatedDeliveryDaysMax);
                     var minDate = order.CreatedAt.AddDays(minDays).ToString("MMM dd");
                     var maxDate = order.CreatedAt.AddDays(maxDays).ToString("MMM dd, yyyy");
                     subOrderEstimatedDelivery = $"{minDate} - {maxDate}";
