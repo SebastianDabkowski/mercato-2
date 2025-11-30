@@ -296,6 +296,7 @@ public sealed class OrderRepository : IOrderRepository
         DateTime? fromDate,
         DateTime? toDate,
         string? buyerSearch,
+        bool? withoutTracking,
         int skip,
         int take,
         CancellationToken cancellationToken = default)
@@ -320,6 +321,12 @@ public sealed class OrderRepository : IOrderRepository
             // Include the entire end date
             var endOfDay = toDate.Value.Date.AddDays(1);
             shipmentsQuery = shipmentsQuery.Where(s => s.CreatedAt < endOfDay);
+        }
+
+        // Filter for orders without tracking number
+        if (withoutTracking == true)
+        {
+            shipmentsQuery = shipmentsQuery.Where(s => s.TrackingNumber == null || s.TrackingNumber == "");
         }
 
         // For buyer search, we need to join with orders
@@ -354,6 +361,7 @@ public sealed class OrderRepository : IOrderRepository
         DateTime? fromDate,
         DateTime? toDate,
         string? buyerSearch,
+        bool? withoutTracking,
         CancellationToken cancellationToken = default)
     {
         // Start with shipments for the store
@@ -375,6 +383,12 @@ public sealed class OrderRepository : IOrderRepository
         {
             var endOfDay = toDate.Value.Date.AddDays(1);
             shipmentsQuery = shipmentsQuery.Where(s => s.CreatedAt < endOfDay);
+        }
+
+        // Filter for orders without tracking number
+        if (withoutTracking == true)
+        {
+            shipmentsQuery = shipmentsQuery.Where(s => s.TrackingNumber == null || s.TrackingNumber == "");
         }
 
         // Get all matching shipments

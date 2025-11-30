@@ -54,6 +54,9 @@ public class OrdersModel : PageModel
     public string? BuyerSearch { get; set; }
 
     [BindProperty(SupportsGet = true)]
+    public bool? WithoutTracking { get; set; }
+
+    [BindProperty(SupportsGet = true)]
     public int PageNumber { get; set; } = 1;
 
     public OrdersModel(
@@ -96,6 +99,7 @@ public class OrdersModel : PageModel
                 FromDate,
                 ToDate,
                 BuyerSearch,
+                WithoutTracking,
                 CurrentPage,
                 PageSize),
             cancellationToken);
@@ -114,8 +118,8 @@ public class OrdersModel : PageModel
             s.BuyerName,
             s.CreatedAt)).ToList().AsReadOnly();
 
-        _logger.LogInformation("Seller orders page accessed for store {StoreId} with {OrderCount} orders (filtered: status={Status}, fromDate={FromDate}, toDate={ToDate}, buyer={Buyer})",
-            store.Id, SubOrders.Count, Status, FromDate, ToDate, BuyerSearch);
+        _logger.LogInformation("Seller orders page accessed for store {StoreId} with {OrderCount} orders (filtered: status={Status}, fromDate={FromDate}, toDate={ToDate}, buyer={Buyer}, withoutTracking={WithoutTracking})",
+            store.Id, SubOrders.Count, Status, FromDate, ToDate, BuyerSearch, WithoutTracking);
 
         return Page();
     }
@@ -148,7 +152,8 @@ public class OrdersModel : PageModel
             Status,
             FromDate,
             ToDate,
-            BuyerSearch);
+            BuyerSearch,
+            WithoutTracking);
 
         var result = await _orderExportService.HandleAsync(query, cancellationToken);
 
@@ -159,7 +164,7 @@ public class OrdersModel : PageModel
             TempData["ExportError"] = result.IsSuccess
                 ? "Export failed: No data generated."
                 : string.Join(", ", result.Errors);
-            return RedirectToPage(new { Status, FromDate, ToDate, BuyerSearch, PageNumber });
+            return RedirectToPage(new { Status, FromDate, ToDate, BuyerSearch, WithoutTracking, PageNumber });
         }
 
         _logger.LogInformation(

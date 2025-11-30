@@ -47,6 +47,7 @@ public sealed class OrderExportService
             query.FromDate,
             query.ToDate,
             query.BuyerSearch,
+            query.WithoutTracking,
             cancellationToken);
 
         if (shipmentsData.Count == 0)
@@ -70,9 +71,28 @@ public sealed class OrderExportService
                 ? $"{buyer.FirstName} {buyer.LastName}"
                 : s.Order.RecipientName;
             var buyerEmail = buyer?.Email.Value ?? string.Empty;
+            var buyerPhone = s.Order.DeliveryPhoneNumber ?? buyer?.PhoneNumber ?? string.Empty;
+
+            // Build full delivery address
+            var addressParts = new List<string> { s.Order.DeliveryStreet };
+            if (!string.IsNullOrWhiteSpace(s.Order.DeliveryStreet2))
+            {
+                addressParts.Add(s.Order.DeliveryStreet2);
+            }
+            addressParts.Add(s.Order.DeliveryCity);
+            if (!string.IsNullOrWhiteSpace(s.Order.DeliveryState))
+            {
+                addressParts.Add(s.Order.DeliveryState);
+            }
+            addressParts.Add(s.Order.DeliveryPostalCode);
+            addressParts.Add(s.Order.DeliveryCountry);
+            var deliveryAddress = string.Join(", ", addressParts);
 
             // Get the first shipping method name from items (they're typically the same for a shipment)
             var shippingMethod = s.Items.FirstOrDefault()?.ShippingMethodName ?? string.Empty;
+
+            // Build order items summary (format: "ProductName (x Quantity); ...")
+            var itemsSummary = string.Join("; ", s.Items.Select(i => $"{i.ProductName} (x{i.Quantity})"));
 
             return new OrderExportRow(
                 s.Order.Id,
@@ -82,10 +102,21 @@ public sealed class OrderExportService
                 s.Shipment.Status.ToString(),
                 buyerName,
                 buyerEmail,
+                buyerPhone,
+                deliveryAddress,
+                s.Order.DeliveryStreet,
+                s.Order.DeliveryStreet2 ?? string.Empty,
+                s.Order.DeliveryCity,
+                s.Order.DeliveryState ?? string.Empty,
+                s.Order.DeliveryPostalCode,
+                s.Order.DeliveryCountry,
                 s.Shipment.Subtotal + s.Shipment.ShippingCost,
                 s.Order.Currency,
                 shippingMethod,
                 s.Items.Count,
+                itemsSummary,
+                s.Shipment.TrackingNumber ?? string.Empty,
+                s.Shipment.CarrierName ?? string.Empty,
                 s.Shipment.ShippedAt,
                 s.Shipment.DeliveredAt);
         }).ToList();
@@ -105,8 +136,8 @@ public sealed class OrderExportService
     {
         var sb = new StringBuilder();
 
-        // Header row
-        sb.AppendLine("Order ID,Order Number,Sub-Order ID,Created Date,Status,Buyer Name,Buyer Email,Total Amount,Currency,Shipping Method,Item Count,Shipped Date,Delivered Date");
+        // Header row - includes all key shipping fields for logistics partners
+        sb.AppendLine("Order ID,Order Number,Sub-Order ID,Created Date,Status,Buyer Name,Buyer Email,Buyer Phone,Delivery Address,Street,Street 2,City,State,Postal Code,Country,Total Amount,Currency,Shipping Method,Item Count,Order Items,Tracking Number,Carrier,Shipped Date,Delivered Date");
 
         // Data rows
         foreach (var row in rows)
@@ -119,10 +150,21 @@ public sealed class OrderExportService
                 EscapeCsvValue(row.Status),
                 EscapeCsvValue(row.BuyerName),
                 EscapeCsvValue(row.BuyerEmail),
+                EscapeCsvValue(row.BuyerPhone),
+                EscapeCsvValue(row.DeliveryAddress),
+                EscapeCsvValue(row.Street),
+                EscapeCsvValue(row.Street2),
+                EscapeCsvValue(row.City),
+                EscapeCsvValue(row.State),
+                EscapeCsvValue(row.PostalCode),
+                EscapeCsvValue(row.Country),
                 row.TotalAmount.ToString("F2", CultureInfo.InvariantCulture),
                 EscapeCsvValue(row.Currency),
                 EscapeCsvValue(row.ShippingMethod),
                 row.ItemCount.ToString(CultureInfo.InvariantCulture),
+                EscapeCsvValue(row.OrderItems),
+                EscapeCsvValue(row.TrackingNumber),
+                EscapeCsvValue(row.CarrierName),
                 EscapeCsvValue(row.ShippedAt?.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) ?? string.Empty),
                 EscapeCsvValue(row.DeliveredAt?.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) ?? string.Empty)));
         }
@@ -163,8 +205,8 @@ public sealed class OrderExportService
         var stringTable = new Dictionary<string, int>(StringComparer.Ordinal);
         var index = 0;
 
-        // Add headers first
-        var headers = new[] { "Order ID", "Order Number", "Sub-Order ID", "Created Date", "Status", "Buyer Name", "Buyer Email", "Total Amount", "Currency", "Shipping Method", "Item Count", "Shipped Date", "Delivered Date" };
+        // Add headers first - matches CSV headers for consistency
+        var headers = new[] { "Order ID", "Order Number", "Sub-Order ID", "Created Date", "Status", "Buyer Name", "Buyer Email", "Buyer Phone", "Delivery Address", "Street", "Street 2", "City", "State", "Postal Code", "Country", "Total Amount", "Currency", "Shipping Method", "Item Count", "Order Items", "Tracking Number", "Carrier", "Shipped Date", "Delivered Date" };
         foreach (var header in headers)
         {
             if (!stringTable.ContainsKey(header))
@@ -185,8 +227,19 @@ public sealed class OrderExportService
                 row.Status,
                 row.BuyerName,
                 row.BuyerEmail,
+                row.BuyerPhone,
+                row.DeliveryAddress,
+                row.Street,
+                row.Street2,
+                row.City,
+                row.State,
+                row.PostalCode,
+                row.Country,
                 row.Currency,
                 row.ShippingMethod,
+                row.OrderItems,
+                row.TrackingNumber,
+                row.CarrierName,
                 row.ShippedAt?.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) ?? string.Empty,
                 row.DeliveredAt?.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) ?? string.Empty
             };
@@ -351,8 +404,8 @@ public sealed class OrderExportService
         writer.WriteStartElement("worksheet", ns);
         writer.WriteStartElement("sheetData", ns);
 
-        // Header row
-        var headers = new[] { "Order ID", "Order Number", "Sub-Order ID", "Created Date", "Status", "Buyer Name", "Buyer Email", "Total Amount", "Currency", "Shipping Method", "Item Count", "Shipped Date", "Delivered Date" };
+        // Header row - matches CSV headers for consistency
+        var headers = new[] { "Order ID", "Order Number", "Sub-Order ID", "Created Date", "Status", "Buyer Name", "Buyer Email", "Buyer Phone", "Delivery Address", "Street", "Street 2", "City", "State", "Postal Code", "Country", "Total Amount", "Currency", "Shipping Method", "Item Count", "Order Items", "Tracking Number", "Carrier", "Shipped Date", "Delivered Date" };
         WriteRow(writer, ns, 1, headers.Select(h => (Value: h, IsString: true, Index: sharedStrings[h])).ToArray());
 
         // Data rows
@@ -368,10 +421,21 @@ public sealed class OrderExportService
                 (row.Status, true, sharedStrings[row.Status]),
                 (row.BuyerName, true, sharedStrings[row.BuyerName]),
                 (row.BuyerEmail, true, sharedStrings[row.BuyerEmail]),
+                (row.BuyerPhone, true, sharedStrings[row.BuyerPhone]),
+                (row.DeliveryAddress, true, sharedStrings[row.DeliveryAddress]),
+                (row.Street, true, sharedStrings[row.Street]),
+                (row.Street2, true, sharedStrings[row.Street2]),
+                (row.City, true, sharedStrings[row.City]),
+                (row.State, true, sharedStrings[row.State]),
+                (row.PostalCode, true, sharedStrings[row.PostalCode]),
+                (row.Country, true, sharedStrings[row.Country]),
                 (row.TotalAmount.ToString("F2", CultureInfo.InvariantCulture), false, -1),
                 (row.Currency, true, sharedStrings[row.Currency]),
                 (row.ShippingMethod, true, sharedStrings[row.ShippingMethod]),
                 (row.ItemCount.ToString(CultureInfo.InvariantCulture), false, -1),
+                (row.OrderItems, true, sharedStrings[row.OrderItems]),
+                (row.TrackingNumber, true, sharedStrings[row.TrackingNumber]),
+                (row.CarrierName, true, sharedStrings[row.CarrierName]),
                 (row.ShippedAt?.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) ?? string.Empty, true, sharedStrings[row.ShippedAt?.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) ?? string.Empty]),
                 (row.DeliveredAt?.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) ?? string.Empty, true, sharedStrings[row.DeliveredAt?.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) ?? string.Empty])
             };
@@ -530,6 +594,13 @@ public sealed class OrderExportService
 
     /// <summary>
     /// Internal record for order export data.
+    /// Contains all key shipping fields for logistics partners:
+    /// - Reference IDs (Order ID, Order Number, Sub-Order ID)
+    /// - Buyer information (Name, Email, Phone)
+    /// - Delivery address (Full address, Street, Street2, City, State, Postal Code, Country)
+    /// - Order details (Total Amount, Currency, Shipping Method, Item Count, Order Items)
+    /// - Tracking information (Tracking Number, Carrier)
+    /// - Timestamps (Created Date, Shipped Date, Delivered Date)
     /// </summary>
     private sealed record OrderExportRow(
         Guid OrderId,
@@ -539,10 +610,21 @@ public sealed class OrderExportService
         string Status,
         string BuyerName,
         string BuyerEmail,
+        string BuyerPhone,
+        string DeliveryAddress,
+        string Street,
+        string Street2,
+        string City,
+        string State,
+        string PostalCode,
+        string Country,
         decimal TotalAmount,
         string Currency,
         string ShippingMethod,
         int ItemCount,
+        string OrderItems,
+        string TrackingNumber,
+        string CarrierName,
         DateTime? ShippedAt,
         DateTime? DeliveredAt);
 }

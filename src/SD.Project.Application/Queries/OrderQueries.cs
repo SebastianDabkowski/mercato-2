@@ -31,6 +31,7 @@ public sealed record GetFilteredSellerSubOrdersQuery(
     DateTime? FromDate = null,
     DateTime? ToDate = null,
     string? BuyerSearch = null,
+    bool? WithoutTracking = null,
     int PageNumber = 1,
     int PageSize = 20);
 
@@ -43,7 +44,8 @@ public sealed record ExportSellerSubOrdersQuery(
     string? Status = null,
     DateTime? FromDate = null,
     DateTime? ToDate = null,
-    string? BuyerSearch = null);
+    string? BuyerSearch = null,
+    bool? WithoutTracking = null);
 
 /// <summary>
 /// Query to get shipping status history for an order (admin support).

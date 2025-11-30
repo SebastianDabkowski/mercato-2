@@ -2,7 +2,7 @@
 @model SD.Project.Pages.Seller.OrdersModel
 @{
     ViewData["Title"] = "My Orders";
-    var hasFilters = !string.IsNullOrEmpty(Model.Status) || Model.FromDate.HasValue || Model.ToDate.HasValue || !string.IsNullOrEmpty(Model.BuyerSearch);
+    var hasFilters = !string.IsNullOrEmpty(Model.Status) || Model.FromDate.HasValue || Model.ToDate.HasValue || !string.IsNullOrEmpty(Model.BuyerSearch) || Model.WithoutTracking == true;
 }
 
 <div class="container py-4">
@@ -81,6 +81,14 @@
                     <div class="col-md-3">
                         <label for="buyerSearch" class="form-label">Customer/Order #</label>
                         <input type="text" class="form-control" id="buyerSearch" name="BuyerSearch" value="@Model.BuyerSearch" placeholder="Search by name or order #">
+                    </div>
+                    <div class="col-12 col-md-auto d-flex align-items-end">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="withoutTracking" name="WithoutTracking" value="true" @(Model.WithoutTracking == true ? "checked" : "")>
+                            <label class="form-check-label" for="withoutTracking">
+                                Without Tracking
+                            </label>
+                        </div>
                     </div>
                     <div class="col-md-2 d-flex align-items-end gap-2">
                         <button type="submit" class="btn btn-primary flex-grow-1">
@@ -161,6 +169,7 @@
                                             <input type="hidden" name="FromDate" value="@Model.FromDate?.ToString("yyyy-MM-dd")" />
                                             <input type="hidden" name="ToDate" value="@Model.ToDate?.ToString("yyyy-MM-dd")" />
                                             <input type="hidden" name="BuyerSearch" value="@Model.BuyerSearch" />
+                                            <input type="hidden" name="WithoutTracking" value="@(Model.WithoutTracking == true ? "true" : "")" />
                                             <button type="submit" class="dropdown-item">
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-filetype-csv me-2" viewBox="0 0 16 16">
                                                     <path fill-rule="evenodd" d="M14 4.5V14a2 2 0 0 1-2 2h-1v-1h1a1 1 0 0 0 1-1V4.5h-2A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v9H2V2a2 2 0 0 1 2-2h5.5zM3.517 14.841a1.13 1.13 0 0 0 .401.823q.195.162.478.252.284.091.665.091.507 0 .859-.158.354-.158.539-.44.187-.284.187-.656 0-.336-.134-.56a1 1 0 0 0-.375-.357 2 2 0 0 0-.566-.21l-.621-.144a1 1 0 0 1-.404-.176.37.37 0 0 1-.144-.299q0-.234.185-.384.188-.152.512-.152.214 0 .37.068a.6.6 0 0 1 .246.181.56.56 0 0 1 .12.258h.75a1.1 1.1 0 0 0-.2-.566 1.2 1.2 0 0 0-.5-.41 1.8 1.8 0 0 0-.78-.152q-.439 0-.776.15-.337.149-.527.421-.19.273-.19.639 0 .302.122.524.124.223.352.367.228.143.539.213l.618.144q.31.073.463.193a.39.39 0 0 1 .152.326.5.5 0 0 1-.085.29.56.56 0 0 1-.255.193q-.167.07-.413.07-.175 0-.32-.04a.8.8 0 0 1-.248-.115.58.58 0 0 1-.162-.184.6.6 0 0 1-.06-.266zm2.094-3.178a.5.5 0 0 1-.47.33H4.5a.5.5 0 0 1-.5-.5v-4a.5.5 0 0 1 .5-.5h.64a.5.5 0 0 1 .47.33l.47 1.28a.5.5 0 0 1 0 .34l-.47 1.28-.56-.84.59-.44-.03.26a.5.5 0 0 1-.47.33h-.59l.06-.43-.59.43Zm4.78 2.24a1.1 1.1 0 0 0-.263-.02H8.5a.5.5 0 0 1-.5-.5v-4a.5.5 0 0 1 .5-.5h1.67q.351 0 .597.09.249.088.42.24.17.152.26.343.09.191.09.395 0 .206-.09.399-.09.192-.26.349-.169.154-.42.254-.247.099-.596.109v.012q.35.012.603.12.253.109.426.271.174.162.267.358.093.196.093.418 0 .205-.09.39a.9.9 0 0 1-.26.316q-.171.135-.42.212a2 2 0 0 1-.597.081v.004z"/>
@@ -176,6 +185,7 @@
                                             <input type="hidden" name="FromDate" value="@Model.FromDate?.ToString("yyyy-MM-dd")" />
                                             <input type="hidden" name="ToDate" value="@Model.ToDate?.ToString("yyyy-MM-dd")" />
                                             <input type="hidden" name="BuyerSearch" value="@Model.BuyerSearch" />
+                                            <input type="hidden" name="WithoutTracking" value="@(Model.WithoutTracking == true ? "true" : "")" />
                                             <button type="submit" class="dropdown-item">
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-spreadsheet me-2" viewBox="0 0 16 16">
                                                     <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2M9.5 3A1.5 1.5 0 0 0 11 4.5h2V9H3V2a1 1 0 0 1 1-1h5.5zM3 12v-2h2v2zm0 1h2v2H4a1 1 0 0 1-1-1zm3 2v-2h3v2zm4 0v-2h3v1a1 1 0 0 1-1 1zm3-3h-3v-2h3zm-7 0v-2h3v2z"/>
@@ -256,7 +266,8 @@
                                        asp-route-Status="@Model.Status"
                                        asp-route-FromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
                                        asp-route-ToDate="@Model.ToDate?.ToString("yyyy-MM-dd")"
-                                       asp-route-BuyerSearch="@Model.BuyerSearch">Previous</a>
+                                       asp-route-BuyerSearch="@Model.BuyerSearch"
+                                       asp-route-WithoutTracking="@(Model.WithoutTracking == true ? "true" : "")">Previous</a>
                                 </li>
                                 @for (int i = Math.Max(1, Model.CurrentPage - 2); i <= Math.Min(Model.TotalPages, Model.CurrentPage + 2); i++)
                                 {
@@ -266,7 +277,8 @@
                                            asp-route-Status="@Model.Status"
                                            asp-route-FromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
                                            asp-route-ToDate="@Model.ToDate?.ToString("yyyy-MM-dd")"
-                                           asp-route-BuyerSearch="@Model.BuyerSearch">@i</a>
+                                           asp-route-BuyerSearch="@Model.BuyerSearch"
+                                           asp-route-WithoutTracking="@(Model.WithoutTracking == true ? "true" : "")">@i</a>
                                     </li>
                                 }
                                 <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
@@ -275,7 +287,8 @@
                                        asp-route-Status="@Model.Status"
                                        asp-route-FromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
                                        asp-route-ToDate="@Model.ToDate?.ToString("yyyy-MM-dd")"
-                                       asp-route-BuyerSearch="@Model.BuyerSearch">Next</a>
+                                       asp-route-BuyerSearch="@Model.BuyerSearch"
+                                       asp-route-WithoutTracking="@(Model.WithoutTracking == true ? "true" : "")">Next</a>
                                 </li>
                             </ul>
                         </nav>
