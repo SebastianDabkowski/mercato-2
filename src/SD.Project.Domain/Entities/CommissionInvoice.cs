@@ -248,7 +248,8 @@ public class CommissionInvoice
 
         // Calculate period dates
         PeriodStart = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
-        PeriodEnd = PeriodStart.AddMonths(1).AddTicks(-1);
+        // Use last second of the last day of the month for clarity
+        PeriodEnd = new DateTime(year, month, DateTime.DaysInMonth(year, month), 23, 59, 59, DateTimeKind.Utc);
 
         // Seller information
         SellerName = sellerName.Trim();

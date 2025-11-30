@@ -315,7 +315,7 @@
                                                 <span class="badge @creditNote.TypeBadgeClass">@creditNote.Type</span>
                                             </td>
                                             <td>@creditNote.IssueDate.ToString("MMM dd, yyyy")</td>
-                                            <td>@(creditNote.Reason.Length > 50 ? creditNote.Reason.Substring(0, 50) + "..." : creditNote.Reason)</td>
+                                            <td>@(creditNote.Reason.Length > 50 ? string.Concat(creditNote.Reason.AsSpan(0, 50), "...") : creditNote.Reason)</td>
                                             <td class="text-end fw-bold text-danger">@creditNote.Currency @creditNote.GrossAmount.ToString("N2")</td>
                                             <td class="text-end">
                                                 <a asp-page="/Api/CreditNotePdf" asp-route-creditNoteId="@creditNote.Id" class="btn btn-sm btn-outline-secondary" title="Download PDF" target="_blank">

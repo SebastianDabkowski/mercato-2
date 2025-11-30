@@ -164,15 +164,22 @@ public sealed class CreditNoteRepository : ICreditNoteRepository
     /// <inheritdoc />
     public async Task<int> GetNextSequenceNumberAsync(int year, CancellationToken cancellationToken = default)
     {
+        // Check if there are any credit notes for this year
+        var count = await _context.CreditNotes
+            .Where(cn => cn.IssueDate.Year == year)
+            .CountAsync(cancellationToken);
+
+        if (count == 0)
+        {
+            return 1;
+        }
+
+        // For InMemory database, we need to load and process in memory
+        // In production with SQL, this could be optimized with raw SQL
         var numbers = await _context.CreditNotes
             .Where(cn => cn.IssueDate.Year == year)
             .Select(cn => cn.CreditNoteNumber)
             .ToListAsync(cancellationToken);
-
-        if (numbers.Count == 0)
-        {
-            return 1;
-        }
 
         // Extract sequence numbers from credit note numbers like "CN-2024-00001"
         var maxSequence = numbers
@@ -181,6 +188,7 @@ public sealed class CreditNoteRepository : ICreditNoteRepository
                 var parts = n.Split('-');
                 return parts.Length == 3 && int.TryParse(parts[2], out var seq) ? seq : 0;
             })
+            .DefaultIfEmpty(0)
             .Max();
 
         return maxSequence + 1;

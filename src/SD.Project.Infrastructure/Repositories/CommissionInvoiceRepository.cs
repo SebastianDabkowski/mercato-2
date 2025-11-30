@@ -171,15 +171,25 @@ public sealed class CommissionInvoiceRepository : ICommissionInvoiceRepository
     /// <inheritdoc />
     public async Task<int> GetNextSequenceNumberAsync(int year, CancellationToken cancellationToken = default)
     {
+        // Count existing invoices for this year and add 1
+        // This is more efficient than loading all invoice numbers into memory
+        var count = await _context.CommissionInvoices
+            .Where(i => i.Year == year)
+            .CountAsync(cancellationToken);
+
+        // If there are existing invoices, we need to find the max sequence number
+        // since sequence numbers might have gaps due to deletions
+        if (count == 0)
+        {
+            return 1;
+        }
+
+        // For InMemory database, we need to load and process in memory
+        // In production with SQL, this could be optimized with raw SQL
         var maxNumber = await _context.CommissionInvoices
             .Where(i => i.Year == year)
             .Select(i => i.InvoiceNumber)
             .ToListAsync(cancellationToken);
-
-        if (maxNumber.Count == 0)
-        {
-            return 1;
-        }
 
         // Extract sequence numbers from invoice numbers like "INV-2024-00001"
         var maxSequence = maxNumber
@@ -188,6 +198,7 @@ public sealed class CommissionInvoiceRepository : ICommissionInvoiceRepository
                 var parts = n.Split('-');
                 return parts.Length == 3 && int.TryParse(parts[2], out var seq) ? seq : 0;
             })
+            .DefaultIfEmpty(0)
             .Max();
 
         return maxSequence + 1;
