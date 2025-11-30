@@ -327,4 +327,70 @@ public sealed class NotificationService : INotificationService
             refundAmount);
         return Task.CompletedTask;
     }
+
+    public Task SendPayoutScheduledNotificationAsync(
+        Guid sellerId,
+        Guid payoutId,
+        decimal amount,
+        string currency,
+        DateTime scheduledDate,
+        CancellationToken cancellationToken = default)
+    {
+        // TODO: Replace logging with real email/notification integration.
+        // Notify seller when a payout has been scheduled.
+        _logger.LogInformation(
+            "Payout scheduled notification sent to seller {SellerId}. " +
+            "Payout ID: {PayoutId}. Amount: {Currency} {Amount:N2}. Scheduled date: {ScheduledDate:yyyy-MM-dd}",
+            sellerId,
+            payoutId,
+            currency,
+            amount,
+            scheduledDate);
+        return Task.CompletedTask;
+    }
+
+    public Task SendPayoutCompletedNotificationAsync(
+        Guid sellerId,
+        Guid payoutId,
+        decimal amount,
+        string currency,
+        string? payoutReference,
+        CancellationToken cancellationToken = default)
+    {
+        // TODO: Replace logging with real email/notification integration.
+        // Notify seller when a payout has been successfully completed.
+        _logger.LogInformation(
+            "Payout completed notification sent to seller {SellerId}. " +
+            "Payout ID: {PayoutId}. Amount: {Currency} {Amount:N2}. Reference: {PayoutReference}",
+            sellerId,
+            payoutId,
+            currency,
+            amount,
+            payoutReference ?? "N/A");
+        return Task.CompletedTask;
+    }
+
+    public Task SendPayoutFailedNotificationAsync(
+        Guid sellerId,
+        Guid payoutId,
+        decimal amount,
+        string currency,
+        string? errorMessage,
+        bool canRetry,
+        CancellationToken cancellationToken = default)
+    {
+        // TODO: Replace logging with real email/notification integration.
+        // Notify seller when a payout has failed and whether retry is possible.
+        var retryInfo = canRetry ? "Retry will be attempted automatically." : "Maximum retries exceeded.";
+        _logger.LogInformation(
+            "Payout failed notification sent to seller {SellerId}. " +
+            "Payout ID: {PayoutId}. Amount: {Currency} {Amount:N2}. Error: {ErrorMessage}. {RetryInfo}",
+            sellerId,
+            payoutId,
+            currency,
+            amount,
+            errorMessage ?? "Unknown error",
+            retryInfo);
+        return Task.CompletedTask;
+    }
 }

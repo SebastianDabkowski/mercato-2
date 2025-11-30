@@ -261,4 +261,57 @@ public interface INotificationService
         decimal refundAmount,
         string currency,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a notification when a payout is scheduled.
+    /// </summary>
+    /// <param name="sellerId">The seller's user ID.</param>
+    /// <param name="payoutId">The ID of the payout.</param>
+    /// <param name="amount">The payout amount.</param>
+    /// <param name="currency">The currency code.</param>
+    /// <param name="scheduledDate">The scheduled payout date.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendPayoutScheduledNotificationAsync(
+        Guid sellerId,
+        Guid payoutId,
+        decimal amount,
+        string currency,
+        DateTime scheduledDate,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a notification when a payout is successfully completed.
+    /// </summary>
+    /// <param name="sellerId">The seller's user ID.</param>
+    /// <param name="payoutId">The ID of the payout.</param>
+    /// <param name="amount">The payout amount.</param>
+    /// <param name="currency">The currency code.</param>
+    /// <param name="payoutReference">The payment provider reference.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendPayoutCompletedNotificationAsync(
+        Guid sellerId,
+        Guid payoutId,
+        decimal amount,
+        string currency,
+        string? payoutReference,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a notification when a payout fails.
+    /// </summary>
+    /// <param name="sellerId">The seller's user ID.</param>
+    /// <param name="payoutId">The ID of the payout.</param>
+    /// <param name="amount">The payout amount.</param>
+    /// <param name="currency">The currency code.</param>
+    /// <param name="errorMessage">The error message.</param>
+    /// <param name="canRetry">Whether the payout can be retried.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendPayoutFailedNotificationAsync(
+        Guid sellerId,
+        Guid payoutId,
+        decimal amount,
+        string currency,
+        string? errorMessage,
+        bool canRetry,
+        CancellationToken cancellationToken = default);
 }

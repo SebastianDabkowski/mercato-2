@@ -45,6 +45,8 @@ public class AppDbContext : DbContext
     public DbSet<EscrowAllocation> EscrowAllocations => Set<EscrowAllocation>();
     public DbSet<EscrowLedger> EscrowLedgers => Set<EscrowLedger>();
     public DbSet<CommissionRule> CommissionRules => Set<CommissionRule>();
+    public DbSet<SellerPayout> SellerPayouts => Set<SellerPayout>();
+    public DbSet<SellerPayoutItem> SellerPayoutItems => Set<SellerPayoutItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
