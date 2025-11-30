@@ -1,0 +1,234 @@
+@page
+@model SD.Project.Pages.Seller.PayoutsModel
+@{
+    ViewData["Title"] = "Payout History";
+    var hasFilters = !string.IsNullOrEmpty(Model.Status) || Model.FromDate.HasValue || Model.ToDate.HasValue;
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1">Payout History</h1>
+            @if (!string.IsNullOrEmpty(Model.StoreName))
+            {
+                <p class="text-muted mb-0">Payouts for @Model.StoreName</p>
+            }
+        </div>
+        <a asp-page="/Seller/Dashboard" class="btn btn-outline-secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left me-2" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/>
+            </svg>
+            Back to Dashboard
+        </a>
+    </div>
+
+    @if (!Model.StoreId.HasValue)
+    {
+        <div class="alert alert-warning">
+            <h5 class="alert-heading">Store Not Found</h5>
+            <p class="mb-0">You need to complete seller onboarding to view payout history.</p>
+            <a asp-page="/Seller/Onboarding" class="btn btn-primary mt-3">Complete Onboarding</a>
+        </div>
+    }
+    else
+    {
+        <!-- Filters Card -->
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h6 class="mb-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-funnel me-2" viewBox="0 0 16 16">
+                        <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5zm1 .5v1.308l4.372 4.858A.5.5 0 0 1 7 8.5v5.306l2-.666V8.5a.5.5 0 0 1 .128-.334L13.5 3.308V2z"/>
+                    </svg>
+                    Filter Payouts
+                </h6>
+            </div>
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="status" class="form-label">Status</label>
+                        <select class="form-select" id="status" name="Status">
+                            <option value="">All Statuses</option>
+                            @foreach (var status in Model.AvailableStatuses)
+                            {
+                                if (Model.Status == status)
+                                {
+                                    <option value="@status" selected>@status</option>
+                                }
+                                else
+                                {
+                                    <option value="@status">@status</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="fromDate" class="form-label">From Date</label>
+                        <input type="date" class="form-control" id="fromDate" name="FromDate" value="@Model.FromDate?.ToString("yyyy-MM-dd")">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="toDate" class="form-label">To Date</label>
+                        <input type="date" class="form-control" id="toDate" name="ToDate" value="@Model.ToDate?.ToString("yyyy-MM-dd")">
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end gap-2">
+                        <button type="submit" class="btn btn-primary flex-grow-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search me-1" viewBox="0 0 16 16">
+                                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
+                            </svg>
+                            Filter
+                        </button>
+                        @if (hasFilters)
+                        {
+                            <a asp-page="/Seller/Payouts" class="btn btn-outline-secondary" title="Clear Filters">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16">
+                                    <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>
+                                </svg>
+                            </a>
+                        }
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        @if (Model.Payouts.Count == 0 && !hasFilters)
+        {
+            <div class="text-center py-5">
+                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-wallet2 text-muted mb-3" viewBox="0 0 16 16">
+                    <path d="M12.136.326A1.5 1.5 0 0 1 14 1.78V3h.5A1.5 1.5 0 0 1 16 4.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 13.5v-9a1.5 1.5 0 0 1 1.432-1.499zM5.562 3H13V1.78a.5.5 0 0 0-.621-.484zM1.5 4a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5z"/>
+                </svg>
+                <h4 class="text-muted">No payouts yet</h4>
+                <p class="text-muted">When you receive payments for your orders, your payouts will appear here.</p>
+                <a asp-page="/Seller/PayoutSettings" class="btn btn-outline-primary mt-2">Configure Payout Settings</a>
+            </div>
+        }
+        else if (Model.Payouts.Count == 0 && hasFilters)
+        {
+            <div class="text-center py-5">
+                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-search text-muted mb-3" viewBox="0 0 16 16">
+                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
+                </svg>
+                <h4 class="text-muted">No payouts match your filters</h4>
+                <p class="text-muted">Try adjusting your filter criteria or clear filters to see all payouts.</p>
+                <a asp-page="/Seller/Payouts" class="btn btn-outline-primary mt-2">Clear Filters</a>
+            </div>
+        }
+        else
+        {
+            <div class="card">
+                <div class="card-header bg-light">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h5 class="mb-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-cash-stack me-2" viewBox="0 0 16 16">
+                                    <path d="M1 3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1zm7 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4"/>
+                                    <path d="M0 5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1zm3 0a2 2 0 0 1-2 2v4a2 2 0 0 1 2 2h10a2 2 0 0 1 2-2V7a2 2 0 0 1-2-2z"/>
+                                </svg>
+                                Your Payouts (@Model.TotalCount)
+                                @if (hasFilters)
+                                {
+                                    <span class="badge bg-info ms-2">Filtered</span>
+                                }
+                            </h5>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th scope="col">Scheduled Date</th>
+                                    <th scope="col" class="text-center">Status</th>
+                                    <th scope="col">Payout Method</th>
+                                    <th scope="col" class="text-center">Orders</th>
+                                    <th scope="col" class="text-end">Amount</th>
+                                    <th scope="col" class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var payout in Model.Payouts)
+                                {
+                                    var statusClass = payout.Status switch
+                                    {
+                                        "Paid" => "bg-success",
+                                        "Processing" => "bg-info",
+                                        "Scheduled" => "bg-primary",
+                                        "Failed" => "bg-danger",
+                                        _ => "bg-secondary"
+                                    };
+                                    var displayDate = payout.Status switch
+                                    {
+                                        "Paid" => payout.PaidAt?.ToString("MMM dd, yyyy"),
+                                        "Failed" => payout.FailedAt?.ToString("MMM dd, yyyy"),
+                                        _ => payout.ScheduledDate.ToString("MMM dd, yyyy")
+                                    };
+                                    <tr>
+                                        <td>
+                                            <a asp-page="/Seller/PayoutDetail" asp-route-payoutId="@payout.Id" class="text-decoration-none">
+                                                @displayDate
+                                            </a>
+                                            @if (payout.Status == "Paid")
+                                            {
+                                                <br><small class="text-muted">Scheduled: @payout.ScheduledDate.ToString("MMM dd, yyyy")</small>
+                                            }
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge @statusClass">@payout.Status</span>
+                                            @if (payout.Status == "Failed" && !string.IsNullOrEmpty(payout.ErrorMessage))
+                                            {
+                                                <br><small class="text-danger" title="@payout.ErrorMessage">@(payout.ErrorMessage.Length > 30 ? payout.ErrorMessage.Substring(0, 30) + "..." : payout.ErrorMessage)</small>
+                                            }
+                                        </td>
+                                        <td>@payout.PayoutMethod</td>
+                                        <td class="text-center">@payout.ItemCount</td>
+                                        <td class="text-end fw-bold">@payout.Currency @payout.TotalAmount.ToString("N2")</td>
+                                        <td class="text-end">
+                                            <a asp-page="/Seller/PayoutDetail" asp-route-payoutId="@payout.Id" class="btn btn-sm btn-outline-primary">
+                                                View Details
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                @if (Model.TotalPages > 1)
+                {
+                    <div class="card-footer bg-light">
+                        <nav aria-label="Payout pagination">
+                            <ul class="pagination justify-content-center mb-0">
+                                <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                                    <a class="page-link" asp-page="/Seller/Payouts" 
+                                       asp-route-PageNumber="@(Model.CurrentPage - 1)"
+                                       asp-route-Status="@Model.Status"
+                                       asp-route-FromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
+                                       asp-route-ToDate="@Model.ToDate?.ToString("yyyy-MM-dd")">Previous</a>
+                                </li>
+                                @for (int i = Math.Max(1, Model.CurrentPage - 2); i <= Math.Min(Model.TotalPages, Model.CurrentPage + 2); i++)
+                                {
+                                    <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                        <a class="page-link" asp-page="/Seller/Payouts"
+                                           asp-route-PageNumber="@i"
+                                           asp-route-Status="@Model.Status"
+                                           asp-route-FromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
+                                           asp-route-ToDate="@Model.ToDate?.ToString("yyyy-MM-dd")">@i</a>
+                                    </li>
+                                }
+                                <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                                    <a class="page-link" asp-page="/Seller/Payouts"
+                                       asp-route-PageNumber="@(Model.CurrentPage + 1)"
+                                       asp-route-Status="@Model.Status"
+                                       asp-route-FromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
+                                       asp-route-ToDate="@Model.ToDate?.ToString("yyyy-MM-dd")">Next</a>
+                                </li>
+                            </ul>
+                        </nav>
+                        <p class="text-muted text-center mt-2 mb-0 small">
+                            Showing @Model.DisplayStartItem-@Model.DisplayEndItem of @Model.TotalCount payouts
+                        </p>
+                    </div>
+                }
+            </div>
+        }
+    }
+</div>

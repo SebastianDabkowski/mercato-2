@@ -70,6 +70,48 @@ public sealed class SellerPayoutRepository : ISellerPayoutRepository
         return (payouts, totalCount);
     }
 
+    public async Task<(IReadOnlyList<SellerPayout> Payouts, int TotalCount)> GetFilteredByStoreIdAsync(
+        Guid storeId,
+        SellerPayoutStatus? status,
+        DateTime? fromDate,
+        DateTime? toDate,
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.SellerPayouts
+            .Where(p => p.StoreId == storeId);
+
+        if (status.HasValue)
+        {
+            query = query.Where(p => p.Status == status.Value);
+        }
+
+        if (fromDate.HasValue)
+        {
+            query = query.Where(p => p.ScheduledDate >= fromDate.Value);
+        }
+
+        if (toDate.HasValue)
+        {
+            // Include the entire end date
+            var endDate = toDate.Value.Date.AddDays(1);
+            query = query.Where(p => p.ScheduledDate < endDate);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var payouts = await query
+            .OrderByDescending(p => p.ScheduledDate)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+
+        await LoadItemsForPayoutsAsync(payouts, cancellationToken);
+
+        return (payouts, totalCount);
+    }
+
     public async Task<IReadOnlyList<SellerPayout>> GetByStatusAsync(
         SellerPayoutStatus status,
         CancellationToken cancellationToken = default)
