@@ -97,6 +97,14 @@ public sealed class EscrowRepository : IEscrowRepository
             .FirstOrDefaultAsync(a => a.ShipmentId == shipmentId, cancellationToken);
     }
 
+    public async Task<EscrowAllocation?> GetAllocationByIdAsync(
+        Guid allocationId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.EscrowAllocations
+            .FirstOrDefaultAsync(a => a.Id == allocationId, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<EscrowAllocation>> GetEligibleForPayoutAsync(
         CancellationToken cancellationToken = default)
     {
