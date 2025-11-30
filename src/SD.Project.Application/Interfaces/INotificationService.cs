@@ -335,4 +335,23 @@ public interface INotificationService
         int year,
         int month,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a notification when a commission invoice is issued.
+    /// </summary>
+    /// <param name="sellerId">The seller's user ID.</param>
+    /// <param name="invoiceId">The ID of the invoice.</param>
+    /// <param name="invoiceNumber">The invoice number.</param>
+    /// <param name="grossAmount">The gross amount of the invoice.</param>
+    /// <param name="currency">The currency code.</param>
+    /// <param name="dueDate">The payment due date.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendCommissionInvoiceIssuedAsync(
+        Guid sellerId,
+        Guid invoiceId,
+        string invoiceNumber,
+        decimal grossAmount,
+        string currency,
+        DateTime dueDate,
+        CancellationToken cancellationToken = default);
 }

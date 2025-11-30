@@ -55,8 +55,11 @@ public static class DependencyInjection
         services.AddScoped<ICommissionRuleRepository, CommissionRuleRepository>();
         services.AddScoped<IReturnRequestRepository, ReturnRequestRepository>();
         services.AddScoped<IPromoCodeRepository, PromoCodeRepository>();
+        services.AddScoped<ICommissionInvoiceRepository, CommissionInvoiceRepository>();
+        services.AddScoped<ICreditNoteRepository, CreditNoteRepository>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IPaymentProviderService, PaymentProviderService>();
+        services.AddScoped<IPdfGeneratorService, HtmlPdfGeneratorService>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IPasswordValidator, PasswordValidator>();
         services.AddScoped<ISecurityAlertService, SecurityAlertService>();

@@ -50,6 +50,10 @@ public class AppDbContext : DbContext
     public DbSet<Settlement> Settlements => Set<Settlement>();
     public DbSet<SettlementItem> SettlementItems => Set<SettlementItem>();
     public DbSet<SettlementAdjustment> SettlementAdjustments => Set<SettlementAdjustment>();
+    public DbSet<CommissionInvoice> CommissionInvoices => Set<CommissionInvoice>();
+    public DbSet<CommissionInvoiceLine> CommissionInvoiceLines => Set<CommissionInvoiceLine>();
+    public DbSet<CreditNote> CreditNotes => Set<CreditNote>();
+    public DbSet<CreditNoteLine> CreditNoteLines => Set<CreditNoteLine>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

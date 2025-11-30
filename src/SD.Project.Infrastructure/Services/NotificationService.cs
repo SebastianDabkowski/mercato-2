@@ -419,4 +419,28 @@ public sealed class NotificationService : INotificationService
             netPayable);
         return Task.CompletedTask;
     }
+
+    public Task SendCommissionInvoiceIssuedAsync(
+        Guid sellerId,
+        Guid invoiceId,
+        string invoiceNumber,
+        decimal grossAmount,
+        string currency,
+        DateTime dueDate,
+        CancellationToken cancellationToken = default)
+    {
+        // TODO: Replace logging with real email/notification integration.
+        // Notify seller when a commission invoice has been issued.
+        _logger.LogInformation(
+            "Commission invoice issued notification sent to seller {SellerId}. " +
+            "Invoice ID: {InvoiceId}. Number: {InvoiceNumber}. " +
+            "Amount: {Currency} {GrossAmount:N2}. Due date: {DueDate:yyyy-MM-dd}",
+            sellerId,
+            invoiceId,
+            invoiceNumber,
+            currency,
+            grossAmount,
+            dueDate);
+        return Task.CompletedTask;
+    }
 }
