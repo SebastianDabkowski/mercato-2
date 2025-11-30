@@ -23,6 +23,12 @@ public class CheckoutShippingModel : PageModel
     public string? DeliveryAddressSummary { get; private set; }
     public string? Message { get; private set; }
     public bool IsSuccess { get; private set; }
+    
+    /// <summary>
+    /// Indicates if all sellers have at least one available shipping method.
+    /// Used to determine if the user can proceed to payment.
+    /// </summary>
+    public bool AllSellersHaveShipping => ShippingData?.SellerShippingOptions.All(s => s.Methods.Count > 0) ?? false;
 
     public CheckoutShippingModel(
         ILogger<CheckoutShippingModel> logger,
