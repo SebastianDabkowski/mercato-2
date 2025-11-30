@@ -24,6 +24,7 @@ public sealed record EscrowAllocationDto(
     Guid Id,
     Guid StoreId,
     Guid ShipmentId,
+    string Currency,
     decimal SellerAmount,
     decimal ShippingAmount,
     decimal TotalAmount,

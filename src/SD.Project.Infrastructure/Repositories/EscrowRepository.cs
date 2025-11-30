@@ -58,12 +58,22 @@ public sealed class EscrowRepository : IEscrowRepository
             .OrderByDescending(e => e.CreatedAt)
             .ToListAsync(cancellationToken);
 
+        if (escrows.Count == 0)
+        {
+            return escrows;
+        }
+
+        // Fetch all allocations for these escrows in a single query to avoid N+1
+        var escrowIds = escrows.Select(e => e.Id).ToList();
+        var allAllocations = await _context.EscrowAllocations
+            .Where(a => escrowIds.Contains(a.EscrowPaymentId))
+            .ToListAsync(cancellationToken);
+
+        // Group allocations by escrow ID and load them
+        var allocationsByEscrow = allAllocations.ToLookup(a => a.EscrowPaymentId);
         foreach (var escrow in escrows)
         {
-            var allocations = await _context.EscrowAllocations
-                .Where(a => a.EscrowPaymentId == escrow.Id)
-                .ToListAsync(cancellationToken);
-            escrow.LoadAllocations(allocations);
+            escrow.LoadAllocations(allocationsByEscrow[escrow.Id]);
         }
 
         return escrows;

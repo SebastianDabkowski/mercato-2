@@ -135,9 +135,8 @@ public sealed class EscrowService
         var eligibleAllocations = heldAllocations.Where(a => a.IsEligibleForPayout).ToList();
         var totalEligible = eligibleAllocations.Sum(a => a.SellerPayout);
 
-        var currency = heldAllocations.FirstOrDefault() is not null
-            ? "USD" // Default, should be retrieved from allocation or escrow
-            : "USD";
+        // Get currency from the first allocation, default to USD if no allocations exist
+        var currency = heldAllocations.FirstOrDefault()?.Currency ?? "USD";
 
         return new SellerEscrowBalanceDto(
             query.StoreId,
@@ -303,7 +302,15 @@ public sealed class EscrowService
 
         if (allocation is null)
         {
-            return RefundEscrowResultDto.Failed("Escrow allocation not found for this shipment.");
+            // No escrow allocation exists for this shipment, which is fine - 
+            // the order might have been created before escrow was implemented
+            return RefundEscrowResultDto.Succeeded(0m, null);
+        }
+
+        // If already refunded, return success with the refunded amount (idempotent)
+        if (allocation.Status == EscrowAllocationStatus.Refunded)
+        {
+            return RefundEscrowResultDto.Succeeded(allocation.TotalAmount, allocation.RefundReference);
         }
 
         if (!allocation.CanBeRefunded())
@@ -400,6 +407,7 @@ public sealed class EscrowService
             allocation.Id,
             allocation.StoreId,
             allocation.ShipmentId,
+            allocation.Currency,
             allocation.SellerAmount,
             allocation.ShippingAmount,
             allocation.TotalAmount,

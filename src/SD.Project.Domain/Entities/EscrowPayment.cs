@@ -150,6 +150,7 @@ public class EscrowPayment
             Id,
             storeId,
             shipmentId,
+            Currency,
             sellerAmount,
             shippingAmount,
             commissionAmount,

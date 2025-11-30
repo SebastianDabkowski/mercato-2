@@ -37,6 +37,11 @@ public class EscrowAllocation
     public Guid ShipmentId { get; private set; }
 
     /// <summary>
+    /// Currency code for amounts.
+    /// </summary>
+    public string Currency { get; private set; } = default!;
+
+    /// <summary>
     /// The seller's portion of the order amount (excluding shipping).
     /// </summary>
     public decimal SellerAmount { get; private set; }
@@ -106,6 +111,7 @@ public class EscrowAllocation
         Guid escrowPaymentId,
         Guid storeId,
         Guid shipmentId,
+        string currency,
         decimal sellerAmount,
         decimal shippingAmount,
         decimal commissionAmount,
@@ -124,6 +130,11 @@ public class EscrowAllocation
         if (shipmentId == Guid.Empty)
         {
             throw new ArgumentException("Shipment ID is required.", nameof(shipmentId));
+        }
+
+        if (string.IsNullOrWhiteSpace(currency))
+        {
+            throw new ArgumentException("Currency is required.", nameof(currency));
         }
 
         if (sellerAmount < 0)
@@ -150,6 +161,7 @@ public class EscrowAllocation
         EscrowPaymentId = escrowPaymentId;
         StoreId = storeId;
         ShipmentId = shipmentId;
+        Currency = currency.ToUpperInvariant();
         SellerAmount = sellerAmount;
         ShippingAmount = shippingAmount;
         TotalAmount = sellerAmount + shippingAmount;
