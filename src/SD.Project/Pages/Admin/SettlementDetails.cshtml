@@ -1,0 +1,408 @@
+@page "{id:guid}"
+@model SD.Project.Pages.Admin.SettlementDetailsModel
+@{
+    ViewData["Title"] = $"Settlement {Model.Settlement?.SettlementNumber}";
+}
+
+@if (Model.Settlement is null)
+{
+    <div class="container">
+        <div class="alert alert-danger">Settlement not found.</div>
+        <a asp-page="/Admin/Settlements" class="btn btn-secondary">Back to Settlements</a>
+    </div>
+}
+else
+{
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-2">
+                        <li class="breadcrumb-item"><a asp-page="/Admin/Dashboard">Admin</a></li>
+                        <li class="breadcrumb-item"><a asp-page="/Admin/Settlements">Settlements</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">@Model.Settlement.SettlementNumber</li>
+                    </ol>
+                </nav>
+                <h1>@Model.Settlement.SettlementNumber</h1>
+                <p class="text-muted mb-0">
+                    <span class="badge @Model.Settlement.StatusBadgeClass me-2">@Model.Settlement.Status</span>
+                    @Model.Settlement.StoreName &bull; @Model.Settlement.PeriodDisplay
+                    @if (Model.Settlement.Version > 1)
+                    {
+                        <span class="badge bg-warning text-dark ms-2">Version @Model.Settlement.Version</span>
+                    }
+                </p>
+            </div>
+            <div>
+                @if (Model.Settlement.CanFinalize)
+                {
+                    <form method="post" asp-page-handler="Finalize" asp-route-id="@Model.Settlement.Id" class="d-inline"
+                          onsubmit="return confirm('Are you sure you want to finalize this settlement? This will prevent further modifications.');">
+                        <button type="submit" class="btn btn-info me-2">
+                            <i class="bi bi-check-lg me-1"></i> Finalize
+                        </button>
+                    </form>
+                }
+                @if (Model.Settlement.CanApprove)
+                {
+                    <form method="post" asp-page-handler="Approve" asp-route-id="@Model.Settlement.Id" class="d-inline"
+                          onsubmit="return confirm('Are you sure you want to approve this settlement?');">
+                        <button type="submit" class="btn btn-success me-2">
+                            <i class="bi bi-check-circle me-1"></i> Approve
+                        </button>
+                    </form>
+                }
+                @if (Model.Settlement.CanExport)
+                {
+                    <a asp-page-handler="Export" asp-route-id="@Model.Settlement.Id" class="btn btn-outline-secondary">
+                        <i class="bi bi-download me-1"></i> Export CSV
+                    </a>
+                }
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @Model.SuccessMessage
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @Model.ErrorMessage
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <!-- Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-md-2">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h5 class="card-title text-muted mb-1">Gross Sales</h5>
+                        <h3 class="mb-0">@Model.Settlement.Currency @Model.Settlement.GrossSales.ToString("N2")</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h5 class="card-title text-muted mb-1">Shipping</h5>
+                        <h3 class="mb-0">@Model.Settlement.Currency @Model.Settlement.TotalShipping.ToString("N2")</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h5 class="card-title text-muted mb-1">Commission</h5>
+                        <h3 class="mb-0 text-danger">-@Model.Settlement.Currency @Model.Settlement.TotalCommission.ToString("N2")</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h5 class="card-title text-muted mb-1">Refunds</h5>
+                        <h3 class="mb-0 text-danger">-@Model.Settlement.Currency @Model.Settlement.TotalRefunds.ToString("N2")</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h5 class="card-title text-muted mb-1">Adjustments</h5>
+                        <h3 class="mb-0 @(Model.Settlement.TotalAdjustments >= 0 ? "text-success" : "text-danger")">
+                            @(Model.Settlement.TotalAdjustments >= 0 ? "+" : "")@Model.Settlement.Currency @Model.Settlement.TotalAdjustments.ToString("N2")
+                        </h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <h5 class="card-title mb-1">Net Payable</h5>
+                        <h3 class="mb-0">@Model.Settlement.Currency @Model.Settlement.NetPayable.ToString("N2")</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-8">
+                <!-- Order Details -->
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Order Details</h5>
+                        <span class="badge bg-info">@Model.Settlement.OrderCount orders</span>
+                    </div>
+                    <div class="card-body p-0">
+                        @if (Model.Settlement.Items.Count == 0)
+                        {
+                            <div class="text-center py-4 text-muted">
+                                No order items in this settlement.
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Order #</th>
+                                            <th class="text-end">Seller Amount</th>
+                                            <th class="text-end">Shipping</th>
+                                            <th class="text-end">Commission</th>
+                                            <th class="text-end">Refunded</th>
+                                            <th class="text-end">Net Amount</th>
+                                            <th class="text-end">Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in Model.Settlement.Items)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    @if (!string.IsNullOrEmpty(item.OrderNumber))
+                                                    {
+                                                        <strong>@item.OrderNumber</strong>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted">N/A</span>
+                                                    }
+                                                </td>
+                                                <td class="text-end">@Model.Settlement.Currency @item.SellerAmount.ToString("N2")</td>
+                                                <td class="text-end">@Model.Settlement.Currency @item.ShippingAmount.ToString("N2")</td>
+                                                <td class="text-end text-danger">-@Model.Settlement.Currency @item.CommissionAmount.ToString("N2")</td>
+                                                <td class="text-end">
+                                                    @if (item.RefundedAmount > 0)
+                                                    {
+                                                        <span class="text-danger">-@Model.Settlement.Currency @item.RefundedAmount.ToString("N2")</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted">-</span>
+                                                    }
+                                                </td>
+                                                <td class="text-end"><strong>@Model.Settlement.Currency @item.NetAmount.ToString("N2")</strong></td>
+                                                <td class="text-end">@item.TransactionDate.ToString("MMM d")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Adjustments -->
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Adjustments (Previous Months)</h5>
+                        @if (Model.Settlement.CanFinalize)
+                        {
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addAdjustmentModal">
+                                <i class="bi bi-plus-lg me-1"></i> Add Adjustment
+                            </button>
+                        }
+                    </div>
+                    <div class="card-body p-0">
+                        @if (Model.Settlement.Adjustments.Count == 0)
+                        {
+                            <div class="text-center py-4 text-muted">
+                                No adjustments for this settlement.
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Original Period</th>
+                                            <th class="text-end">Amount</th>
+                                            <th>Reason</th>
+                                            <th>Related Order</th>
+                                            <th class="text-end">Added</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var adj in Model.Settlement.Adjustments)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <span class="badge bg-secondary">@adj.OriginalPeriodDisplay</span>
+                                                </td>
+                                                <td class="text-end @adj.AmountClass">
+                                                    <strong>@(adj.Amount >= 0 ? "+" : "")@Model.Settlement.Currency @adj.Amount.ToString("N2")</strong>
+                                                </td>
+                                                <td>@adj.Reason</td>
+                                                <td>
+                                                    @if (!string.IsNullOrEmpty(adj.RelatedOrderNumber))
+                                                    {
+                                                        @adj.RelatedOrderNumber
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted">-</span>
+                                                    }
+                                                </td>
+                                                <td class="text-end">@adj.CreatedAt.ToString("MMM d, HH:mm")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <!-- Settlement Info -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Settlement Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-5">Store</dt>
+                            <dd class="col-sm-7">@Model.Settlement.StoreName</dd>
+
+                            <dt class="col-sm-5">Period</dt>
+                            <dd class="col-sm-7">@Model.Settlement.PeriodDisplay</dd>
+
+                            <dt class="col-sm-5">Period Range</dt>
+                            <dd class="col-sm-7">@Model.Settlement.PeriodStart.ToString("MMM d") - @Model.Settlement.PeriodEnd.ToString("MMM d, yyyy")</dd>
+
+                            <dt class="col-sm-5">Version</dt>
+                            <dd class="col-sm-7">@Model.Settlement.Version</dd>
+
+                            <dt class="col-sm-5">Status</dt>
+                            <dd class="col-sm-7"><span class="badge @Model.Settlement.StatusBadgeClass">@Model.Settlement.Status</span></dd>
+
+                            <dt class="col-sm-5">Created</dt>
+                            <dd class="col-sm-7">@Model.Settlement.CreatedAt.ToString("MMM d, yyyy HH:mm")</dd>
+
+                            @if (Model.Settlement.FinalizedAt.HasValue)
+                            {
+                                <dt class="col-sm-5">Finalized</dt>
+                                <dd class="col-sm-7">@Model.Settlement.FinalizedAt.Value.ToString("MMM d, yyyy HH:mm")</dd>
+                            }
+
+                            @if (Model.Settlement.ApprovedAt.HasValue)
+                            {
+                                <dt class="col-sm-5">Approved</dt>
+                                <dd class="col-sm-7">@Model.Settlement.ApprovedAt.Value.ToString("MMM d, yyyy HH:mm")</dd>
+
+                                <dt class="col-sm-5">Approved By</dt>
+                                <dd class="col-sm-7">@Model.Settlement.ApprovedBy</dd>
+                            }
+
+                            @if (Model.Settlement.ExportedAt.HasValue)
+                            {
+                                <dt class="col-sm-5">Exported</dt>
+                                <dd class="col-sm-7">@Model.Settlement.ExportedAt.Value.ToString("MMM d, yyyy HH:mm")</dd>
+                            }
+                        </dl>
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Notes</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" asp-page-handler="UpdateNotes" asp-route-id="@Model.Settlement.Id">
+                            <div class="mb-3">
+                                <textarea asp-for="Notes" class="form-control" rows="4" placeholder="Add notes about this settlement..."></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-save me-1"></i> Save Notes
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <a asp-page="/Admin/Settlements" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Back to Settlements
+            </a>
+        </div>
+    </div>
+
+    <!-- Add Adjustment Modal -->
+    @if (Model.Settlement.CanFinalize)
+    {
+        <div class="modal fade" id="addAdjustmentModal" tabindex="-1" aria-labelledby="addAdjustmentModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form method="post" asp-page-handler="AddAdjustment" asp-route-id="@Model.Settlement.Id">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="addAdjustmentModalLabel">Add Adjustment</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Adjustments are used to correct errors or account for transactions from previous periods.
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <label asp-for="AdjustmentInput.OriginalYear" class="form-label">Original Year <span class="text-danger">*</span></label>
+                                    <select asp-for="AdjustmentInput.OriginalYear" class="form-select">
+                                        @for (var y = DateTime.UtcNow.Year; y >= DateTime.UtcNow.Year - 3; y--)
+                                        {
+                                            <option value="@y">@y</option>
+                                        }
+                                    </select>
+                                    <span asp-validation-for="AdjustmentInput.OriginalYear" class="text-danger"></span>
+                                </div>
+                                <div class="col-6">
+                                    <label asp-for="AdjustmentInput.OriginalMonth" class="form-label">Original Month <span class="text-danger">*</span></label>
+                                    <select asp-for="AdjustmentInput.OriginalMonth" class="form-select">
+                                        @for (var m = 1; m <= 12; m++)
+                                        {
+                                            var monthName = new DateTime(2000, m, 1).ToString("MMMM");
+                                            <option value="@m">@monthName</option>
+                                        }
+                                    </select>
+                                    <span asp-validation-for="AdjustmentInput.OriginalMonth" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label asp-for="AdjustmentInput.Amount" class="form-label">Amount <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text">@Model.Settlement.Currency</span>
+                                    <input asp-for="AdjustmentInput.Amount" type="number" step="0.01" class="form-control" placeholder="0.00" />
+                                </div>
+                                <div class="form-text">Use positive for credit (add), negative for debit (subtract).</div>
+                                <span asp-validation-for="AdjustmentInput.Amount" class="text-danger"></span>
+                            </div>
+                            <div class="mb-3">
+                                <label asp-for="AdjustmentInput.Reason" class="form-label">Reason <span class="text-danger">*</span></label>
+                                <textarea asp-for="AdjustmentInput.Reason" class="form-control" rows="2" placeholder="Explain the reason for this adjustment..."></textarea>
+                                <span asp-validation-for="AdjustmentInput.Reason" class="text-danger"></span>
+                            </div>
+                            <div class="mb-3">
+                                <label asp-for="AdjustmentInput.RelatedOrderNumber" class="form-label">Related Order Number (optional)</label>
+                                <input asp-for="AdjustmentInput.RelatedOrderNumber" class="form-control" placeholder="e.g., ORD-2024-12345" />
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Add Adjustment</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+}

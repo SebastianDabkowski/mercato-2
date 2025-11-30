@@ -47,6 +47,9 @@ public class AppDbContext : DbContext
     public DbSet<CommissionRule> CommissionRules => Set<CommissionRule>();
     public DbSet<SellerPayout> SellerPayouts => Set<SellerPayout>();
     public DbSet<SellerPayoutItem> SellerPayoutItems => Set<SellerPayoutItem>();
+    public DbSet<Settlement> Settlements => Set<Settlement>();
+    public DbSet<SettlementItem> SettlementItems => Set<SettlementItem>();
+    public DbSet<SettlementAdjustment> SettlementAdjustments => Set<SettlementAdjustment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

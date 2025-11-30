@@ -393,4 +393,30 @@ public sealed class NotificationService : INotificationService
             retryInfo);
         return Task.CompletedTask;
     }
+
+    public Task SendSettlementGeneratedNotificationAsync(
+        Guid sellerId,
+        Guid settlementId,
+        string settlementNumber,
+        decimal netPayable,
+        string currency,
+        int year,
+        int month,
+        CancellationToken cancellationToken = default)
+    {
+        // TODO: Replace logging with real email/notification integration.
+        // Notify seller when a monthly settlement has been generated.
+        _logger.LogInformation(
+            "Settlement generated notification sent to seller {SellerId}. " +
+            "Settlement ID: {SettlementId}. Number: {SettlementNumber}. " +
+            "Period: {Year}-{Month:D2}. Net payable: {Currency} {NetPayable:N2}",
+            sellerId,
+            settlementId,
+            settlementNumber,
+            year,
+            month,
+            currency,
+            netPayable);
+        return Task.CompletedTask;
+    }
 }
