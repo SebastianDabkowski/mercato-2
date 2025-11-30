@@ -39,6 +39,7 @@ public static class SeedDataExtensions
         var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
         var paymentMethodRepo = scope.ServiceProvider.GetRequiredService<IPaymentMethodRepository>();
         var shippingMethodRepo = scope.ServiceProvider.GetRequiredService<IShippingMethodRepository>();
+        var promoCodeRepo = scope.ServiceProvider.GetRequiredService<IPromoCodeRepository>();
 
         // Create an admin user for development
         var existingAdmin = await userRepo.GetByIdAsync(DevAdminId);
@@ -266,6 +267,61 @@ public static class SeedDataExtensions
             await shippingMethodRepo.AddAsync(expressShipping);
             await shippingMethodRepo.AddAsync(overnightShipping);
             await shippingMethodRepo.SaveChangesAsync();
+        }
+
+        // Seed promo codes for testing
+        var existingPromoCode = await promoCodeRepo.GetByCodeAsync("WELCOME10");
+        if (existingPromoCode is null)
+        {
+            // Platform-wide 10% off promo code
+            var welcome10 = PromoCode.CreatePlatformPromo(
+                code: "WELCOME10",
+                description: "10% off for new customers",
+                discountType: PromoDiscountType.Percentage,
+                discountValue: 10m,
+                currency: "USD",
+                validFrom: DateTime.UtcNow.AddDays(-30),
+                validTo: DateTime.UtcNow.AddDays(365),
+                minimumOrderAmount: 20m,
+                maximumDiscountAmount: 50m,
+                maxUsageCount: 1000,
+                maxUsagePerUser: 1);
+
+            await promoCodeRepo.AddAsync(welcome10);
+
+            // Platform-wide $5 off promo code
+            var save5 = PromoCode.CreatePlatformPromo(
+                code: "SAVE5",
+                description: "$5 off your order",
+                discountType: PromoDiscountType.FixedAmount,
+                discountValue: 5m,
+                currency: "USD",
+                validFrom: DateTime.UtcNow.AddDays(-30),
+                validTo: DateTime.UtcNow.AddDays(180),
+                minimumOrderAmount: 25m,
+                maximumDiscountAmount: null,
+                maxUsageCount: null,
+                maxUsagePerUser: 3);
+
+            await promoCodeRepo.AddAsync(save5);
+
+            // Expired promo code for testing
+            var expired = PromoCode.CreatePlatformPromo(
+                code: "EXPIRED20",
+                description: "Expired 20% off promo",
+                discountType: PromoDiscountType.Percentage,
+                discountValue: 20m,
+                currency: "USD",
+                validFrom: DateTime.UtcNow.AddDays(-60),
+                validTo: DateTime.UtcNow.AddDays(-1),
+                minimumOrderAmount: null,
+                maximumDiscountAmount: null,
+                maxUsageCount: null,
+                maxUsagePerUser: null);
+
+            await promoCodeRepo.AddAsync(expired);
+
+            await promoCodeRepo.SaveChangesAsync();
         }
     }
 }

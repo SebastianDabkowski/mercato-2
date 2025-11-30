@@ -2,7 +2,7 @@ namespace SD.Project.Application.DTOs;
 
 /// <summary>
 /// Represents a shopping cart with items grouped by seller.
-/// Includes item subtotal, shipping costs, and total amount payable.
+/// Includes item subtotal, shipping costs, discount, and total amount payable.
 /// </summary>
 public sealed record CartDto(
     Guid Id,
@@ -19,13 +19,21 @@ public sealed record CartDto(
     /// </summary>
     decimal TotalShipping,
     /// <summary>
-    /// Total amount payable (item subtotal + total shipping).
+    /// Discount amount from applied promo code.
+    /// </summary>
+    decimal DiscountAmount,
+    /// <summary>
+    /// Total amount payable (item subtotal + total shipping - discount).
     /// </summary>
     decimal TotalAmount,
     /// <summary>
     /// Currency code for all amounts (e.g., "USD", "EUR").
     /// </summary>
     string Currency,
+    /// <summary>
+    /// Applied promo code information, if any.
+    /// </summary>
+    AppliedPromoCodeDto? AppliedPromoCode,
     DateTime CreatedAt,
     DateTime UpdatedAt);
 

@@ -23,7 +23,12 @@ public sealed record CartTotals(
     Money TotalShipping,
 
     /// <summary>
-    /// Total amount payable (item subtotal + total shipping).
+    /// Total discount amount from promo codes.
+    /// </summary>
+    Money Discount,
+
+    /// <summary>
+    /// Total amount payable (item subtotal + total shipping - discount).
     /// </summary>
     Money TotalAmount);
 
@@ -101,16 +106,21 @@ public sealed class CartTotalsCalculator
     /// </summary>
     /// <param name="sellerTotals">The calculated totals for each seller.</param>
     /// <param name="currency">The currency code.</param>
+    /// <param name="discountAmount">Optional discount amount from promo code.</param>
     /// <returns>The aggregated cart totals.</returns>
     public CartTotals CalculateCartTotals(
         IEnumerable<SellerCartTotals> sellerTotals,
-        string currency)
+        string currency,
+        decimal discountAmount = 0m)
     {
         var sellerList = sellerTotals.ToList();
 
         var itemSubtotal = sellerList.Sum(s => s.Subtotal.Amount);
         var totalShipping = sellerList.Sum(s => s.Shipping.Amount);
-        var totalAmount = itemSubtotal + totalShipping;
+        
+        // Ensure discount doesn't exceed subtotal + shipping
+        var effectiveDiscount = Math.Min(discountAmount, itemSubtotal + totalShipping);
+        var totalAmount = itemSubtotal + totalShipping - effectiveDiscount;
 
         var shippingByStore = sellerList.ToDictionary(
             s => s.StoreId,
@@ -120,6 +130,7 @@ public sealed class CartTotalsCalculator
             new Money(itemSubtotal, currency),
             shippingByStore,
             new Money(totalShipping, currency),
+            new Money(effectiveDiscount, currency),
             new Money(totalAmount, currency));
     }
 
