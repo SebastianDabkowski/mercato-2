@@ -44,3 +44,21 @@ public sealed record ExportSellerSubOrdersQuery(
     DateTime? FromDate = null,
     DateTime? ToDate = null,
     string? BuyerSearch = null);
+
+/// <summary>
+/// Query to get shipping status history for an order (admin support).
+/// </summary>
+public sealed record GetOrderStatusHistoryQuery(
+    Guid OrderId);
+
+/// <summary>
+/// Query to get shipping status history for a specific shipment (admin support).
+/// </summary>
+public sealed record GetShipmentStatusHistoryQuery(
+    Guid ShipmentId);
+
+/// <summary>
+/// Query to get admin order details with full status history.
+/// </summary>
+public sealed record GetAdminOrderDetailsQuery(
+    Guid OrderId);

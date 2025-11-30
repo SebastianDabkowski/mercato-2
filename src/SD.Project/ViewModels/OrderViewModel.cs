@@ -128,3 +128,82 @@ public sealed record BuyerOrderListItemViewModel(
     decimal TotalAmount,
     string Currency,
     DateTime CreatedAt);
+
+/// <summary>
+/// View model for admin order details with full status history.
+/// </summary>
+public sealed record AdminOrderDetailsViewModel(
+    Guid OrderId,
+    string OrderNumber,
+    string Status,
+    string PaymentStatus,
+    Guid BuyerId,
+    string BuyerName,
+    string? BuyerEmail,
+    string RecipientName,
+    string DeliveryAddressSummary,
+    string PaymentMethodName,
+    string? PaymentTransactionId,
+    decimal ItemSubtotal,
+    decimal TotalShipping,
+    decimal TotalAmount,
+    string Currency,
+    DateTime CreatedAt,
+    DateTime? PaidAt,
+    DateTime? CancelledAt,
+    DateTime? RefundedAt,
+    decimal? RefundedAmount,
+    IReadOnlyList<AdminShipmentViewModel> Shipments);
+
+/// <summary>
+/// View model for a shipment in admin order details with full status history.
+/// </summary>
+public sealed record AdminShipmentViewModel(
+    Guid ShipmentId,
+    Guid StoreId,
+    string StoreName,
+    string Status,
+    decimal Subtotal,
+    decimal ShippingCost,
+    decimal Total,
+    string? CarrierName,
+    string? TrackingNumber,
+    string? TrackingUrl,
+    DateTime CreatedAt,
+    DateTime? ShippedAt,
+    DateTime? DeliveredAt,
+    DateTime? CancelledAt,
+    DateTime? RefundedAt,
+    decimal? RefundedAmount,
+    IReadOnlyList<AdminOrderItemViewModel> Items,
+    IReadOnlyList<ShipmentStatusHistoryViewModel> StatusHistory);
+
+/// <summary>
+/// View model for an item in admin order details.
+/// </summary>
+public sealed record AdminOrderItemViewModel(
+    Guid ItemId,
+    Guid ProductId,
+    string ProductName,
+    decimal UnitPrice,
+    int Quantity,
+    decimal LineTotal,
+    string? ShippingMethodName,
+    string Status);
+
+/// <summary>
+/// View model for a shipping status change event in admin view.
+/// </summary>
+public sealed record ShipmentStatusHistoryViewModel(
+    Guid Id,
+    Guid ShipmentId,
+    string PreviousStatus,
+    string NewStatus,
+    DateTime ChangedAt,
+    Guid? ChangedByUserId,
+    string? ChangedByUserName,
+    string ActorType,
+    string? CarrierName,
+    string? TrackingNumber,
+    string? TrackingUrl,
+    string? Notes);
