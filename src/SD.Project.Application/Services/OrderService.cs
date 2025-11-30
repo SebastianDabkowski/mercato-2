@@ -1,4 +1,6 @@
 using SD.Project.Application.DTOs;
+using SD.Project.Application.Commands;
+using SD.Project.Application.Interfaces;
 using SD.Project.Application.Queries;
 using SD.Project.Domain.Entities;
 using SD.Project.Domain.Repositories;
@@ -15,17 +17,20 @@ public sealed class OrderService
     private readonly IStoreRepository _storeRepository;
     private readonly IUserRepository _userRepository;
     private readonly IShippingMethodRepository _shippingMethodRepository;
+    private readonly INotificationService _notificationService;
 
     public OrderService(
         IOrderRepository orderRepository,
         IStoreRepository storeRepository,
         IUserRepository userRepository,
-        IShippingMethodRepository shippingMethodRepository)
+        IShippingMethodRepository shippingMethodRepository,
+        INotificationService notificationService)
     {
         _orderRepository = orderRepository;
         _storeRepository = storeRepository;
         _userRepository = userRepository;
         _shippingMethodRepository = shippingMethodRepository;
+        _notificationService = notificationService;
     }
 
     /// <summary>
@@ -424,5 +429,250 @@ public sealed class OrderService
             pageNumber,
             pageSize,
             totalCount);
+    }
+
+    /// <summary>
+    /// Updates the status of a shipment.
+    /// </summary>
+    public async Task<UpdateShipmentStatusResultDto> HandleAsync(
+        UpdateShipmentStatusCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+
+        // Get the shipment with order
+        var (shipment, order, _) = await _orderRepository.GetShipmentWithOrderAsync(
+            command.ShipmentId,
+            cancellationToken);
+
+        if (shipment is null || order is null)
+        {
+            return new UpdateShipmentStatusResultDto(false, "Shipment not found.");
+        }
+
+        // Verify the shipment belongs to the requested store
+        if (shipment.StoreId != command.StoreId)
+        {
+            return new UpdateShipmentStatusResultDto(false, "Shipment does not belong to this store.");
+        }
+
+        // Parse the target status
+        if (!Enum.TryParse<ShipmentStatus>(command.NewStatus, ignoreCase: true, out var targetStatus))
+        {
+            return new UpdateShipmentStatusResultDto(false, $"Invalid status: {command.NewStatus}.");
+        }
+
+        // Validate the transition
+        if (!shipment.CanTransitionTo(targetStatus))
+        {
+            return new UpdateShipmentStatusResultDto(
+                false,
+                $"Cannot transition from {shipment.Status} to {targetStatus}.");
+        }
+
+        var previousStatus = shipment.Status.ToString();
+
+        // Apply the status change
+        try
+        {
+            switch (targetStatus)
+            {
+                case ShipmentStatus.Processing:
+                    shipment.StartProcessing();
+                    break;
+                case ShipmentStatus.Shipped:
+                    shipment.Ship(command.CarrierName, command.TrackingNumber, command.TrackingUrl);
+                    break;
+                case ShipmentStatus.Delivered:
+                    shipment.MarkDelivered();
+                    break;
+                case ShipmentStatus.Cancelled:
+                    shipment.Cancel();
+                    break;
+                case ShipmentStatus.Refunded:
+                    shipment.Refund();
+                    break;
+                default:
+                    return new UpdateShipmentStatusResultDto(
+                        false,
+                        $"Status transition to {targetStatus} is not supported.");
+            }
+        }
+        catch (InvalidOperationException ex)
+        {
+            return new UpdateShipmentStatusResultDto(false, ex.Message);
+        }
+
+        // Save changes
+        await _orderRepository.SaveChangesAsync(cancellationToken);
+
+        // Send notification to buyer
+        var buyer = await _userRepository.GetByIdAsync(order.BuyerId, cancellationToken);
+        if (buyer?.Email is not null)
+        {
+            await _notificationService.SendShipmentStatusChangedAsync(
+                shipment.Id,
+                order.Id,
+                buyer.Email.Value,
+                order.OrderNumber,
+                previousStatus,
+                shipment.Status.ToString(),
+                shipment.TrackingNumber,
+                shipment.CarrierName,
+                cancellationToken);
+        }
+
+        return new UpdateShipmentStatusResultDto(
+            true,
+            null,
+            previousStatus,
+            shipment.Status.ToString());
+    }
+
+    /// <summary>
+    /// Updates tracking information for a shipped order.
+    /// </summary>
+    public async Task<UpdateShipmentStatusResultDto> HandleAsync(
+        UpdateTrackingInfoCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+
+        // Get the shipment with order
+        var (shipment, order, _) = await _orderRepository.GetShipmentWithOrderAsync(
+            command.ShipmentId,
+            cancellationToken);
+
+        if (shipment is null || order is null)
+        {
+            return new UpdateShipmentStatusResultDto(false, "Shipment not found.");
+        }
+
+        // Verify the shipment belongs to the requested store
+        if (shipment.StoreId != command.StoreId)
+        {
+            return new UpdateShipmentStatusResultDto(false, "Shipment does not belong to this store.");
+        }
+
+        // Update tracking info
+        try
+        {
+            shipment.UpdateTrackingInfo(command.CarrierName, command.TrackingNumber, command.TrackingUrl);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return new UpdateShipmentStatusResultDto(false, ex.Message);
+        }
+
+        // Save changes
+        await _orderRepository.SaveChangesAsync(cancellationToken);
+
+        return new UpdateShipmentStatusResultDto(
+            true,
+            null,
+            shipment.Status.ToString(),
+            shipment.Status.ToString());
+    }
+
+    /// <summary>
+    /// Cancels a shipment (before it is shipped).
+    /// </summary>
+    public async Task<UpdateShipmentStatusResultDto> HandleAsync(
+        CancelShipmentCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+
+        // Get the shipment with order
+        var (shipment, order, _) = await _orderRepository.GetShipmentWithOrderAsync(
+            command.ShipmentId,
+            cancellationToken);
+
+        if (shipment is null || order is null)
+        {
+            return new UpdateShipmentStatusResultDto(false, "Shipment not found.");
+        }
+
+        // Verify the shipment belongs to the requested store
+        if (shipment.StoreId != command.StoreId)
+        {
+            return new UpdateShipmentStatusResultDto(false, "Shipment does not belong to this store.");
+        }
+
+        var previousStatus = shipment.Status.ToString();
+
+        // Cancel the shipment
+        try
+        {
+            shipment.Cancel();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return new UpdateShipmentStatusResultDto(false, ex.Message);
+        }
+
+        // Save changes
+        await _orderRepository.SaveChangesAsync(cancellationToken);
+
+        // Send notification to buyer
+        var buyer = await _userRepository.GetByIdAsync(order.BuyerId, cancellationToken);
+        if (buyer?.Email is not null)
+        {
+            await _notificationService.SendShipmentStatusChangedAsync(
+                shipment.Id,
+                order.Id,
+                buyer.Email.Value,
+                order.OrderNumber,
+                previousStatus,
+                ShipmentStatus.Cancelled.ToString(),
+                null,
+                null,
+                cancellationToken);
+        }
+
+        return new UpdateShipmentStatusResultDto(
+            true,
+            null,
+            previousStatus,
+            ShipmentStatus.Cancelled.ToString());
+    }
+
+    /// <summary>
+    /// Gets available status transitions for a shipment.
+    /// </summary>
+    public async Task<ShipmentStatusTransitionsDto?> GetShipmentStatusTransitionsAsync(
+        Guid storeId,
+        Guid shipmentId,
+        CancellationToken cancellationToken = default)
+    {
+        var (shipment, _, _) = await _orderRepository.GetShipmentWithOrderAsync(
+            shipmentId,
+            cancellationToken);
+
+        if (shipment is null || shipment.StoreId != storeId)
+        {
+            return null;
+        }
+
+        var availableTransitions = new List<string>();
+        foreach (ShipmentStatus status in Enum.GetValues<ShipmentStatus>())
+        {
+            if (shipment.CanTransitionTo(status))
+            {
+                availableTransitions.Add(status.ToString());
+            }
+        }
+
+        // Can update tracking when shipped
+        var canUpdateTracking = shipment.Status == ShipmentStatus.Shipped;
+
+        // Can cancel before shipped
+        var canCancel = shipment.CanTransitionTo(ShipmentStatus.Cancelled);
+
+        return new ShipmentStatusTransitionsDto(
+            shipment.Status.ToString(),
+            availableTransitions.AsReadOnly(),
+            canUpdateTracking,
+            canCancel);
     }
 }

@@ -83,4 +83,27 @@ public interface INotificationService
         decimal totalAmount,
         string currency,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a notification when a shipment status changes.
+    /// </summary>
+    /// <param name="shipmentId">The ID of the shipment.</param>
+    /// <param name="orderId">The ID of the parent order.</param>
+    /// <param name="buyerEmail">The buyer's email address.</param>
+    /// <param name="orderNumber">The order number for display.</param>
+    /// <param name="previousStatus">The previous status.</param>
+    /// <param name="newStatus">The new status.</param>
+    /// <param name="trackingNumber">Optional tracking number if shipped.</param>
+    /// <param name="carrierName">Optional carrier name if shipped.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendShipmentStatusChangedAsync(
+        Guid shipmentId,
+        Guid orderId,
+        string buyerEmail,
+        string orderNumber,
+        string previousStatus,
+        string newStatus,
+        string? trackingNumber,
+        string? carrierName,
+        CancellationToken cancellationToken = default);
 }
