@@ -106,7 +106,7 @@ namespace SD.Project.Pages.Buyer
                 Input.PostalCode,
                 Input.Country,
                 Input.SetAsDefault,
-                true);
+                SaveToProfile: true);  // Always save to profile for authenticated buyers
 
             var result = await _addressService.HandleAsync(command, cancellationToken);
 
