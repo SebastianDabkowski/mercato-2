@@ -1,0 +1,211 @@
+@page
+@model SD.Project.Pages.Seller.ReturnsModel
+@{
+    ViewData["Title"] = "Return Requests";
+}
+
+<div class="container py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a asp-page="/Seller/Dashboard">Dashboard</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Return Requests</li>
+                </ol>
+            </nav>
+            <h1 class="mb-0">Return Requests</h1>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="status" class="form-label">Status</label>
+                    <select class="form-select" id="status" name="Status">
+                        <option value="">All Statuses</option>
+                        <option value="Requested" selected="@(Model.Status == "Requested")">Requested (Pending)</option>
+                        <option value="Approved" selected="@(Model.Status == "Approved")">Approved</option>
+                        <option value="Rejected" selected="@(Model.Status == "Rejected")">Rejected</option>
+                        <option value="Completed" selected="@(Model.Status == "Completed")">Completed</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="fromDate" class="form-label">From Date</label>
+                    <input type="date" class="form-control" id="fromDate" name="FromDate" value="@Model.FromDate?.ToString("yyyy-MM-dd")">
+                </div>
+                <div class="col-md-3">
+                    <label for="toDate" class="form-label">To Date</label>
+                    <input type="date" class="form-control" id="toDate" name="ToDate" value="@Model.ToDate?.ToString("yyyy-MM-dd")">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search me-1" viewBox="0 0 16 16">
+                            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
+                        </svg>
+                        Filter
+                    </button>
+                    <a asp-page="/Seller/Returns" class="btn btn-outline-secondary">Clear</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Return Requests Table -->
+    @if (Model.ReturnRequests is null || Model.ReturnRequests.TotalCount == 0)
+    {
+        <div class="text-center py-5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-inbox text-muted mb-3" viewBox="0 0 16 16">
+                <path d="M4.98 4a.5.5 0 0 0-.39.188L1.54 8H6a.5.5 0 0 1 .5.5 1.5 1.5 0 1 0 3 0A.5.5 0 0 1 10 8h4.46l-3.05-3.812A.5.5 0 0 0 11.02 4zm9.954 5H10.45a2.5 2.5 0 0 1-4.9 0H1.066l.32 2.562a.5.5 0 0 0 .497.438h12.234a.5.5 0 0 0 .496-.438zM3.809 3.563A1.5 1.5 0 0 1 4.981 3h6.038a1.5 1.5 0 0 1 1.172.563l3.7 4.625a.5.5 0 0 1 .105.374l-.39 3.124A1.5 1.5 0 0 1 14.117 13H1.883a1.5 1.5 0 0 1-1.489-1.314l-.39-3.124a.5.5 0 0 1 .106-.374z"/>
+            </svg>
+            <h4 class="text-muted">No return requests</h4>
+            <p class="text-muted">
+                @if (!string.IsNullOrEmpty(Model.Status) || Model.FromDate.HasValue || Model.ToDate.HasValue)
+                {
+                    <span>No return requests match your filters.</span>
+                }
+                else
+                {
+                    <span>You don't have any return requests yet.</span>
+                }
+            </p>
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-header bg-light">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span>@Model.ReturnRequests.TotalCount return request(s)</span>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Order</th>
+                            <th>Buyer</th>
+                            <th>Reason</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-end">Amount</th>
+                            <th>Date</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var request in Model.ReturnRequests.Items)
+                        {
+                            var statusClass = request.Status switch
+                            {
+                                "Requested" => "bg-warning",
+                                "Approved" => "bg-info",
+                                "Rejected" => "bg-danger",
+                                "Completed" => "bg-success",
+                                _ => "bg-secondary"
+                            };
+                            var statusDisplay = request.Status switch
+                            {
+                                "Requested" => "Pending Review",
+                                _ => request.Status
+                            };
+
+                            <tr>
+                                <td>
+                                    <a asp-page="/Seller/ReturnDetail" asp-route-returnRequestId="@request.ReturnRequestId" class="fw-bold text-decoration-none">
+                                        @request.OrderNumber
+                                    </a>
+                                </td>
+                                <td>@request.BuyerName</td>
+                                <td>
+                                    <span class="text-truncate d-inline-block" style="max-width: 200px;" title="@request.Reason">
+                                        @request.Reason
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge @statusClass">@statusDisplay</span>
+                                </td>
+                                <td class="text-end">@request.Currency @request.SubOrderTotal.ToString("N2")</td>
+                                <td>
+                                    <small class="text-muted">@request.CreatedAt.ToString("MMM dd, yyyy")</small>
+                                </td>
+                                <td>
+                                    <a asp-page="/Seller/ReturnDetail" asp-route-returnRequestId="@request.ReturnRequestId" class="btn btn-sm btn-outline-primary">
+                                        View
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            @if (Model.ReturnRequests.TotalPages > 1)
+            {
+                <div class="card-footer">
+                    <nav aria-label="Return requests pagination">
+                        <ul class="pagination mb-0 justify-content-center">
+                            @if (Model.ReturnRequests.HasPreviousPage)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" asp-page="/Seller/Returns" 
+                                       asp-route-status="@Model.Status"
+                                       asp-route-fromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
+                                       asp-route-toDate="@Model.ToDate?.ToString("yyyy-MM-dd")"
+                                       asp-route-pageNumber="@(Model.PageNumber - 1)">Previous</a>
+                                </li>
+                            }
+                            else
+                            {
+                                <li class="page-item disabled"><span class="page-link">Previous</span></li>
+                            }
+
+                            @for (var i = 1; i <= Model.ReturnRequests.TotalPages; i++)
+                            {
+                                <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                                    <a class="page-link" asp-page="/Seller/Returns"
+                                       asp-route-status="@Model.Status"
+                                       asp-route-fromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
+                                       asp-route-toDate="@Model.ToDate?.ToString("yyyy-MM-dd")"
+                                       asp-route-pageNumber="@i">@i</a>
+                                </li>
+                            }
+
+                            @if (Model.ReturnRequests.HasNextPage)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" asp-page="/Seller/Returns"
+                                       asp-route-status="@Model.Status"
+                                       asp-route-fromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
+                                       asp-route-toDate="@Model.ToDate?.ToString("yyyy-MM-dd")"
+                                       asp-route-pageNumber="@(Model.PageNumber + 1)">Next</a>
+                                </li>
+                            }
+                            else
+                            {
+                                <li class="page-item disabled"><span class="page-link">Next</span></li>
+                            }
+                        </ul>
+                    </nav>
+                </div>
+            }
+        </div>
+    }
+</div>

@@ -145,6 +145,41 @@
                     </div>
                 }
 
+                @* Return Request Alert *@
+                @if (Model.ReturnRequest is not null)
+                {
+                    var returnStatusClass = Model.ReturnRequest.Status switch
+                    {
+                        "Requested" => "alert-warning",
+                        "Approved" => "alert-info",
+                        "Rejected" => "alert-secondary",
+                        "Completed" => "alert-success",
+                        _ => "alert-secondary"
+                    };
+                    var returnStatusDisplay = Model.ReturnRequest.Status switch
+                    {
+                        "Requested" => "Pending Review",
+                        _ => Model.ReturnRequest.Status
+                    };
+
+                    <div class="alert @returnStatusClass mb-4">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-arrow-return-left me-2" viewBox="0 0 16 16">
+                                    <path fill-rule="evenodd" d="M14.5 1.5a.5.5 0 0 1 .5.5v4.8a2.5 2.5 0 0 1-2.5 2.5H2.707l3.347 3.346a.5.5 0 0 1-.708.708l-4.2-4.2a.5.5 0 0 1 0-.708l4-4a.5.5 0 1 1 .708.708L2.707 8.3H12.5A1.5 1.5 0 0 0 14 6.8V2a.5.5 0 0 1 .5-.5"/>
+                                </svg>
+                                <div>
+                                    <strong>Return Request: @returnStatusDisplay</strong>
+                                    <p class="mb-0 small">Buyer requested a return on @Model.ReturnRequest.CreatedAt.ToString("MMM dd, yyyy")</p>
+                                </div>
+                            </div>
+                            <a asp-page="/Seller/ReturnDetail" asp-route-returnRequestId="@Model.ReturnRequest.ReturnRequestId" class="btn btn-sm btn-outline-dark">
+                                View Return Request
+                            </a>
+                        </div>
+                    </div>
+                }
+
                 @* Fulfilment Actions Card *@
                 @if (Model.StatusTransitions is not null && (Model.StatusTransitions.AvailableTransitions.Count > 0 || Model.StatusTransitions.CanUpdateTracking || Model.StatusTransitions.CanCancel))
                 {

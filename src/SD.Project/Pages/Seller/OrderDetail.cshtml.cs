@@ -20,10 +20,16 @@ public class OrderDetailModel : PageModel
     private readonly ILogger<OrderDetailModel> _logger;
     private readonly OrderService _orderService;
     private readonly StoreService _storeService;
+    private readonly ReturnRequestService _returnRequestService;
 
     public SellerSubOrderDetailsViewModel? SubOrder { get; private set; }
     public string? StoreName { get; private set; }
     public ShipmentStatusTransitionsDto? StatusTransitions { get; private set; }
+    
+    /// <summary>
+    /// Return request for this sub-order, if one exists.
+    /// </summary>
+    public SellerReturnRequestDetailsViewModel? ReturnRequest { get; private set; }
 
     // Properties for update tracking form
     [BindProperty]
@@ -38,11 +44,13 @@ public class OrderDetailModel : PageModel
     public OrderDetailModel(
         ILogger<OrderDetailModel> logger,
         OrderService orderService,
-        StoreService storeService)
+        StoreService storeService,
+        ReturnRequestService returnRequestService)
     {
         _logger = logger;
         _orderService = orderService;
         _storeService = storeService;
+        _returnRequestService = returnRequestService;
     }
 
     public async Task<IActionResult> OnGetAsync(Guid subOrderId, CancellationToken cancellationToken = default)
@@ -118,6 +126,40 @@ public class OrderDetailModel : PageModel
         CarrierName = subOrder.CarrierName;
         TrackingNumber = subOrder.TrackingNumber;
         TrackingUrl = subOrder.TrackingUrl;
+
+        // Check for return request on this sub-order
+        var returnDetails = await _returnRequestService.HandleAsync(
+            new GetSellerReturnRequestByShipmentQuery(store.Id, subOrderId),
+            cancellationToken);
+        
+        if (returnDetails is not null)
+        {
+            ReturnRequest = new SellerReturnRequestDetailsViewModel(
+                returnDetails.ReturnRequestId,
+                returnDetails.OrderId,
+                returnDetails.ShipmentId,
+                returnDetails.OrderNumber,
+                returnDetails.Status,
+                returnDetails.BuyerName,
+                returnDetails.BuyerEmail,
+                returnDetails.Reason,
+                returnDetails.Comments,
+                returnDetails.SellerResponse,
+                returnDetails.SubOrderTotal,
+                returnDetails.Currency,
+                returnDetails.CreatedAt,
+                returnDetails.ApprovedAt,
+                returnDetails.RejectedAt,
+                returnDetails.CompletedAt,
+                returnDetails.Items.Select(i => new SellerSubOrderItemViewModel(
+                    i.ItemId,
+                    i.ProductId,
+                    i.ProductName,
+                    i.UnitPrice,
+                    i.Quantity,
+                    i.LineTotal,
+                    i.ShippingMethodName)).ToList().AsReadOnly());
+        }
 
         _logger.LogInformation("Seller order detail page accessed for order {OrderNumber}, sub-order {SubOrderId}",
             SubOrder.OrderNumber, SubOrder.SubOrderId);

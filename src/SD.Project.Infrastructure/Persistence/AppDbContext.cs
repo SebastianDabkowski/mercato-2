@@ -40,6 +40,7 @@ public class AppDbContext : DbContext
     public DbSet<OrderShipment> OrderShipments => Set<OrderShipment>();
     public DbSet<PromoCode> PromoCodes => Set<PromoCode>();
     public DbSet<PromoCodeUsage> PromoCodeUsages => Set<PromoCodeUsage>();
+    public DbSet<ReturnRequest> ReturnRequests => Set<ReturnRequest>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

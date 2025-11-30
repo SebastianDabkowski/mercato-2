@@ -1,0 +1,185 @@
+@page
+@model SD.Project.Pages.Buyer.InitiateReturnModel
+@{
+    ViewData["Title"] = "Initiate Return";
+}
+
+<div class="container py-4">
+    @if (Model.Order is null || Model.SubOrder is null)
+    {
+        <div class="text-center py-5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-question-circle text-muted mb-3" viewBox="0 0 16 16">
+                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                <path d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286m1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94"/>
+            </svg>
+            <h4 class="text-muted">Order not found</h4>
+            <p class="text-muted">The order you're looking for doesn't exist or you don't have permission to view it.</p>
+            <a asp-page="/Buyer/Orders" class="btn btn-primary mt-3">Go to Orders</a>
+        </div>
+    }
+    else
+    {
+        <!-- Header -->
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-page="/Buyer/Dashboard">Dashboard</a></li>
+                <li class="breadcrumb-item"><a asp-page="/Buyer/Orders">Orders</a></li>
+                <li class="breadcrumb-item"><a asp-page="/Buyer/OrderDetails" asp-route-orderId="@Model.Order.OrderId">@Model.Order.OrderNumber</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Initiate Return</li>
+            </ol>
+        </nav>
+
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card mb-4">
+                    <div class="card-header bg-warning text-dark">
+                        <h4 class="mb-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-arrow-return-left me-2" viewBox="0 0 16 16">
+                                <path fill-rule="evenodd" d="M14.5 1.5a.5.5 0 0 1 .5.5v4.8a2.5 2.5 0 0 1-2.5 2.5H2.707l3.347 3.346a.5.5 0 0 1-.708.708l-4.2-4.2a.5.5 0 0 1 0-.708l4-4a.5.5 0 1 1 .708.708L2.707 8.3H12.5A1.5 1.5 0 0 0 14 6.8V2a.5.5 0 0 1 .5-.5"/>
+                            </svg>
+                            Initiate Return Request
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        @if (TempData["Error"] != null)
+                        {
+                            <div class="alert alert-danger" role="alert">
+                                @TempData["Error"]
+                            </div>
+                        }
+
+                        <div class="alert alert-info mb-4">
+                            <div class="d-flex">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-info-circle me-2 flex-shrink-0" viewBox="0 0 16 16">
+                                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                                    <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
+                                </svg>
+                                <div>
+                                    <strong>Return Policy</strong>
+                                    <p class="mb-0 mt-1">You can return items within 30 days of delivery. Once you submit your return request, the seller will review it and respond.</p>
+                                    @if (Model.Eligibility?.ReturnWindowEndsAt.HasValue == true)
+                                    {
+                                        <p class="mb-0 mt-1"><strong>Return window ends:</strong> @Model.Eligibility.ReturnWindowEndsAt.Value.ToString("MMMM dd, yyyy")</p>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sub-order Summary -->
+                        <div class="mb-4">
+                            <h5>Items to Return</h5>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Product</th>
+                                            <th class="text-center">Qty</th>
+                                            <th class="text-end">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in Model.SubOrder.Items)
+                                        {
+                                            <tr>
+                                                <td>@item.ProductName</td>
+                                                <td class="text-center">@item.Quantity</td>
+                                                <td class="text-end">@Model.Order.Currency @item.LineTotal.ToString("N2")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                    <tfoot class="table-light">
+                                        <tr>
+                                            <td colspan="2" class="text-end fw-bold">Total:</td>
+                                            <td class="text-end fw-bold">@Model.Order.Currency @Model.SubOrder.Total.ToString("N2")</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Return Form -->
+                        <form method="post" asp-route-orderId="@Model.Order.OrderId" asp-route-shipmentId="@Model.SubOrder.SubOrderId">
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Reason for Return <span class="text-danger">*</span></label>
+                                <select class="form-select @(ModelState["Reason"]?.Errors.Count > 0 ? "is-invalid" : "")" asp-for="Reason">
+                                    <option value="">Select a reason...</option>
+                                    <option value="Item not as described">Item not as described</option>
+                                    <option value="Received wrong item">Received wrong item</option>
+                                    <option value="Item damaged or defective">Item damaged or defective</option>
+                                    <option value="Item arrived too late">Item arrived too late</option>
+                                    <option value="Changed my mind">Changed my mind</option>
+                                    <option value="Better price found elsewhere">Better price found elsewhere</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                                <span asp-validation-for="Reason" class="invalid-feedback"></span>
+                            </div>
+
+                            <div class="mb-4">
+                                <label asp-for="Comments" class="form-label fw-bold">Additional Comments <span class="text-muted fw-normal">(optional)</span></label>
+                                <textarea class="form-control" asp-for="Comments" rows="4" placeholder="Please provide any additional details about your return request..."></textarea>
+                                <span asp-validation-for="Comments" class="invalid-feedback"></span>
+                                <small class="text-muted">Maximum 1000 characters</small>
+                            </div>
+
+                            <div class="d-flex justify-content-between">
+                                <a asp-page="/Buyer/OrderDetails" asp-route-orderId="@Model.Order.OrderId" class="btn btn-outline-secondary">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left me-2" viewBox="0 0 16 16">
+                                        <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/>
+                                    </svg>
+                                    Cancel
+                                </a>
+                                <button type="submit" class="btn btn-warning">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-send me-2" viewBox="0 0 16 16">
+                                        <path d="M15.854.146a.5.5 0 0 1 .11.54l-5.819 14.547a.75.75 0 0 1-1.329.124l-3.178-4.995L.643 7.184a.75.75 0 0 1 .124-1.33L15.314.037a.5.5 0 0 1 .54.11ZM6.636 10.07l2.761 4.338L14.13 2.576zm6.787-8.201L1.591 6.602l4.339 2.76z"/>
+                                    </svg>
+                                    Submit Return Request
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <div class="card sticky-top" style="top: 1rem;">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Order Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <small class="text-muted">Order Number</small>
+                            <p class="mb-0 fw-bold">@Model.Order.OrderNumber</p>
+                        </div>
+                        <div class="mb-3">
+                            <small class="text-muted">Seller</small>
+                            <p class="mb-0">@Model.SubOrder.StoreName</p>
+                        </div>
+                        <div class="mb-3">
+                            <small class="text-muted">Delivered</small>
+                            <p class="mb-0">
+                                @if (Model.SubOrder.DeliveredAt.HasValue)
+                                {
+                                    @Model.SubOrder.DeliveredAt.Value.ToString("MMMM dd, yyyy")
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </p>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between">
+                            <span class="fw-bold">Sub-Order Total</span>
+                            <span class="fw-bold text-primary">@Model.Order.Currency @Model.SubOrder.Total.ToString("N2")</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

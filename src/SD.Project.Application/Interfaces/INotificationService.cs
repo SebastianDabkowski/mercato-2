@@ -106,4 +106,62 @@ public interface INotificationService
         string? trackingNumber,
         string? carrierName,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a notification to the seller when a return request is created.
+    /// </summary>
+    /// <param name="returnRequestId">The ID of the return request.</param>
+    /// <param name="orderNumber">The order number for display.</param>
+    /// <param name="sellerEmail">The seller's email address.</param>
+    /// <param name="reason">The reason for the return.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendReturnRequestCreatedAsync(
+        Guid returnRequestId,
+        string orderNumber,
+        string sellerEmail,
+        string reason,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a notification to the buyer when a return request is approved.
+    /// </summary>
+    /// <param name="returnRequestId">The ID of the return request.</param>
+    /// <param name="orderNumber">The order number for display.</param>
+    /// <param name="buyerEmail">The buyer's email address.</param>
+    /// <param name="sellerResponse">Optional response message from the seller.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendReturnRequestApprovedAsync(
+        Guid returnRequestId,
+        string orderNumber,
+        string buyerEmail,
+        string? sellerResponse,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a notification to the buyer when a return request is rejected.
+    /// </summary>
+    /// <param name="returnRequestId">The ID of the return request.</param>
+    /// <param name="orderNumber">The order number for display.</param>
+    /// <param name="buyerEmail">The buyer's email address.</param>
+    /// <param name="rejectionReason">The reason for rejection.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendReturnRequestRejectedAsync(
+        Guid returnRequestId,
+        string orderNumber,
+        string buyerEmail,
+        string rejectionReason,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a notification to the buyer when a return request is completed.
+    /// </summary>
+    /// <param name="returnRequestId">The ID of the return request.</param>
+    /// <param name="orderNumber">The order number for display.</param>
+    /// <param name="buyerEmail">The buyer's email address.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendReturnRequestCompletedAsync(
+        Guid returnRequestId,
+        string orderNumber,
+        string buyerEmail,
+        CancellationToken cancellationToken = default);
 }

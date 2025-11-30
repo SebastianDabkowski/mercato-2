@@ -14,15 +14,28 @@ public class OrderDetailsModel : PageModel
 {
     private readonly ILogger<OrderDetailsModel> _logger;
     private readonly OrderService _orderService;
+    private readonly ReturnRequestService _returnRequestService;
 
     public OrderDetailsViewModel? Order { get; private set; }
+    
+    /// <summary>
+    /// Dictionary of sub-order ID to its return eligibility status.
+    /// </summary>
+    public Dictionary<Guid, ReturnEligibilityViewModel> ReturnEligibility { get; private set; } = new();
+
+    /// <summary>
+    /// Dictionary of sub-order ID to its existing return request (if any).
+    /// </summary>
+    public Dictionary<Guid, BuyerReturnRequestViewModel> ExistingReturnRequests { get; private set; } = new();
 
     public OrderDetailsModel(
         ILogger<OrderDetailsModel> logger,
-        OrderService orderService)
+        OrderService orderService,
+        ReturnRequestService returnRequestService)
     {
         _logger = logger;
         _orderService = orderService;
+        _returnRequestService = returnRequestService;
     }
 
     public async Task<IActionResult> OnGetAsync(Guid orderId, CancellationToken cancellationToken = default)
@@ -95,6 +108,45 @@ public class OrderDetailsModel : PageModel
             orderDetails.CancelledAt,
             orderDetails.RefundedAt,
             orderDetails.RefundedAmount);
+
+        // Check return eligibility and existing return requests for each sub-order
+        foreach (var subOrder in Order.SellerSubOrders)
+        {
+            // Check eligibility
+            var eligibility = await _returnRequestService.HandleAsync(
+                new CheckReturnEligibilityQuery(buyerId.Value, orderId, subOrder.SubOrderId),
+                cancellationToken);
+
+            ReturnEligibility[subOrder.SubOrderId] = new ReturnEligibilityViewModel(
+                eligibility.IsEligible,
+                eligibility.IneligibilityReason,
+                eligibility.ReturnWindowEndsAt,
+                eligibility.HasExistingReturnRequest,
+                eligibility.ExistingReturnStatus);
+
+            // Get existing return request if any
+            var existingReturn = await _returnRequestService.HandleAsync(
+                new GetReturnRequestByShipmentQuery(buyerId.Value, subOrder.SubOrderId),
+                cancellationToken);
+
+            if (existingReturn is not null)
+            {
+                ExistingReturnRequests[subOrder.SubOrderId] = new BuyerReturnRequestViewModel(
+                    existingReturn.ReturnRequestId,
+                    existingReturn.OrderId,
+                    existingReturn.ShipmentId,
+                    existingReturn.OrderNumber,
+                    existingReturn.StoreName,
+                    existingReturn.Status,
+                    existingReturn.Reason,
+                    existingReturn.Comments,
+                    existingReturn.SellerResponse,
+                    existingReturn.CreatedAt,
+                    existingReturn.ApprovedAt,
+                    existingReturn.RejectedAt,
+                    existingReturn.CompletedAt);
+            }
+        }
 
         _logger.LogInformation("Order details viewed: {OrderNumber} with {SubOrderCount} seller sub-orders",
             Order.OrderNumber, Order.SellerSubOrders.Count);

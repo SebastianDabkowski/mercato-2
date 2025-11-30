@@ -141,4 +141,77 @@ public sealed class NotificationService : INotificationService
             trackingInfo);
         return Task.CompletedTask;
     }
+
+    public Task SendReturnRequestCreatedAsync(
+        Guid returnRequestId,
+        string orderNumber,
+        string sellerEmail,
+        string reason,
+        CancellationToken cancellationToken = default)
+    {
+        // TODO: Replace logging with real email/notification integration.
+        _logger.LogInformation(
+            "Return request notification sent to seller {SellerEmail} for order {OrderNumber}. " +
+            "Return request ID: {ReturnRequestId}. Reason: {Reason}",
+            sellerEmail,
+            orderNumber,
+            returnRequestId,
+            reason);
+        return Task.CompletedTask;
+    }
+
+    public Task SendReturnRequestApprovedAsync(
+        Guid returnRequestId,
+        string orderNumber,
+        string buyerEmail,
+        string? sellerResponse,
+        CancellationToken cancellationToken = default)
+    {
+        // TODO: Replace logging with real email/notification integration.
+        var responseInfo = !string.IsNullOrEmpty(sellerResponse)
+            ? $" Seller response: {sellerResponse}"
+            : "";
+        _logger.LogInformation(
+            "Return request approved notification sent to buyer {BuyerEmail} for order {OrderNumber}. " +
+            "Return request ID: {ReturnRequestId}.{ResponseInfo}",
+            buyerEmail,
+            orderNumber,
+            returnRequestId,
+            responseInfo);
+        return Task.CompletedTask;
+    }
+
+    public Task SendReturnRequestRejectedAsync(
+        Guid returnRequestId,
+        string orderNumber,
+        string buyerEmail,
+        string rejectionReason,
+        CancellationToken cancellationToken = default)
+    {
+        // TODO: Replace logging with real email/notification integration.
+        _logger.LogInformation(
+            "Return request rejected notification sent to buyer {BuyerEmail} for order {OrderNumber}. " +
+            "Return request ID: {ReturnRequestId}. Rejection reason: {RejectionReason}",
+            buyerEmail,
+            orderNumber,
+            returnRequestId,
+            rejectionReason);
+        return Task.CompletedTask;
+    }
+
+    public Task SendReturnRequestCompletedAsync(
+        Guid returnRequestId,
+        string orderNumber,
+        string buyerEmail,
+        CancellationToken cancellationToken = default)
+    {
+        // TODO: Replace logging with real email/notification integration.
+        _logger.LogInformation(
+            "Return request completed notification sent to buyer {BuyerEmail} for order {OrderNumber}. " +
+            "Return request ID: {ReturnRequestId}",
+            buyerEmail,
+            orderNumber,
+            returnRequestId);
+        return Task.CompletedTask;
+    }
 }

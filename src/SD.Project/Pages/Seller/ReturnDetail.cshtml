@@ -1,0 +1,343 @@
+@page "{returnRequestId:guid}"
+@model SD.Project.Pages.Seller.ReturnDetailModel
+@{
+    ViewData["Title"] = Model.ReturnRequest is not null ? $"Return Request - {Model.ReturnRequest.OrderNumber}" : "Return Request";
+}
+
+<div class="container py-4">
+    @if (Model.ReturnRequest is null)
+    {
+        <div class="text-center py-5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-question-circle text-muted mb-3" viewBox="0 0 16 16">
+                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                <path d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286m1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94"/>
+            </svg>
+            <h4 class="text-muted">Return request not found</h4>
+            <p class="text-muted">The return request you're looking for doesn't exist or doesn't belong to your store.</p>
+            <a asp-page="/Seller/Returns" class="btn btn-primary mt-3">Back to Return Requests</a>
+        </div>
+    }
+    else
+    {
+        var statusClass = Model.ReturnRequest.Status switch
+        {
+            "Requested" => "bg-warning",
+            "Approved" => "bg-info",
+            "Rejected" => "bg-danger",
+            "Completed" => "bg-success",
+            _ => "bg-secondary"
+        };
+        var statusDisplay = Model.ReturnRequest.Status switch
+        {
+            "Requested" => "Pending Review",
+            _ => Model.ReturnRequest.Status
+        };
+
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-1">
+                        <li class="breadcrumb-item"><a asp-page="/Seller/Dashboard">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a asp-page="/Seller/Returns">Return Requests</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">@Model.ReturnRequest.OrderNumber</li>
+                    </ol>
+                </nav>
+                <h1 class="mb-0">Return Request</h1>
+            </div>
+            <span class="badge @statusClass fs-5">@statusDisplay</span>
+        </div>
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @TempData["Success"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @TempData["Error"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <div class="row">
+            <!-- Main Content -->
+            <div class="col-lg-8">
+                <!-- Return Request Details -->
+                <div class="card mb-4">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-arrow-return-left me-2" viewBox="0 0 16 16">
+                                <path fill-rule="evenodd" d="M14.5 1.5a.5.5 0 0 1 .5.5v4.8a2.5 2.5 0 0 1-2.5 2.5H2.707l3.347 3.346a.5.5 0 0 1-.708.708l-4.2-4.2a.5.5 0 0 1 0-.708l4-4a.5.5 0 1 1 .708.708L2.707 8.3H12.5A1.5 1.5 0 0 0 14 6.8V2a.5.5 0 0 1 .5-.5"/>
+                            </svg>
+                            Return Request Details
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <h6 class="text-muted mb-1">Reason for Return</h6>
+                                <p class="mb-0 fw-bold">@Model.ReturnRequest.Reason</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-muted mb-1">Submitted</h6>
+                                <p class="mb-0">@Model.ReturnRequest.CreatedAt.ToString("MMMM dd, yyyy 'at' h:mm tt")</p>
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(Model.ReturnRequest.Comments))
+                        {
+                            <div class="mb-3">
+                                <h6 class="text-muted mb-1">Buyer's Comments</h6>
+                                <div class="bg-light p-3 rounded">
+                                    @Model.ReturnRequest.Comments
+                                </div>
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(Model.ReturnRequest.SellerResponse))
+                        {
+                            <div class="mb-3">
+                                <h6 class="text-muted mb-1">Your Response</h6>
+                                <div class="bg-light p-3 rounded">
+                                    @Model.ReturnRequest.SellerResponse
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Action Buttons for Pending Requests -->
+                @if (Model.ReturnRequest.Status == "Requested")
+                {
+                    <div class="card mb-4 border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-gear me-2" viewBox="0 0 16 16">
+                                    <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492M5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0"/>
+                                    <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115z"/>
+                                </svg>
+                                Review Return Request
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- Approve Section -->
+                            <div class="mb-4">
+                                <h6>Approve Return</h6>
+                                <p class="text-muted small mb-3">Approving the return will notify the buyer and allow them to ship the items back.</p>
+                                <form method="post" asp-page-handler="Approve" asp-route-returnRequestId="@Model.ReturnRequest.ReturnRequestId">
+                                    <div class="mb-3">
+                                        <label for="sellerResponse" class="form-label">Response to Buyer (optional)</label>
+                                        <textarea class="form-control" id="sellerResponse" name="SellerResponse" rows="2" 
+                                                  placeholder="Add instructions for the buyer, e.g., return address, packaging requirements..."></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-success">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-circle me-2" viewBox="0 0 16 16">
+                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                                            <path d="m10.97 4.97-.02.022-3.473 4.425-2.093-2.094a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05"/>
+                                        </svg>
+                                        Approve Return
+                                    </button>
+                                </form>
+                            </div>
+
+                            <hr>
+
+                            <!-- Reject Section -->
+                            <div>
+                                <h6 class="text-danger">Reject Return</h6>
+                                <p class="text-muted small mb-3">Rejecting the return will close the request. Provide a reason for the rejection.</p>
+                                <form method="post" asp-page-handler="Reject" asp-route-returnRequestId="@Model.ReturnRequest.ReturnRequestId">
+                                    <div class="mb-3">
+                                        <label for="rejectionReason" class="form-label">Reason for Rejection <span class="text-danger">*</span></label>
+                                        <textarea class="form-control" id="rejectionReason" name="RejectionReason" rows="2" required
+                                                  placeholder="Explain why this return request is being rejected..."></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-outline-danger" 
+                                            onclick="return confirm('Are you sure you want to reject this return request?');">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-circle me-2" viewBox="0 0 16 16">
+                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
+                                        </svg>
+                                        Reject Return
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- Complete Button for Approved Requests -->
+                @if (Model.ReturnRequest.Status == "Approved")
+                {
+                    <div class="card mb-4 border-success">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-check-circle me-2" viewBox="0 0 16 16">
+                                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                                    <path d="m10.97 4.97-.02.022-3.473 4.425-2.093-2.094a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05"/>
+                                </svg>
+                                Complete Return
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-3">Mark this return as complete once you have received the returned items and processed the refund.</p>
+                            <form method="post" asp-page-handler="Complete" asp-route-returnRequestId="@Model.ReturnRequest.ReturnRequestId">
+                                <button type="submit" class="btn btn-success"
+                                        onclick="return confirm('Have you received the returned items and processed the refund?');">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check2-all me-2" viewBox="0 0 16 16">
+                                        <path d="M12.354 4.354a.5.5 0 0 0-.708-.708L5 10.293 1.854 7.146a.5.5 0 1 0-.708.708l3.5 3.5a.5.5 0 0 0 .708 0zm-4.208 7-.896-.897.707-.707.543.543 6.646-6.647a.5.5 0 0 1 .708.708l-7 7a.5.5 0 0 1-.708 0"/>
+                                        <path d="m5.354 7.146.896.897-.707.707-.897-.896a.5.5 0 1 1 .708-.708"/>
+                                    </svg>
+                                    Mark Return as Complete
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                }
+
+                <!-- Items in Return -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-bag me-2" viewBox="0 0 16 16">
+                                <path d="M8 1a2.5 2.5 0 0 1 2.5 2.5V4h-5v-.5A2.5 2.5 0 0 1 8 1m3.5 3v-.5a3.5 3.5 0 1 0-7 0V4H1v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4zM2 5h12v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/>
+                            </svg>
+                            Items in Return Request
+                        </h5>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Product</th>
+                                    <th class="text-center">Qty</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.ReturnRequest.Items)
+                                {
+                                    <tr>
+                                        <td>@item.ProductName</td>
+                                        <td class="text-center">@item.Quantity</td>
+                                        <td class="text-end">@Model.ReturnRequest.Currency @item.LineTotal.ToString("N2")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <td colspan="2" class="text-end fw-bold">Sub-Order Total:</td>
+                                    <td class="text-end fw-bold">@Model.ReturnRequest.Currency @Model.ReturnRequest.SubOrderTotal.ToString("N2")</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Buyer Information -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-person me-2" viewBox="0 0 16 16">
+                                <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10s-3.516.68-4.168 1.332c-.678.678-.83 1.418-.832 1.664z"/>
+                            </svg>
+                            Buyer Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="text-muted mb-1">Name</h6>
+                                <p class="mb-3">@Model.ReturnRequest.BuyerName</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-muted mb-1">Email</h6>
+                                <p class="mb-0">
+                                    @if (!string.IsNullOrEmpty(Model.ReturnRequest.BuyerEmail))
+                                    {
+                                        <a href="mailto:@Model.ReturnRequest.BuyerEmail">@Model.ReturnRequest.BuyerEmail</a>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Not provided</span>
+                                    }
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="d-flex justify-content-between">
+                    <a asp-page="/Seller/Returns" class="btn btn-outline-secondary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left me-2" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/>
+                        </svg>
+                        Back to Return Requests
+                    </a>
+                    <a asp-page="/Seller/OrderDetail" asp-route-subOrderId="@Model.ReturnRequest.ShipmentId" class="btn btn-outline-primary">
+                        View Original Order
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right ms-2" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <div class="card sticky-top" style="top: 1rem;">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Return Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <small class="text-muted">Order Number</small>
+                            <p class="mb-0 fw-bold">@Model.ReturnRequest.OrderNumber</p>
+                        </div>
+                        <div class="mb-3">
+                            <small class="text-muted">Status</small>
+                            <p class="mb-0">
+                                <span class="badge @statusClass">@statusDisplay</span>
+                            </p>
+                        </div>
+                        <div class="mb-3">
+                            <small class="text-muted">Submitted</small>
+                            <p class="mb-0">@Model.ReturnRequest.CreatedAt.ToString("MMMM dd, yyyy")</p>
+                        </div>
+                        @if (Model.ReturnRequest.ApprovedAt.HasValue)
+                        {
+                            <div class="mb-3">
+                                <small class="text-muted">Approved</small>
+                                <p class="mb-0">@Model.ReturnRequest.ApprovedAt.Value.ToString("MMMM dd, yyyy")</p>
+                            </div>
+                        }
+                        @if (Model.ReturnRequest.RejectedAt.HasValue)
+                        {
+                            <div class="mb-3">
+                                <small class="text-muted">Rejected</small>
+                                <p class="mb-0">@Model.ReturnRequest.RejectedAt.Value.ToString("MMMM dd, yyyy")</p>
+                            </div>
+                        }
+                        @if (Model.ReturnRequest.CompletedAt.HasValue)
+                        {
+                            <div class="mb-3">
+                                <small class="text-muted">Completed</small>
+                                <p class="mb-0">@Model.ReturnRequest.CompletedAt.Value.ToString("MMMM dd, yyyy")</p>
+                            </div>
+                        }
+                        <hr>
+                        <div class="d-flex justify-content-between">
+                            <span class="fw-bold">Return Amount</span>
+                            <span class="fw-bold text-primary">@Model.ReturnRequest.Currency @Model.ReturnRequest.SubOrderTotal.ToString("N2")</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
