@@ -98,3 +98,56 @@ public sealed record PayoutScheduleConfigDto(
     DayOfWeek PayoutDay,
     decimal MinimumPayoutThreshold,
     string Currency);
+
+/// <summary>
+/// DTO for payout list item in history view.
+/// </summary>
+public sealed record PayoutListItemDto(
+    Guid Id,
+    decimal TotalAmount,
+    string Currency,
+    string Status,
+    DateTime ScheduledDate,
+    string PayoutMethod,
+    int ItemCount,
+    DateTime? PaidAt,
+    DateTime? FailedAt,
+    string? ErrorMessage);
+
+/// <summary>
+/// DTO for detailed payout view with order breakdown.
+/// </summary>
+public sealed record PayoutDetailsDto(
+    Guid Id,
+    Guid StoreId,
+    Guid SellerId,
+    decimal TotalAmount,
+    string Currency,
+    string Status,
+    DateTime ScheduledDate,
+    string PayoutMethod,
+    string? PayoutReference,
+    string? ErrorReference,
+    string? ErrorMessage,
+    int RetryCount,
+    int MaxRetries,
+    bool CanRetry,
+    IReadOnlyList<PayoutOrderBreakdownDto> OrderBreakdown,
+    DateTime CreatedAt,
+    DateTime? ProcessedAt,
+    DateTime? PaidAt,
+    DateTime? FailedAt,
+    DateTime? NextRetryAt);
+
+/// <summary>
+/// DTO for order breakdown within a payout.
+/// </summary>
+public sealed record PayoutOrderBreakdownDto(
+    Guid EscrowAllocationId,
+    Guid ShipmentId,
+    string? OrderNumber,
+    decimal SellerAmount,
+    decimal ShippingAmount,
+    decimal CommissionAmount,
+    decimal PayoutAmount,
+    DateTime CreatedAt);

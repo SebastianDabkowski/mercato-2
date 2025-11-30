@@ -18,6 +18,7 @@ public sealed class PayoutScheduleService
     private readonly IPayoutSettingsRepository _payoutSettingsRepository;
     private readonly IStoreRepository _storeRepository;
     private readonly INotificationService _notificationService;
+    private readonly IOrderRepository _orderRepository;
 
     /// <summary>
     /// Default minimum payout threshold in the seller's currency.
@@ -45,13 +46,15 @@ public sealed class PayoutScheduleService
         IEscrowRepository escrowRepository,
         IPayoutSettingsRepository payoutSettingsRepository,
         IStoreRepository storeRepository,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        IOrderRepository orderRepository)
     {
         _payoutRepository = payoutRepository;
         _escrowRepository = escrowRepository;
         _payoutSettingsRepository = payoutSettingsRepository;
         _storeRepository = storeRepository;
         _notificationService = notificationService;
+        _orderRepository = orderRepository;
     }
 
     /// <summary>
@@ -394,6 +397,106 @@ public sealed class PayoutScheduleService
 
         var payouts = await _payoutRepository.GetByStatusAsync(status, cancellationToken);
         return payouts.Select(MapToDto).ToList();
+    }
+
+    /// <summary>
+    /// Gets payout history for a store with filtering and pagination.
+    /// </summary>
+    public async Task<PagedResultDto<PayoutListItemDto>> HandleAsync(
+        GetPayoutHistoryQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        SellerPayoutStatus? statusFilter = null;
+        if (!string.IsNullOrEmpty(query.Status) && Enum.TryParse<SellerPayoutStatus>(query.Status, true, out var parsedStatus))
+        {
+            statusFilter = parsedStatus;
+        }
+
+        var skip = (query.PageNumber - 1) * query.PageSize;
+        var (payouts, totalCount) = await _payoutRepository.GetFilteredByStoreIdAsync(
+            query.StoreId,
+            statusFilter,
+            query.FromDate,
+            query.ToDate,
+            skip,
+            query.PageSize,
+            cancellationToken);
+
+        var items = payouts.Select(p => new PayoutListItemDto(
+            p.Id,
+            p.TotalAmount,
+            p.Currency,
+            p.Status.ToString(),
+            p.ScheduledDate,
+            p.PayoutMethod.ToString(),
+            p.Items.Count,
+            p.PaidAt,
+            p.FailedAt,
+            p.ErrorMessage)).ToList();
+
+        return PagedResultDto<PayoutListItemDto>.Create(items, query.PageNumber, query.PageSize, totalCount);
+    }
+
+    /// <summary>
+    /// Gets payout details with order breakdown.
+    /// </summary>
+    public async Task<PayoutDetailsDto?> HandleAsync(
+        GetPayoutDetailsQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var payout = await _payoutRepository.GetByIdAsync(query.PayoutId, cancellationToken);
+        if (payout is null || payout.StoreId != query.StoreId)
+        {
+            return null;
+        }
+
+        // Build order breakdown for each payout item
+        var orderBreakdown = new List<PayoutOrderBreakdownDto>();
+        foreach (var item in payout.Items)
+        {
+            var allocation = await _escrowRepository.GetAllocationByIdAsync(item.EscrowAllocationId, cancellationToken);
+            if (allocation is null) continue;
+
+            // Get the shipment and order info
+            var (shipment, order, _) = await _orderRepository.GetShipmentWithOrderAsync(allocation.ShipmentId, cancellationToken);
+            var orderNumber = order?.OrderNumber;
+
+            orderBreakdown.Add(new PayoutOrderBreakdownDto(
+                allocation.Id,
+                allocation.ShipmentId,
+                orderNumber,
+                allocation.SellerAmount,
+                allocation.ShippingAmount,
+                allocation.CommissionAmount,
+                allocation.SellerPayout,
+                item.CreatedAt));
+        }
+
+        return new PayoutDetailsDto(
+            payout.Id,
+            payout.StoreId,
+            payout.SellerId,
+            payout.TotalAmount,
+            payout.Currency,
+            payout.Status.ToString(),
+            payout.ScheduledDate,
+            payout.PayoutMethod.ToString(),
+            payout.PayoutReference,
+            payout.ErrorReference,
+            payout.ErrorMessage,
+            payout.RetryCount,
+            payout.MaxRetries,
+            payout.CanRetry(),
+            orderBreakdown,
+            payout.CreatedAt,
+            payout.ProcessedAt,
+            payout.PaidAt,
+            payout.FailedAt,
+            payout.NextRetryAt);
     }
 
     /// <summary>

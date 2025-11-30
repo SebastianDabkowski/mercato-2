@@ -29,6 +29,18 @@ public interface ISellerPayoutRepository
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets payouts for a store with filtering and pagination.
+    /// </summary>
+    Task<(IReadOnlyList<SellerPayout> Payouts, int TotalCount)> GetFilteredByStoreIdAsync(
+        Guid storeId,
+        SellerPayoutStatus? status,
+        DateTime? fromDate,
+        DateTime? toDate,
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets payouts by status.
     /// </summary>
     Task<IReadOnlyList<SellerPayout>> GetByStatusAsync(
