@@ -240,7 +240,9 @@ public class Order
         int quantity,
         Guid? shippingMethodId = null,
         string? shippingMethodName = null,
-        decimal shippingCost = 0m)
+        decimal shippingCost = 0m,
+        int? estimatedDeliveryDaysMin = null,
+        int? estimatedDeliveryDaysMax = null)
     {
         var item = new OrderItem(
             Id,
@@ -251,7 +253,9 @@ public class Order
             quantity,
             shippingMethodId,
             shippingMethodName,
-            shippingCost);
+            shippingCost,
+            estimatedDeliveryDaysMin,
+            estimatedDeliveryDaysMax);
 
         _items.Add(item);
         RecalculateTotals();

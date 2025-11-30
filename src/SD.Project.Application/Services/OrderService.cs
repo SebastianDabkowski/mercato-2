@@ -79,8 +79,12 @@ public sealed class OrderService
             var sellerItems = order.Items.Where(i => i.StoreId == shipment.StoreId).ToList();
             var itemDtos = sellerItems.Select(i =>
             {
-                string? estimatedDelivery = null;
-                if (i.ShippingMethodId.HasValue && shippingMethodLookup.TryGetValue(i.ShippingMethodId.Value, out var method))
+                // Prefer stored delivery time (historical value at order creation)
+                // Fall back to current shipping method value for backwards compatibility
+                string? estimatedDelivery = i.GetEstimatedDeliveryDisplay();
+                if (estimatedDelivery is null 
+                    && i.ShippingMethodId.HasValue 
+                    && shippingMethodLookup.TryGetValue(i.ShippingMethodId.Value, out var method))
                 {
                     estimatedDelivery = method.GetDeliveryTimeDisplay();
                 }
@@ -108,27 +112,44 @@ public sealed class OrderService
             }).ToList();
 
             // Calculate estimated delivery for this sub-order
+            // Prefer stored delivery time (historical value at order creation)
             string? subOrderEstimatedDelivery = null;
-            var itemShippingMethodIds = sellerItems
-                .Where(i => i.ShippingMethodId.HasValue)
-                .Select(i => i.ShippingMethodId!.Value)
-                .Distinct()
+            var itemsWithDeliveryTime = sellerItems
+                .Where(i => i.EstimatedDeliveryDaysMin.HasValue && i.EstimatedDeliveryDaysMax.HasValue)
                 .ToList();
 
-            if (itemShippingMethodIds.Count > 0)
+            if (itemsWithDeliveryTime.Count > 0)
             {
-                var relevantMethods = itemShippingMethodIds
-                    .Select(id => shippingMethodLookup.GetValueOrDefault(id))
-                    .OfType<ShippingMethod>()
+                var minDays = itemsWithDeliveryTime.Min(i => i.EstimatedDeliveryDaysMin!.Value);
+                var maxDays = itemsWithDeliveryTime.Max(i => i.EstimatedDeliveryDaysMax!.Value);
+                var minDate = order.CreatedAt.AddDays(minDays).ToString("MMM dd");
+                var maxDate = order.CreatedAt.AddDays(maxDays).ToString("MMM dd, yyyy");
+                subOrderEstimatedDelivery = $"{minDate} - {maxDate}";
+            }
+            else
+            {
+                // Backwards compatibility: fall back to current shipping method values
+                var itemShippingMethodIds = sellerItems
+                    .Where(i => i.ShippingMethodId.HasValue)
+                    .Select(i => i.ShippingMethodId!.Value)
+                    .Distinct()
                     .ToList();
 
-                if (relevantMethods.Count > 0)
+                if (itemShippingMethodIds.Count > 0)
                 {
-                    var minDays = relevantMethods.Min(m => m.EstimatedDeliveryDaysMin);
-                    var maxDays = relevantMethods.Max(m => m.EstimatedDeliveryDaysMax);
-                    var minDate = order.CreatedAt.AddDays(minDays).ToString("MMM dd");
-                    var maxDate = order.CreatedAt.AddDays(maxDays).ToString("MMM dd, yyyy");
-                    subOrderEstimatedDelivery = $"{minDate} - {maxDate}";
+                    var relevantMethods = itemShippingMethodIds
+                        .Select(id => shippingMethodLookup.GetValueOrDefault(id))
+                        .OfType<ShippingMethod>()
+                        .ToList();
+
+                    if (relevantMethods.Count > 0)
+                    {
+                        var minDays = relevantMethods.Min(m => m.EstimatedDeliveryDaysMin);
+                        var maxDays = relevantMethods.Max(m => m.EstimatedDeliveryDaysMax);
+                        var minDate = order.CreatedAt.AddDays(minDays).ToString("MMM dd");
+                        var maxDate = order.CreatedAt.AddDays(maxDays).ToString("MMM dd, yyyy");
+                        subOrderEstimatedDelivery = $"{minDate} - {maxDate}";
+                    }
                 }
             }
 
@@ -152,10 +173,24 @@ public sealed class OrderService
                 shipment.RefundedAmount));
         }
 
-        // Calculate overall estimated delivery range
+        // Calculate overall estimated delivery range from stored order item values
+        // Fall back to current shipping method values for backwards compatibility
         string? estimatedDeliveryRange = null;
-        if (shippingMethods.Count > 0)
+        var allItemsWithDeliveryTime = order.Items
+            .Where(i => i.EstimatedDeliveryDaysMin.HasValue && i.EstimatedDeliveryDaysMax.HasValue)
+            .ToList();
+        
+        if (allItemsWithDeliveryTime.Count > 0)
         {
+            var minDays = allItemsWithDeliveryTime.Min(i => i.EstimatedDeliveryDaysMin!.Value);
+            var maxDays = allItemsWithDeliveryTime.Max(i => i.EstimatedDeliveryDaysMax!.Value);
+            var minDate = order.CreatedAt.AddDays(minDays).ToString("MMM dd");
+            var maxDate = order.CreatedAt.AddDays(maxDays).ToString("MMM dd, yyyy");
+            estimatedDeliveryRange = $"{minDate} - {maxDate}";
+        }
+        else if (shippingMethods.Count > 0)
+        {
+            // Backwards compatibility: fall back to current shipping method values
             var minDays = shippingMethods.Min(m => m.EstimatedDeliveryDaysMin);
             var maxDays = shippingMethods.Max(m => m.EstimatedDeliveryDaysMax);
             var minDate = order.CreatedAt.AddDays(minDays).ToString("MMM dd");

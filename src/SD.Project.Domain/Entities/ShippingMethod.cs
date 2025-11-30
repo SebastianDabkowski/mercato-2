@@ -207,6 +207,34 @@ public class ShippingMethod
     }
 
     /// <summary>
+    /// Checks if this shipping method is available for the specified country/region.
+    /// Returns true if AvailableRegions is empty/null (available everywhere) or if the region is in the list.
+    /// </summary>
+    /// <param name="countryCode">The country code to check (e.g., "US", "PL", "DE").</param>
+    /// <returns>True if the shipping method is available for the specified region.</returns>
+    public bool IsAvailableForRegion(string? countryCode)
+    {
+        // If no region restrictions, available everywhere
+        if (string.IsNullOrWhiteSpace(AvailableRegions))
+        {
+            return true;
+        }
+
+        // If no country code provided, cannot determine availability
+        if (string.IsNullOrWhiteSpace(countryCode))
+        {
+            return false;
+        }
+
+        // Parse comma-separated regions and check if country is in the list
+        var regions = AvailableRegions
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(r => r.ToUpperInvariant());
+
+        return regions.Contains(countryCode.ToUpperInvariant());
+    }
+
+    /// <summary>
     /// Updates the shipping method details.
     /// </summary>
     public void Update(
