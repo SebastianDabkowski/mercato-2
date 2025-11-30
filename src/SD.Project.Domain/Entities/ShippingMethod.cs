@@ -71,6 +71,12 @@ public class ShippingMethod
     public int DisplayOrder { get; private set; }
 
     /// <summary>
+    /// Comma-separated list of country/region codes where this shipping method is available.
+    /// Empty or null means available everywhere.
+    /// </summary>
+    public string? AvailableRegions { get; private set; }
+
+    /// <summary>
     /// Whether this is the default shipping method for the store.
     /// </summary>
     public bool IsDefault { get; private set; }
@@ -104,7 +110,8 @@ public class ShippingMethod
         decimal? freeShippingThreshold = null,
         int displayOrder = 0,
         bool isDefault = false,
-        Guid? shippingRuleId = null)
+        Guid? shippingRuleId = null,
+        string? availableRegions = null)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -149,6 +156,7 @@ public class ShippingMethod
         Currency = currency.ToUpperInvariant();
         FreeShippingThreshold = freeShippingThreshold;
         DisplayOrder = displayOrder;
+        AvailableRegions = availableRegions?.Trim();
         IsDefault = isDefault;
         IsActive = true;
         CreatedAt = DateTime.UtcNow;
@@ -207,7 +215,8 @@ public class ShippingMethod
         string? carrierName,
         int estimatedDeliveryDaysMin,
         int estimatedDeliveryDaysMax,
-        int displayOrder)
+        int displayOrder,
+        string? availableRegions = null)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -220,6 +229,7 @@ public class ShippingMethod
         EstimatedDeliveryDaysMin = estimatedDeliveryDaysMin;
         EstimatedDeliveryDaysMax = estimatedDeliveryDaysMax;
         DisplayOrder = displayOrder;
+        AvailableRegions = availableRegions?.Trim();
         UpdatedAt = DateTime.UtcNow;
     }
 

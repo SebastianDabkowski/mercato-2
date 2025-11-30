@@ -43,6 +43,7 @@ public static class DependencyInjection
         services.AddScoped<RefundService>();
         services.AddScoped<PaymentWebhookService>();
         services.AddScoped<CommissionInvoiceService>();
+        services.AddScoped<ShippingMethodService>();
         services.AddScoped<IAuthorizationService, AuthorizationService>();
 
         // Domain services for cart totals calculation
