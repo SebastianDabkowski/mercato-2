@@ -190,7 +190,14 @@
                             </div>
                             <div class="col-md-6">
                                 <h6 class="text-muted mb-2">Shipping Method</h6>
-                                <p class="mb-0">@(Model.SubOrder.ShippingMethodName ?? "Standard Shipping")</p>
+                                @if (!string.IsNullOrEmpty(Model.SubOrder.ShippingMethodName))
+                                {
+                                    <p class="mb-0">@Model.SubOrder.ShippingMethodName</p>
+                                }
+                                else
+                                {
+                                    <p class="mb-0 text-muted">Not specified</p>
+                                }
                             </div>
                         </div>
 
@@ -306,16 +313,6 @@
                                     <div>
                                         <strong>Payment confirmed</strong>
                                         <br><small class="text-muted">@Model.SubOrder.PaidAt.Value.ToString("MMMM dd, yyyy 'at' h:mm tt")</small>
-                                    </div>
-                                </li>
-                            }
-                            @if (Model.SubOrder.ProcessingStartedAt.HasValue && (Model.SubOrder.Status == "Processing" || Model.SubOrder.Status == "Shipped" || Model.SubOrder.Status == "Delivered"))
-                            {
-                                <li class="d-flex align-items-start mb-3">
-                                    <span class="badge bg-info me-3 mt-1">Processing</span>
-                                    <div>
-                                        <strong>Started processing</strong>
-                                        <br><small class="text-muted">@Model.SubOrder.ProcessingStartedAt.Value.ToString("MMMM dd, yyyy 'at' h:mm tt")</small>
                                     </div>
                                 </li>
                             }

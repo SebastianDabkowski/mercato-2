@@ -87,7 +87,6 @@ public class OrderDetailModel : PageModel
                 i.ShippingMethodName)).ToList().AsReadOnly(),
             subOrder.CreatedAt,
             subOrder.PaidAt,
-            subOrder.ProcessingStartedAt,
             subOrder.ShippedAt,
             subOrder.DeliveredAt,
             subOrder.CancelledAt,

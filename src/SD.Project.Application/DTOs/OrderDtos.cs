@@ -23,7 +23,6 @@ public sealed record SellerSubOrderDto(
     IReadOnlyList<SellerSubOrderItemDto> Items,
     DateTime CreatedAt,
     DateTime? PaidAt,
-    DateTime? ProcessingStartedAt,
     DateTime? ShippedAt,
     DateTime? DeliveredAt,
     DateTime? CancelledAt,

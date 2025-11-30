@@ -89,7 +89,6 @@ public sealed record SellerSubOrderDetailsViewModel(
     IReadOnlyList<SellerSubOrderItemViewModel> Items,
     DateTime CreatedAt,
     DateTime? PaidAt,
-    DateTime? ProcessingStartedAt,
     DateTime? ShippedAt,
     DateTime? DeliveredAt,
     DateTime? CancelledAt,

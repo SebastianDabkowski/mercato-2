@@ -316,7 +316,6 @@ public sealed class OrderService
             itemDtos.AsReadOnly(),
             shipment.CreatedAt,
             order.PaidAt,
-            shipment.Status >= ShipmentStatus.Processing ? shipment.UpdatedAt : null,
             shipment.ShippedAt,
             shipment.DeliveredAt,
             shipment.CancelledAt,
