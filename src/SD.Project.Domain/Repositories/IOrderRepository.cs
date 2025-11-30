@@ -32,6 +32,19 @@ public interface IOrderRepository
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets filtered and paginated orders for a specific buyer.
+    /// </summary>
+    Task<(IReadOnlyList<Order> Orders, int TotalCount)> GetFilteredByBuyerIdAsync(
+        Guid buyerId,
+        OrderStatus? status,
+        DateTime? fromDate,
+        DateTime? toDate,
+        Guid? sellerId,
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Adds a new order.
     /// </summary>
     Task AddAsync(Order order, CancellationToken cancellationToken = default);
