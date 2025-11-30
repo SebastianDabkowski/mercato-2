@@ -108,6 +108,27 @@ public interface INotificationService
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Sends a notification when tracking information is updated for a shipment.
+    /// </summary>
+    /// <param name="shipmentId">The ID of the shipment.</param>
+    /// <param name="orderId">The ID of the parent order.</param>
+    /// <param name="buyerEmail">The buyer's email address.</param>
+    /// <param name="orderNumber">The order number for display.</param>
+    /// <param name="trackingNumber">The tracking number.</param>
+    /// <param name="carrierName">The carrier name.</param>
+    /// <param name="trackingUrl">Optional tracking URL.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendTrackingInfoUpdatedAsync(
+        Guid shipmentId,
+        Guid orderId,
+        string buyerEmail,
+        string orderNumber,
+        string? trackingNumber,
+        string? carrierName,
+        string? trackingUrl,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Sends a notification to the seller when a return request is created.
     /// </summary>
     /// <param name="returnRequestId">The ID of the return request.</param>

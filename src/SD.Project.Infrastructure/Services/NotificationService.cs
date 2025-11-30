@@ -142,6 +142,35 @@ public sealed class NotificationService : INotificationService
         return Task.CompletedTask;
     }
 
+    public Task SendTrackingInfoUpdatedAsync(
+        Guid shipmentId,
+        Guid orderId,
+        string buyerEmail,
+        string orderNumber,
+        string? trackingNumber,
+        string? carrierName,
+        string? trackingUrl,
+        CancellationToken cancellationToken = default)
+    {
+        // TODO: Replace logging with real email/notification integration.
+        // In a production environment, this would send an email notification to the buyer
+        // when tracking information is updated for their shipment.
+        var trackingInfo = !string.IsNullOrEmpty(trackingNumber)
+            ? $"Tracking: {carrierName ?? DefaultCarrierName} - {trackingNumber}"
+            : "Tracking information updated";
+        var urlInfo = !string.IsNullOrEmpty(trackingUrl)
+            ? $" (Track at: {trackingUrl})"
+            : "";
+        _logger.LogInformation(
+            "Tracking info updated notification sent to {BuyerEmail} for order {OrderNumber}. " +
+            "{TrackingInfo}{UrlInfo}",
+            buyerEmail,
+            orderNumber,
+            trackingInfo,
+            urlInfo);
+        return Task.CompletedTask;
+    }
+
     public Task SendReturnRequestCreatedAsync(
         Guid returnRequestId,
         string orderNumber,
