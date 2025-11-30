@@ -139,7 +139,9 @@ public sealed class PartialFulfilmentService
 
         // Determine partial fulfilment state
         var activeItems = totalItems - cancelledItems - refundedItems;
-        var isPartiallyFulfilled = shippedItems > 0 && shippedItems < activeItems;
+        var pendingItems = newItems + preparingItems;
+        // Partially fulfilled: some items shipped/delivered, but others still pending (new or preparing)
+        var isPartiallyFulfilled = (shippedItems + deliveredItems) > 0 && pendingItems > 0;
         var isFullyShipped = activeItems > 0 && (shippedItems + deliveredItems) == activeItems;
         var isFullyDelivered = activeItems > 0 && deliveredItems == activeItems;
 
@@ -176,10 +178,10 @@ public sealed class PartialFulfilmentService
             return null;
         }
 
-        // Filter to specified items or all cancelled items
+        // Filter to specified items or all refundable items (cancelled, shipped, or delivered)
         var targetItems = query.ItemIds is not null && query.ItemIds.Count > 0
-            ? items.Where(i => query.ItemIds.Contains(i.Id) && i.Status == OrderItemStatus.Cancelled).ToList()
-            : items.Where(i => i.Status == OrderItemStatus.Cancelled).ToList();
+            ? items.Where(i => query.ItemIds.Contains(i.Id) && i.CanTransitionTo(OrderItemStatus.Refunded)).ToList()
+            : items.Where(i => i.CanTransitionTo(OrderItemStatus.Refunded)).ToList();
 
         var breakdowns = targetItems.Select(item => new ItemRefundBreakdownDto(
             item.Id,
