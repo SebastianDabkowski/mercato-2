@@ -722,13 +722,32 @@ public sealed class RefundService
         var buyer = await _userRepository.GetByIdAsync(order.BuyerId, cancellationToken);
         if (buyer?.Email is not null)
         {
-            await _notificationService.SendRefundProcessedAsync(
-                order.Id,
-                buyer.Email.Value,
-                order.OrderNumber,
-                refund.Amount,
-                refund.Currency,
-                cancellationToken);
+            if (refund.Type == RefundType.Partial)
+            {
+                // Get remaining amount for partial refund notifications
+                var totalRefunded = await _refundRepository.GetTotalRefundedAmountAsync(
+                    order.Id, cancellationToken);
+                var remainingAmount = order.TotalAmount - totalRefunded;
+
+                await _notificationService.SendPartialRefundProcessedAsync(
+                    order.Id,
+                    buyer.Email.Value,
+                    order.OrderNumber,
+                    refund.Amount,
+                    remainingAmount,
+                    refund.Currency,
+                    cancellationToken);
+            }
+            else
+            {
+                await _notificationService.SendRefundProcessedAsync(
+                    order.Id,
+                    buyer.Email.Value,
+                    order.OrderNumber,
+                    refund.Amount,
+                    refund.Currency,
+                    cancellationToken);
+            }
         }
     }
 
@@ -740,17 +759,23 @@ public sealed class RefundService
         string? errorMessage,
         CancellationToken cancellationToken)
     {
-        _logger.LogWarning(
-            "Refund {RefundId} failed with error: {ErrorMessage}. " +
-            "Initiator: {InitiatorType} {InitiatedById}. Can retry: {CanRetry}",
-            refund.Id,
-            errorMessage,
-            refund.InitiatorType,
-            refund.InitiatedById,
-            refund.CanRetry());
+        // Get order details for the notification
+        var order = await _orderRepository.GetByIdAsync(refund.OrderId, cancellationToken);
+        var orderNumber = order?.OrderNumber ?? $"Order-{refund.OrderId}";
 
-        // In a production system, this would notify the support agent or seller
-        // who initiated the refund about the failure
+        // Send notification to support agent or seller about the failure
+        await _notificationService.SendRefundProviderErrorAsync(
+            refund.Id,
+            refund.OrderId,
+            orderNumber,
+            refund.Amount,
+            refund.Currency,
+            errorMessage,
+            refund.ErrorCode,
+            refund.InitiatedById,
+            refund.InitiatorType,
+            refund.CanRetry(),
+            cancellationToken);
     }
 
     private static RefundDto MapToDto(Refund refund)
