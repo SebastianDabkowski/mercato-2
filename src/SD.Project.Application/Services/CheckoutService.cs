@@ -25,6 +25,7 @@ public sealed class CheckoutService
     private readonly INotificationService _notificationService;
     private readonly IPaymentProviderService _paymentProviderService;
     private readonly CheckoutValidationService _checkoutValidationService;
+    private readonly EscrowService _escrowService;
 
     public CheckoutService(
         ICartRepository cartRepository,
@@ -37,7 +38,8 @@ public sealed class CheckoutService
         IUserRepository userRepository,
         INotificationService notificationService,
         IPaymentProviderService paymentProviderService,
-        CheckoutValidationService checkoutValidationService)
+        CheckoutValidationService checkoutValidationService,
+        EscrowService escrowService)
     {
         _cartRepository = cartRepository;
         _productRepository = productRepository;
@@ -50,6 +52,7 @@ public sealed class CheckoutService
         _notificationService = notificationService;
         _paymentProviderService = paymentProviderService;
         _checkoutValidationService = checkoutValidationService;
+        _escrowService = escrowService;
     }
 
     /// <summary>
@@ -524,6 +527,9 @@ public sealed class CheckoutService
         await _orderRepository.UpdateAsync(order, cancellationToken);
         await _orderRepository.SaveChangesAsync(cancellationToken);
 
+        // Create escrow payment to hold funds
+        await _escrowService.CreateEscrowForOrderAsync(order, cancellationToken);
+
         // Clear the cart after successful order
         cart.Clear();
         await _cartRepository.UpdateAsync(cart, cancellationToken);
@@ -601,6 +607,9 @@ public sealed class CheckoutService
         await _orderRepository.UpdateAsync(order, cancellationToken);
         await _orderRepository.SaveChangesAsync(cancellationToken);
 
+        // Create escrow payment to hold funds
+        await _escrowService.CreateEscrowForOrderAsync(order, cancellationToken);
+
         // Clear the buyer's cart
         var cart = await _cartRepository.GetByBuyerIdAsync(command.BuyerId, cancellationToken);
         if (cart is not null)
@@ -655,6 +664,9 @@ public sealed class CheckoutService
                 order.ConfirmPayment(confirmationResult.TransactionId);
                 await _orderRepository.UpdateAsync(order, cancellationToken);
                 await _orderRepository.SaveChangesAsync(cancellationToken);
+
+                // Create escrow payment to hold funds
+                await _escrowService.CreateEscrowForOrderAsync(order, cancellationToken);
 
                 // Clear the buyer's cart
                 var cart = await _cartRepository.GetByBuyerIdAsync(order.BuyerId, cancellationToken);
