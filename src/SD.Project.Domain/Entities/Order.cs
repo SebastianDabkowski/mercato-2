@@ -1,3 +1,5 @@
+using SD.Project.Domain.ValueObjects;
+
 namespace SD.Project.Domain.Entities;
 
 /// <summary>
@@ -127,6 +129,26 @@ public class Order
     /// The refunded amount if the order has been refunded.
     /// </summary>
     public decimal? RefundedAmount { get; private set; }
+
+    /// <summary>
+    /// Gets the payment status derived from the order status.
+    /// This provides a simplified view of the payment lifecycle for buyers.
+    /// </summary>
+    public PaymentStatus PaymentStatus
+    {
+        get
+        {
+            return Status switch
+            {
+                OrderStatus.Pending => PaymentStatus.Pending,
+                OrderStatus.PaymentFailed => PaymentStatus.Failed,
+                OrderStatus.Cancelled when PaidAt.HasValue => PaymentStatus.Refunded,
+                OrderStatus.Refunded => PaymentStatus.Refunded,
+                _ when PaidAt.HasValue => PaymentStatus.Paid,
+                _ => PaymentStatus.Pending
+            };
+        }
+    }
 
     private Order()
     {

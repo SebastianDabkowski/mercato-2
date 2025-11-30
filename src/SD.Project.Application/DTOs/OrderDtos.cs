@@ -74,6 +74,8 @@ public sealed record BuyerOrderDetailsDto(
     Guid OrderId,
     string OrderNumber,
     string Status,
+    string PaymentStatus,
+    string PaymentStatusMessage,
     string RecipientName,
     string DeliveryAddressSummary,
     string PaymentMethodName,

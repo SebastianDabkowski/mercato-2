@@ -4,6 +4,7 @@ using SD.Project.Application.Interfaces;
 using SD.Project.Application.Queries;
 using SD.Project.Domain.Entities;
 using SD.Project.Domain.Repositories;
+using SD.Project.Domain.Services;
 
 namespace SD.Project.Application.Services;
 
@@ -166,6 +167,8 @@ public sealed class OrderService
             order.Id,
             order.OrderNumber,
             order.Status.ToString(),
+            order.PaymentStatus.ToString(),
+            PaymentStatusMapper.GetBuyerFriendlyMessage(order.PaymentStatus),
             order.RecipientName,
             addressSummary,
             order.PaymentMethodName,

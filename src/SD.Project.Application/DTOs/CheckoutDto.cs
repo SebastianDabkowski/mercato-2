@@ -154,6 +154,8 @@ public sealed record OrderConfirmationDto(
     Guid OrderId,
     string OrderNumber,
     string Status,
+    string PaymentStatus,
+    string PaymentStatusMessage,
     string RecipientName,
     string DeliveryAddressSummary,
     string PaymentMethodName,
@@ -164,7 +166,8 @@ public sealed record OrderConfirmationDto(
     string Currency,
     DateTime CreatedAt,
     string? EstimatedDeliveryRange,
-    string? BuyerEmail);
+    string? BuyerEmail,
+    decimal? RefundedAmount = null);
 
 /// <summary>
 /// DTO for an order item in confirmation and buyer order details.

@@ -287,4 +287,44 @@ public sealed class NotificationService : INotificationService
             refundAmount);
         return Task.CompletedTask;
     }
+
+    public Task SendPaymentFailedAsync(
+        Guid orderId,
+        string buyerEmail,
+        string orderNumber,
+        decimal totalAmount,
+        string currency,
+        CancellationToken cancellationToken = default)
+    {
+        // TODO: Replace logging with real email/notification integration.
+        // Notify buyer when payment fails so they can retry or use a different payment method.
+        _logger.LogInformation(
+            "Payment failed notification sent to {BuyerEmail} for order {OrderNumber}. " +
+            "Amount: {Currency} {TotalAmount:N2}",
+            buyerEmail,
+            orderNumber,
+            currency,
+            totalAmount);
+        return Task.CompletedTask;
+    }
+
+    public Task SendRefundProcessedAsync(
+        Guid orderId,
+        string buyerEmail,
+        string orderNumber,
+        decimal refundAmount,
+        string currency,
+        CancellationToken cancellationToken = default)
+    {
+        // TODO: Replace logging with real email/notification integration.
+        // Notify buyer when a refund has been processed for their order.
+        _logger.LogInformation(
+            "Refund processed notification sent to {BuyerEmail} for order {OrderNumber}. " +
+            "Refund amount: {Currency} {RefundAmount:N2}",
+            buyerEmail,
+            orderNumber,
+            currency,
+            refundAmount);
+        return Task.CompletedTask;
+    }
 }

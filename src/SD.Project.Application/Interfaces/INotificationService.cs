@@ -227,4 +227,38 @@ public interface INotificationService
         decimal refundAmount,
         string currency,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a notification when a payment fails.
+    /// </summary>
+    /// <param name="orderId">The ID of the order.</param>
+    /// <param name="buyerEmail">The buyer's email address.</param>
+    /// <param name="orderNumber">The order number for display.</param>
+    /// <param name="totalAmount">The total order amount.</param>
+    /// <param name="currency">The currency code.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendPaymentFailedAsync(
+        Guid orderId,
+        string buyerEmail,
+        string orderNumber,
+        decimal totalAmount,
+        string currency,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a notification when a refund is processed.
+    /// </summary>
+    /// <param name="orderId">The ID of the order.</param>
+    /// <param name="buyerEmail">The buyer's email address.</param>
+    /// <param name="orderNumber">The order number for display.</param>
+    /// <param name="refundAmount">The refunded amount.</param>
+    /// <param name="currency">The currency code.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendRefundProcessedAsync(
+        Guid orderId,
+        string buyerEmail,
+        string orderNumber,
+        decimal refundAmount,
+        string currency,
+        CancellationToken cancellationToken = default);
 }
