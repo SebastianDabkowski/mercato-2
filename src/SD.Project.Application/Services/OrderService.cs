@@ -634,6 +634,21 @@ public sealed class OrderService
         // Save changes
         await _orderRepository.SaveChangesAsync(cancellationToken);
 
+        // Send notification to buyer about updated tracking info
+        var buyer = await _userRepository.GetByIdAsync(order.BuyerId, cancellationToken);
+        if (buyer?.Email is not null)
+        {
+            await _notificationService.SendTrackingInfoUpdatedAsync(
+                shipment.Id,
+                order.Id,
+                buyer.Email.Value,
+                order.OrderNumber,
+                shipment.TrackingNumber,
+                shipment.CarrierName,
+                shipment.TrackingUrl,
+                cancellationToken);
+        }
+
         return new UpdateShipmentStatusResultDto(
             true,
             null,
