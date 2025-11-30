@@ -34,6 +34,15 @@
             "Paid" => "Confirmed",
             _ => Model.SubOrder.Status
         };
+        var paymentStatusClass = Model.SubOrder.PaymentStatus switch
+        {
+            "Paid" => "text-success",
+            "Pending" => "text-warning",
+            "Failed" => "text-danger",
+            "Cancelled" => "text-secondary",
+            "Refunded" => "text-info",
+            _ => "text-muted"
+        };
 
         <!-- Header -->
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -176,14 +185,23 @@
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-6">
-                                <h6 class="text-muted mb-2">Customer</h6>
-                                <p class="mb-3"><strong>@Model.SubOrder.BuyerName</strong></p>
-                            </div>
-                            <div class="col-md-6">
                                 <h6 class="text-muted mb-2">Delivery Address</h6>
                                 <p class="mb-0">@Model.SubOrder.DeliveryAddress</p>
                             </div>
+                            <div class="col-md-6">
+                                <h6 class="text-muted mb-2">Shipping Method</h6>
+                                <p class="mb-0">@(Model.SubOrder.ShippingMethodName ?? "Standard Shipping")</p>
+                            </div>
                         </div>
+
+                        @if (!string.IsNullOrEmpty(Model.SubOrder.DeliveryInstructions))
+                        {
+                            <hr>
+                            <div>
+                                <h6 class="text-muted mb-2">Delivery Instructions</h6>
+                                <p class="mb-0 fst-italic bg-light p-2 rounded">@Model.SubOrder.DeliveryInstructions</p>
+                            </div>
+                        }
 
                         @if (!string.IsNullOrEmpty(Model.SubOrder.TrackingNumber))
                         {
@@ -211,6 +229,144 @@
                     </div>
                 </div>
 
+                <!-- Buyer Contact Information -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-person-lines-fill me-2" viewBox="0 0 16 16">
+                                <path d="M6 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m-5 6s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1zM11 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 0 1h-4a.5.5 0 0 1-.5-.5m.5 2.5a.5.5 0 0 0 0 1h4a.5.5 0 0 0 0-1zm2 3a.5.5 0 0 0 0 1h2a.5.5 0 0 0 0-1zm-2 3a.5.5 0 0 0 0 1h4a.5.5 0 0 0 0-1z"/>
+                            </svg>
+                            Buyer Contact
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-3">
+                            Contact information is provided for fulfilment purposes only.
+                        </p>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <h6 class="text-muted mb-2">Name</h6>
+                                <p class="mb-3 mb-md-0"><strong>@Model.SubOrder.BuyerName</strong></p>
+                            </div>
+                            <div class="col-md-4">
+                                <h6 class="text-muted mb-2">Email</h6>
+                                <p class="mb-3 mb-md-0">
+                                    @if (!string.IsNullOrEmpty(Model.SubOrder.BuyerEmail))
+                                    {
+                                        <a href="mailto:@Model.SubOrder.BuyerEmail">@Model.SubOrder.BuyerEmail</a>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Not provided</span>
+                                    }
+                                </p>
+                            </div>
+                            <div class="col-md-4">
+                                <h6 class="text-muted mb-2">Phone</h6>
+                                <p class="mb-0">
+                                    @if (!string.IsNullOrEmpty(Model.SubOrder.BuyerPhone))
+                                    {
+                                        <a href="tel:@Model.SubOrder.BuyerPhone">@Model.SubOrder.BuyerPhone</a>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Not provided</span>
+                                    }
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Log -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-journal-text me-2" viewBox="0 0 16 16">
+                                <path d="M5 10.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5m0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m0-2a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5"/>
+                                <path d="M3 0h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-1h1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v1H1V2a2 2 0 0 1 2-2"/>
+                                <path d="M1 5v-.5a.5.5 0 0 1 1 0V5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1zm0 3v-.5a.5.5 0 0 1 1 0V8h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1zm0 3v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1z"/>
+                            </svg>
+                            Activity Log
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled mb-0">
+                            <li class="d-flex align-items-start mb-3">
+                                <span class="badge bg-secondary me-3 mt-1">Created</span>
+                                <div>
+                                    <strong>Order placed</strong>
+                                    <br><small class="text-muted">@Model.SubOrder.CreatedAt.ToString("MMMM dd, yyyy 'at' h:mm tt")</small>
+                                </div>
+                            </li>
+                            @if (Model.SubOrder.PaidAt.HasValue)
+                            {
+                                <li class="d-flex align-items-start mb-3">
+                                    <span class="badge bg-success me-3 mt-1">Paid</span>
+                                    <div>
+                                        <strong>Payment confirmed</strong>
+                                        <br><small class="text-muted">@Model.SubOrder.PaidAt.Value.ToString("MMMM dd, yyyy 'at' h:mm tt")</small>
+                                    </div>
+                                </li>
+                            }
+                            @if (Model.SubOrder.ProcessingStartedAt.HasValue && (Model.SubOrder.Status == "Processing" || Model.SubOrder.Status == "Shipped" || Model.SubOrder.Status == "Delivered"))
+                            {
+                                <li class="d-flex align-items-start mb-3">
+                                    <span class="badge bg-info me-3 mt-1">Processing</span>
+                                    <div>
+                                        <strong>Started processing</strong>
+                                        <br><small class="text-muted">@Model.SubOrder.ProcessingStartedAt.Value.ToString("MMMM dd, yyyy 'at' h:mm tt")</small>
+                                    </div>
+                                </li>
+                            }
+                            @if (Model.SubOrder.ShippedAt.HasValue)
+                            {
+                                <li class="d-flex align-items-start mb-3">
+                                    <span class="badge bg-primary me-3 mt-1">Shipped</span>
+                                    <div>
+                                        <strong>Order shipped</strong>
+                                        @if (!string.IsNullOrEmpty(Model.SubOrder.CarrierName))
+                                        {
+                                            <span class="text-muted"> via @Model.SubOrder.CarrierName</span>
+                                        }
+                                        <br><small class="text-muted">@Model.SubOrder.ShippedAt.Value.ToString("MMMM dd, yyyy 'at' h:mm tt")</small>
+                                    </div>
+                                </li>
+                            }
+                            @if (Model.SubOrder.DeliveredAt.HasValue)
+                            {
+                                <li class="d-flex align-items-start mb-3">
+                                    <span class="badge bg-success me-3 mt-1">Delivered</span>
+                                    <div>
+                                        <strong>Order delivered</strong>
+                                        <br><small class="text-muted">@Model.SubOrder.DeliveredAt.Value.ToString("MMMM dd, yyyy 'at' h:mm tt")</small>
+                                    </div>
+                                </li>
+                            }
+                            @if (Model.SubOrder.CancelledAt.HasValue)
+                            {
+                                <li class="d-flex align-items-start mb-3">
+                                    <span class="badge bg-secondary me-3 mt-1">Cancelled</span>
+                                    <div>
+                                        <strong>Order cancelled</strong>
+                                        <br><small class="text-muted">@Model.SubOrder.CancelledAt.Value.ToString("MMMM dd, yyyy 'at' h:mm tt")</small>
+                                    </div>
+                                </li>
+                            }
+                            @if (Model.SubOrder.RefundedAt.HasValue)
+                            {
+                                <li class="d-flex align-items-start">
+                                    <span class="badge bg-warning me-3 mt-1">Refunded</span>
+                                    <div>
+                                        <strong>Order refunded</strong>
+                                        <br><small class="text-muted">@Model.SubOrder.RefundedAt.Value.ToString("MMMM dd, yyyy 'at' h:mm tt")</small>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+
                 <!-- Actions -->
                 <div class="d-flex justify-content-between">
                     <a asp-page="/Seller/Orders" class="btn btn-outline-secondary">
@@ -230,6 +386,14 @@
                     </div>
                     <div class="card-body">
                         <div class="mb-3">
+                            <small class="text-muted">Sub-Order ID</small>
+                            <p class="mb-0 fw-bold font-monospace" style="font-size: 0.75rem;">@Model.SubOrder.SubOrderId</p>
+                        </div>
+                        <div class="mb-3">
+                            <small class="text-muted">Parent Order ID</small>
+                            <p class="mb-0 fw-bold font-monospace" style="font-size: 0.75rem;">@Model.SubOrder.OrderId</p>
+                        </div>
+                        <div class="mb-3">
                             <small class="text-muted">Order Number</small>
                             <p class="mb-0 fw-bold">@Model.SubOrder.OrderNumber</p>
                         </div>
@@ -242,6 +406,10 @@
                             <p class="mb-0">
                                 <span class="badge @statusClass">@statusDisplay</span>
                             </p>
+                        </div>
+                        <div class="mb-3">
+                            <small class="text-muted">Payment Status</small>
+                            <p class="mb-0 @paymentStatusClass fw-bold">@Model.SubOrder.PaymentStatus</p>
                         </div>
                         <hr>
                         <div class="d-flex justify-content-between mb-2">

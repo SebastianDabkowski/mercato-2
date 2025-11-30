@@ -256,7 +256,27 @@ public sealed class OrderService
             ? $"{buyer.FirstName} {buyer.LastName}"
             : order.RecipientName;
 
-        var deliveryAddress = $"{order.DeliveryStreet}, {order.DeliveryCity}, {order.DeliveryPostalCode}, {order.DeliveryCountry}";
+        // Get buyer contact info - only expose minimal data per GDPR rules
+        var buyerEmail = buyer?.Email?.Value;
+        var buyerPhone = order.DeliveryPhoneNumber ?? buyer?.PhoneNumber;
+
+        // Build full delivery address
+        var addressParts = new List<string> { order.DeliveryStreet };
+        if (!string.IsNullOrWhiteSpace(order.DeliveryStreet2))
+        {
+            addressParts.Add(order.DeliveryStreet2);
+        }
+        addressParts.Add(order.DeliveryCity);
+        if (!string.IsNullOrWhiteSpace(order.DeliveryState))
+        {
+            addressParts.Add(order.DeliveryState);
+        }
+        addressParts.Add(order.DeliveryPostalCode);
+        addressParts.Add(order.DeliveryCountry);
+        var deliveryAddress = string.Join(", ", addressParts);
+
+        // Get primary shipping method name for this seller's items
+        var shippingMethodName = items.FirstOrDefault(i => !string.IsNullOrEmpty(i.ShippingMethodName))?.ShippingMethodName;
 
         var itemDtos = items.Select(i => new SellerSubOrderItemDto(
             i.Id,
@@ -267,21 +287,40 @@ public sealed class OrderService
             i.LineTotal,
             i.ShippingMethodName)).ToList();
 
+        // Determine abstract payment status (not exposing sensitive financial data)
+        var paymentStatus = order.Status switch
+        {
+            OrderStatus.Pending => "Pending",
+            OrderStatus.PaymentFailed => "Failed",
+            OrderStatus.Cancelled => "Cancelled",
+            OrderStatus.Refunded => "Refunded",
+            _ => "Paid"
+        };
+
         return new SellerSubOrderDto(
             shipment.Id,
             order.Id,
             order.OrderNumber,
             shipment.Status.ToString(),
+            paymentStatus,
             shipment.Subtotal,
             shipment.ShippingCost,
             shipment.Subtotal + shipment.ShippingCost,
             order.Currency,
             buyerName,
+            buyerEmail,
+            buyerPhone,
             deliveryAddress,
+            order.DeliveryInstructions,
+            shippingMethodName,
             itemDtos.AsReadOnly(),
             shipment.CreatedAt,
+            order.PaidAt,
+            shipment.Status >= ShipmentStatus.Processing ? shipment.UpdatedAt : null,
             shipment.ShippedAt,
             shipment.DeliveredAt,
+            shipment.CancelledAt,
+            shipment.RefundedAt,
             shipment.CarrierName,
             shipment.TrackingNumber,
             shipment.TrackingUrl);

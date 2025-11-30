@@ -68,22 +68,32 @@ public sealed record SellerSubOrderListViewModel(
 
 /// <summary>
 /// View model for seller's sub-order details.
+/// Includes buyer contact info and activity log timestamps.
 /// </summary>
 public sealed record SellerSubOrderDetailsViewModel(
     Guid SubOrderId,
     Guid OrderId,
     string OrderNumber,
     string Status,
+    string PaymentStatus,
     decimal Subtotal,
     decimal ShippingCost,
     decimal Total,
     string Currency,
     string BuyerName,
+    string? BuyerEmail,
+    string? BuyerPhone,
     string DeliveryAddress,
+    string? DeliveryInstructions,
+    string? ShippingMethodName,
     IReadOnlyList<SellerSubOrderItemViewModel> Items,
     DateTime CreatedAt,
+    DateTime? PaidAt,
+    DateTime? ProcessingStartedAt,
     DateTime? ShippedAt,
     DateTime? DeliveredAt,
+    DateTime? CancelledAt,
+    DateTime? RefundedAt,
     string? CarrierName,
     string? TrackingNumber,
     string? TrackingUrl);
