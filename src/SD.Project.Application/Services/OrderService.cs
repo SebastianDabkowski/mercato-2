@@ -18,19 +18,22 @@ public sealed class OrderService
     private readonly IUserRepository _userRepository;
     private readonly IShippingMethodRepository _shippingMethodRepository;
     private readonly INotificationService _notificationService;
+    private readonly EscrowService _escrowService;
 
     public OrderService(
         IOrderRepository orderRepository,
         IStoreRepository storeRepository,
         IUserRepository userRepository,
         IShippingMethodRepository shippingMethodRepository,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        EscrowService escrowService)
     {
         _orderRepository = orderRepository;
         _storeRepository = storeRepository;
         _userRepository = userRepository;
         _shippingMethodRepository = shippingMethodRepository;
         _notificationService = notificationService;
+        _escrowService = escrowService;
     }
 
     /// <summary>
@@ -503,9 +506,17 @@ public sealed class OrderService
                     break;
                 case ShipmentStatus.Delivered:
                     shipment.MarkDelivered();
+                    // Mark escrow allocation as eligible for payout when delivered
+                    await _escrowService.HandleAsync(
+                        new MarkEscrowEligibleCommand(shipment.Id),
+                        cancellationToken);
                     break;
                 case ShipmentStatus.Cancelled:
                     shipment.Cancel();
+                    // Refund escrow allocation when shipment is cancelled
+                    await _escrowService.HandleAsync(
+                        new RefundShipmentEscrowCommand(shipment.Id),
+                        cancellationToken);
                     break;
                 case ShipmentStatus.Refunded:
                     shipment.Refund();
@@ -628,6 +639,11 @@ public sealed class OrderService
         {
             return new UpdateShipmentStatusResultDto(false, ex.Message);
         }
+
+        // Refund escrow allocation when shipment is cancelled
+        await _escrowService.HandleAsync(
+            new RefundShipmentEscrowCommand(command.ShipmentId),
+            cancellationToken);
 
         // Save changes
         await _orderRepository.SaveChangesAsync(cancellationToken);
