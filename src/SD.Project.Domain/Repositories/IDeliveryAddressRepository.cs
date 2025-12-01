@@ -38,6 +38,11 @@ public interface IDeliveryAddressRepository
     Task UpdateAsync(DeliveryAddress address, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Removes a delivery address.
+    /// </summary>
+    void Remove(DeliveryAddress address);
+
+    /// <summary>
     /// Saves all pending changes.
     /// </summary>
     Task SaveChangesAsync(CancellationToken cancellationToken = default);

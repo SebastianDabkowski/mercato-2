@@ -325,4 +325,17 @@ public class Review
         RejectionReason = null;
         UpdatedAt = DateTime.UtcNow;
     }
+
+    /// <summary>
+    /// Anonymizes the author of the review for GDPR compliance.
+    /// The review content and rating are preserved, but the BuyerId is not changed
+    /// to maintain data integrity. The UI should display "Deleted User" for anonymized users.
+    /// </summary>
+    public void AnonymizeAuthor()
+    {
+        // The BuyerId reference is kept for data integrity.
+        // The anonymized user entity will have FirstName="Deleted" and LastName="User"
+        // which the UI will use to display the author name.
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

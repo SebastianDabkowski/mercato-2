@@ -146,6 +146,15 @@ public class UserSession
     }
 
     /// <summary>
+    /// Invalidates this session immediately.
+    /// Alias for Revoke() used in account deletion context.
+    /// </summary>
+    public void Invalidate()
+    {
+        Revoke();
+    }
+
+    /// <summary>
     /// Extends the session expiration time.
     /// Used for sliding expiration.
     /// </summary>

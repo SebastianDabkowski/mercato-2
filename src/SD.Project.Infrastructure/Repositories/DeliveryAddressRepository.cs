@@ -57,6 +57,11 @@ public sealed class DeliveryAddressRepository : IDeliveryAddressRepository
         return Task.CompletedTask;
     }
 
+    public void Remove(DeliveryAddress address)
+    {
+        _context.DeliveryAddresses.Remove(address);
+    }
+
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         return _context.SaveChangesAsync(cancellationToken);

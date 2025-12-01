@@ -23,5 +23,15 @@ public enum StoreStatus
     /// <summary>
     /// Store is suspended and not publicly visible.
     /// </summary>
-    Suspended = 3
+    Suspended = 3,
+
+    /// <summary>
+    /// Store has been approved but not yet activated.
+    /// </summary>
+    Approved = 4,
+
+    /// <summary>
+    /// Store is permanently deactivated due to seller account deletion.
+    /// </summary>
+    Deactivated = 5
 }

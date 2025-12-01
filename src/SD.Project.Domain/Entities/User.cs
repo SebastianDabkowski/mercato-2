@@ -373,4 +373,62 @@ public class User
     /// Indicates whether two-factor authentication is enabled and configured.
     /// </summary>
     public bool IsTwoFactorConfigured => TwoFactorEnabled && !string.IsNullOrEmpty(TwoFactorSecretKey);
+
+    /// <summary>
+    /// Indicates whether the user account has been deleted and anonymized.
+    /// </summary>
+    public bool IsDeleted => Status == UserStatus.Deleted;
+
+    /// <summary>
+    /// Anonymizes the user's personal data for GDPR compliance.
+    /// Removes or pseudonymizes personal identifiers while preserving the user record
+    /// for transactional history and audit purposes.
+    /// </summary>
+    /// <param name="anonymizedSuffix">A unique suffix to use for anonymized values (e.g., first 8 chars of user ID).</param>
+    public void Anonymize(string anonymizedSuffix)
+    {
+        if (string.IsNullOrWhiteSpace(anonymizedSuffix))
+        {
+            throw new ArgumentException("Anonymized suffix is required.", nameof(anonymizedSuffix));
+        }
+
+        if (Status == UserStatus.Deleted)
+        {
+            throw new InvalidOperationException("User account has already been deleted and anonymized.");
+        }
+
+        // Anonymize email with a unique but non-personal identifier
+        Email = ValueObjects.Email.Create($"deleted-{anonymizedSuffix}@anonymized.local");
+
+        // Remove password hash
+        PasswordHash = null;
+
+        // Clear external login credentials
+        ExternalId = null;
+
+        // Anonymize personal data
+        FirstName = "Deleted";
+        LastName = "User";
+        CompanyName = null;
+        TaxId = null;
+        PhoneNumber = null;
+
+        // Clear 2FA credentials
+        TwoFactorEnabled = false;
+        TwoFactorSecretKey = null;
+        TwoFactorRecoveryCodes = null;
+        TwoFactorEnabledAt = null;
+
+        // Set status to deleted
+        Status = UserStatus.Deleted;
+    }
+
+    /// <summary>
+    /// Checks if the user can request account deletion.
+    /// Users cannot delete their accounts if they are already deleted or suspended.
+    /// </summary>
+    public bool CanRequestDeletion()
+    {
+        return Status != UserStatus.Deleted && Status != UserStatus.Suspended;
+    }
 }
