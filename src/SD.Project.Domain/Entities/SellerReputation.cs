@@ -31,7 +31,8 @@ public class SellerReputation
     public int TotalRatings { get; private set; }
 
     /// <summary>
-    /// Total number of completed orders.
+    /// Total number of completed orders (delivered shipments).
+    /// A completed order is one where the shipment was successfully delivered to the buyer.
     /// </summary>
     public int TotalCompletedOrders { get; private set; }
 

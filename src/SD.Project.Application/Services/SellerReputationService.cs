@@ -140,6 +140,8 @@ public sealed class SellerReputationService
             command.StoreId, cancellationToken);
 
         // Update metrics
+        // Note: For reputation purposes, "completed orders" = delivered shipments
+        // (successfully fulfilled orders that reached the customer)
         reputation.UpdateMetrics(
             averageRating: (decimal)averageRating,
             totalRatings: ratingCount,
