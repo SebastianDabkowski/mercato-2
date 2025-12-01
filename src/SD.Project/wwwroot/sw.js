@@ -88,6 +88,9 @@ self.addEventListener('notificationclick', function (event) {
         url = event.notification.data.url;
     }
 
+    // Build full URL for navigation
+    var fullUrl = new URL(url, self.location.origin).href;
+
     // Focus or open the appropriate window
     event.waitUntil(
         self.clients.matchAll({ type: 'window', includeUncontrolled: true })
@@ -96,17 +99,15 @@ self.addEventListener('notificationclick', function (event) {
                 for (var i = 0; i < clientList.length; i++) {
                     var client = clientList[i];
                     if (client.url.includes(self.location.origin) && 'focus' in client) {
-                        client.focus();
-                        if (url !== '/') {
-                            client.navigate(url);
-                        }
-                        return;
+                        // Use postMessage to navigate the client
+                        client.postMessage({ type: 'NAVIGATE', url: fullUrl });
+                        return client.focus();
                     }
                 }
                 
                 // No window open, open a new one
                 if (self.clients.openWindow) {
-                    return self.clients.openWindow(url);
+                    return self.clients.openWindow(fullUrl);
                 }
             })
     );
@@ -124,6 +125,16 @@ self.addEventListener('pushsubscriptionchange', function (event) {
     event.waitUntil(
         self.registration.pushManager.subscribe(event.oldSubscription.options)
             .then(function (subscription) {
+                // Convert ArrayBuffer to base64 safely (avoids stack overflow with large arrays)
+                function arrayBufferToBase64(buffer) {
+                    var bytes = new Uint8Array(buffer);
+                    var binary = '';
+                    for (var i = 0; i < bytes.byteLength; i++) {
+                        binary += String.fromCharCode(bytes[i]);
+                    }
+                    return btoa(binary);
+                }
+
                 // Re-subscribe and update the server
                 return fetch('/Api/PushSubscription?handler=Subscribe', {
                     method: 'POST',
@@ -132,10 +143,8 @@ self.addEventListener('pushsubscriptionchange', function (event) {
                     },
                     body: JSON.stringify({
                         endpoint: subscription.endpoint,
-                        p256dh: btoa(String.fromCharCode.apply(null, 
-                            new Uint8Array(subscription.getKey('p256dh')))),
-                        auth: btoa(String.fromCharCode.apply(null, 
-                            new Uint8Array(subscription.getKey('auth'))))
+                        p256dh: arrayBufferToBase64(subscription.getKey('p256dh')),
+                        auth: arrayBufferToBase64(subscription.getKey('auth'))
                     })
                 });
             })

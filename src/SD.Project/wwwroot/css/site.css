@@ -93,3 +93,9 @@ a:hover .card {
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
   transform: translateY(-2px);
 }
+
+/* Form switch larger size variant */
+.form-switch-lg {
+  transform: scale(1.5);
+  transform-origin: right center;
+}

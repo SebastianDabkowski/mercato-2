@@ -34,6 +34,13 @@
             serviceWorkerRegistration = await navigator.serviceWorker.register('/sw.js');
             console.log('[Push] Service Worker registered');
 
+            // Listen for navigation messages from service worker
+            navigator.serviceWorker.addEventListener('message', function (event) {
+                if (event.data && event.data.type === 'NAVIGATE') {
+                    window.location.href = event.data.url;
+                }
+            });
+
             // Check current subscription status
             pushSubscription = await serviceWorkerRegistration.pushManager.getSubscription();
             if (pushSubscription) {
