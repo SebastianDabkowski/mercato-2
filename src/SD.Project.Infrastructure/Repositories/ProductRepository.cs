@@ -247,6 +247,57 @@ public sealed class ProductRepository : IProductRepository
         return _context.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<(IReadOnlyCollection<Product> Items, int TotalCount)> GetByModerationStatusPagedAsync(
+        ProductModerationStatus? moderationStatus = null,
+        string? category = null,
+        string? searchTerm = null,
+        int pageNumber = 1,
+        int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Products.AsNoTracking().AsQueryable();
+
+        // Filter by moderation status
+        if (moderationStatus.HasValue)
+        {
+            query = query.Where(p => p.ModerationStatus == moderationStatus.Value);
+        }
+
+        // Filter by category (case-insensitive)
+        if (!string.IsNullOrWhiteSpace(category))
+        {
+            var categoryLower = category.ToLowerInvariant();
+            query = query.Where(p => p.Category.ToLower() == categoryLower);
+        }
+
+        // Filter by search term
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var searchPattern = $"%{searchTerm.Trim()}%";
+            query = query.Where(p =>
+                EF.Functions.Like(p.Name, searchPattern) ||
+                EF.Functions.Like(p.Description ?? string.Empty, searchPattern));
+        }
+
+        // Exclude archived products from moderation queue
+        query = query.Where(p => p.Status != ProductStatus.Archived);
+
+        // Order by created date (newest first) for review queue
+        query = query.OrderByDescending(p => p.CreatedAt).ThenBy(p => p.Id);
+
+        // Get total count
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        // Apply pagination
+        var skip = (pageNumber - 1) * pageSize;
+        var results = await query
+            .Skip(skip)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (results.AsReadOnly(), totalCount);
+    }
+
     /// <summary>
     /// Escapes LIKE pattern special characters to prevent SQL injection via wildcards.
     /// </summary>

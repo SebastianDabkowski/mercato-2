@@ -75,6 +75,25 @@ public interface IProductRepository
         int pageNumber = 1,
         int pageSize = 12,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets products filtered by moderation status with pagination.
+    /// Used by admin moderation queue.
+    /// </summary>
+    /// <param name="moderationStatus">Optional moderation status filter.</param>
+    /// <param name="category">Optional category filter.</param>
+    /// <param name="searchTerm">Optional text to search in name and description.</param>
+    /// <param name="pageNumber">Page number (1-based).</param>
+    /// <param name="pageSize">Number of items per page.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tuple of (items on current page, total count of matching products).</returns>
+    Task<(IReadOnlyCollection<Product> Items, int TotalCount)> GetByModerationStatusPagedAsync(
+        ProductModerationStatus? moderationStatus = null,
+        string? category = null,
+        string? searchTerm = null,
+        int pageNumber = 1,
+        int pageSize = 20,
+        CancellationToken cancellationToken = default);
     
     Task AddAsync(Product product, CancellationToken cancellationToken = default);
     Task AddRangeAsync(IEnumerable<Product> products, CancellationToken cancellationToken = default);

@@ -626,4 +626,32 @@ public interface INotificationService
         string recipientEmail,
         string senderName,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a notification when a product is approved by a moderator.
+    /// </summary>
+    /// <param name="productId">The ID of the product.</param>
+    /// <param name="productName">The name of the product.</param>
+    /// <param name="sellerEmail">The seller's email address.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendProductApprovedAsync(
+        Guid productId,
+        string productName,
+        string sellerEmail,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a notification when a product is rejected by a moderator.
+    /// </summary>
+    /// <param name="productId">The ID of the product.</param>
+    /// <param name="productName">The name of the product.</param>
+    /// <param name="sellerEmail">The seller's email address.</param>
+    /// <param name="rejectionReason">The reason for rejection.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendProductRejectedAsync(
+        Guid productId,
+        string productName,
+        string sellerEmail,
+        string rejectionReason,
+        CancellationToken cancellationToken = default);
 }

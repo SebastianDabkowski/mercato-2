@@ -35,6 +35,27 @@ public class Product
     /// </summary>
     public bool HasVariants { get; private set; }
 
+    // Moderation properties
+    /// <summary>
+    /// The moderation status of the product for admin review.
+    /// </summary>
+    public ProductModerationStatus ModerationStatus { get; private set; }
+
+    /// <summary>
+    /// The reason for rejection if the product was rejected by a moderator.
+    /// </summary>
+    public string? ModerationRejectionReason { get; private set; }
+
+    /// <summary>
+    /// The ID of the moderator who last reviewed the product.
+    /// </summary>
+    public Guid? LastModeratorId { get; private set; }
+
+    /// <summary>
+    /// The timestamp of the last moderation action.
+    /// </summary>
+    public DateTime? LastModeratedAt { get; private set; }
+
     private Product()
     {
         // EF Core constructor
@@ -55,6 +76,7 @@ public class Product
         Category = string.Empty;
         Status = ProductStatus.Draft;
         IsActive = true;
+        ModerationStatus = ProductModerationStatus.PendingReview;
         CreatedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
     }
@@ -84,6 +106,7 @@ public class Product
         Category = category;
         Status = ProductStatus.Draft;
         IsActive = true;
+        ModerationStatus = ProductModerationStatus.PendingReview;
         CreatedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
     }
@@ -342,4 +365,111 @@ public class Product
         HasVariants = false;
         UpdatedAt = DateTime.UtcNow;
     }
+
+    /// <summary>
+    /// Approves the product for listing in the marketplace.
+    /// Sets ModerationStatus to Approved and transitions product to Active status.
+    /// </summary>
+    /// <param name="moderatorId">The ID of the moderator approving the product.</param>
+    /// <returns>A list of validation errors. Empty if approval succeeded.</returns>
+    public IReadOnlyList<string> ApproveModeration(Guid moderatorId)
+    {
+        if (moderatorId == Guid.Empty)
+        {
+            return new[] { "Moderator ID is required." };
+        }
+
+        if (ModerationStatus == ProductModerationStatus.Approved)
+        {
+            return new[] { "Product is already approved." };
+        }
+
+        // Transition to Active status
+        var transitionErrors = TransitionTo(ProductStatus.Active, isAdminOverride: true);
+        if (transitionErrors.Count > 0)
+        {
+            return transitionErrors;
+        }
+
+        ModerationStatus = ProductModerationStatus.Approved;
+        ModerationRejectionReason = null;
+        LastModeratorId = moderatorId;
+        LastModeratedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+
+        return Array.Empty<string>();
+    }
+
+    /// <summary>
+    /// Rejects the product with a reason.
+    /// Sets ModerationStatus to Rejected and suspends the product.
+    /// </summary>
+    /// <param name="moderatorId">The ID of the moderator rejecting the product.</param>
+    /// <param name="reason">The reason for rejection.</param>
+    /// <returns>A list of validation errors. Empty if rejection succeeded.</returns>
+    public IReadOnlyList<string> RejectModeration(Guid moderatorId, string reason)
+    {
+        if (moderatorId == Guid.Empty)
+        {
+            return new[] { "Moderator ID is required." };
+        }
+
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return new[] { "Rejection reason is required." };
+        }
+
+        if (ModerationStatus == ProductModerationStatus.Rejected)
+        {
+            return new[] { "Product is already rejected." };
+        }
+
+        // Transition to Suspended status (product should not be visible)
+        var transitionErrors = TransitionTo(ProductStatus.Suspended, isAdminOverride: true);
+        if (transitionErrors.Count > 0 && Status != ProductStatus.Draft)
+        {
+            // Only fail if we couldn't suspend and we're not in Draft
+            return transitionErrors;
+        }
+
+        // For draft products, just update the moderation status
+        if (Status == ProductStatus.Draft)
+        {
+            IsActive = false;
+        }
+
+        ModerationStatus = ProductModerationStatus.Rejected;
+        ModerationRejectionReason = reason.Trim();
+        LastModeratorId = moderatorId;
+        LastModeratedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+
+        return Array.Empty<string>();
+    }
+
+    /// <summary>
+    /// Submits the product for moderation review.
+    /// Resets moderation status to PendingReview.
+    /// </summary>
+    public void SubmitForModeration()
+    {
+        ModerationStatus = ProductModerationStatus.PendingReview;
+        ModerationRejectionReason = null;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Checks if the product is pending moderation review.
+    /// </summary>
+    public bool IsPendingModeration => ModerationStatus == ProductModerationStatus.PendingReview;
+
+    /// <summary>
+    /// Checks if the product has been rejected by moderation.
+    /// </summary>
+    public bool IsModerationRejected => ModerationStatus == ProductModerationStatus.Rejected;
+
+    /// <summary>
+    /// Checks if the product has been approved by moderation.
+    /// </summary>
+    public bool IsModerationApproved => ModerationStatus == ProductModerationStatus.Approved;
 }
