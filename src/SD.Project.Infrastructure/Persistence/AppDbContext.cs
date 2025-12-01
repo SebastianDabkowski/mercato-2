@@ -94,6 +94,7 @@ public class AppDbContext : DbContext
     public DbSet<SecurityIncidentStatusHistory> SecurityIncidentStatusHistories => Set<SecurityIncidentStatusHistory>();
     public DbSet<CategoryAttribute> CategoryAttributes => Set<CategoryAttribute>();
     public DbSet<SharedAttribute> SharedAttributes => Set<SharedAttribute>();
+    public DbSet<Integration> Integrations => Set<Integration>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

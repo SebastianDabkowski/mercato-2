@@ -80,6 +80,7 @@ public static class DependencyInjection
         services.AddScoped<UserDataExportService>();
         services.AddScoped<AccountDeletionService>();
         services.AddScoped<SecurityIncidentService>();
+        services.AddScoped<IntegrationService>();
 
         // Domain services for cart totals calculation
         services.AddSingleton<CartTotalsCalculator>();

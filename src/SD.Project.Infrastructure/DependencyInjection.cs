@@ -116,6 +116,9 @@ public static class DependencyInjection
             securityAlertSection.Bind(options);
         });
         services.AddScoped<ISecurityIncidentAlertOptions, SecurityIncidentAlertOptionsAdapter>();
+        services.AddScoped<IIntegrationRepository, IntegrationRepository>();
+        services.AddScoped<IIntegrationHealthChecker, IntegrationHealthChecker>();
+        services.AddHttpClient("IntegrationHealthCheck");
 
         // Analytics configuration and service
         services.Configure<AnalyticsOptions>(options =>
