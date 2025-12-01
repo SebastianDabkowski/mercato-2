@@ -41,7 +41,7 @@ public sealed class RequireResourceOwnerAttribute : Attribute, IAsyncPageFilter
     /// </summary>
     /// <param name="resourceType">The type of resource being accessed.</param>
     /// <param name="resourceIdParameterName">The name of the route/query parameter containing the resource ID. Defaults to "id".</param>
-    /// <param name="requireResourceId">If true, denies access when resource ID is missing. Defaults to false for backwards compatibility with list pages.</param>
+    /// <param name="requireResourceId">If true, denies access when resource ID is missing. Defaults to false to allow optional resource IDs for pages that may serve both detail and list views.</param>
     public RequireResourceOwnerAttribute(
         ResourceType resourceType,
         string resourceIdParameterName = "id",
@@ -198,6 +198,8 @@ public sealed class RequireResourceOwnerAttribute : Attribute, IAsyncPageFilter
 
     private static IActionResult CreateAccessDeniedResult(string message)
     {
-        return new RedirectToPageResult(ErrorPagePath, new { message });
+        // Use a generic message to avoid exposing sensitive authorization details in the URL
+        // The detailed error is already logged for administrators to investigate
+        return new RedirectToPageResult(ErrorPagePath, new { message = "Access denied. You do not have permission to access this resource." });
     }
 }

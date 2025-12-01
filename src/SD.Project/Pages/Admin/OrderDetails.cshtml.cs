@@ -147,6 +147,11 @@ public class OrderDetailsModel : PageModel
         return Guid.TryParse(userIdClaim, out var userId) ? userId : Guid.Empty;
     }
 
+    private string GetUserId()
+    {
+        return User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+    }
+
     private UserRole GetUserRole()
     {
         var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value;
@@ -154,7 +159,7 @@ public class OrderDetailsModel : PageModel
         // This ensures audit logging will still capture the access attempt correctly
         if (string.IsNullOrEmpty(roleClaim) || !Enum.TryParse<UserRole>(roleClaim, out var role))
         {
-            _logger.LogWarning("Invalid or missing role claim for user {UserId}", GetUserIdGuid());
+            _logger.LogWarning("Invalid or missing role claim for user {UserId}", GetUserId());
             return UserRole.Buyer; // Most restrictive - will still be logged but won't have elevated access
         }
         return role;
