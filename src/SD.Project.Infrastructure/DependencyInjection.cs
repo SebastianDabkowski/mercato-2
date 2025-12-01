@@ -62,6 +62,7 @@ public static class DependencyInjection
         services.AddScoped<IShipmentStatusHistoryRepository, ShipmentStatusHistoryRepository>();
         services.AddScoped<IShippingProviderRepository, ShippingProviderRepository>();
         services.AddScoped<IShippingLabelRepository, ShippingLabelRepository>();
+        services.AddScoped<ISlaConfigurationRepository, SlaConfigurationRepository>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IPaymentProviderService, PaymentProviderService>();
         services.AddScoped<IShippingProviderService, ShippingProviderService>();

@@ -80,6 +80,41 @@ public interface IReturnRequestRepository
     Task<ReturnRequest?> GetOpenRequestForOrderItemAsync(Guid orderItemId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets cases that are pending seller action and may have breached SLA.
+    /// Returns cases where SLA tracking is enabled but not yet marked as breached.
+    /// </summary>
+    Task<IReadOnlyList<ReturnRequest>> GetCasesPendingSlaBreachCheckAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets cases that have breached SLA with optional filters.
+    /// </summary>
+    Task<(IReadOnlyList<ReturnRequest> Requests, int TotalCount)> GetSlaBreachedCasesAsync(
+        Guid? storeId,
+        SlaBreachType? breachType,
+        DateTime? fromDate,
+        DateTime? toDate,
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets SLA statistics for a store over a specified period.
+    /// </summary>
+    Task<(int TotalCases, int CasesWithSla, int CasesResolvedWithinSla, int FirstResponseBreaches, int ResolutionBreaches, TimeSpan AvgFirstResponseTime, TimeSpan AvgResolutionTime)> GetStoreSlaStatisticsAsync(
+        Guid storeId,
+        DateTime fromDate,
+        DateTime toDate,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets aggregate SLA statistics across all stores for a specified period.
+    /// </summary>
+    Task<(int TotalCases, int CasesWithSla, int CasesResolvedWithinSla, int TotalBreaches, TimeSpan AvgFirstResponseTime, TimeSpan AvgResolutionTime)> GetAggregateSlaStatisticsAsync(
+        DateTime fromDate,
+        DateTime toDate,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Adds a new return request.
     /// </summary>
     Task AddAsync(ReturnRequest returnRequest, CancellationToken cancellationToken = default);

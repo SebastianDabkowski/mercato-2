@@ -201,7 +201,11 @@ public sealed record AdminReturnRequestSummaryDto(
     DateTime CreatedAt,
     int AgeInDays,
     bool IsEscalated,
-    DateTime? EscalatedAt);
+    DateTime? EscalatedAt,
+    // SLA info (Phase 2)
+    bool SlaBreached = false,
+    DateTime? SlaBreachedAt = null,
+    string? SlaBreachType = null);
 
 /// <summary>
 /// DTO for admin view of return request details including all case data.
@@ -251,7 +255,14 @@ public sealed record AdminReturnRequestDetailsDto(
     DateTime? AdminDecisionAt,
     // Permissions
     bool CanEscalate,
-    bool CanRecordDecision);
+    bool CanRecordDecision,
+    // SLA info (Phase 2)
+    DateTime? FirstResponseDeadline = null,
+    DateTime? ResolutionDeadline = null,
+    DateTime? FirstRespondedAt = null,
+    bool SlaBreached = false,
+    DateTime? SlaBreachedAt = null,
+    string? SlaBreachType = null);
 
 /// <summary>
 /// Result DTO for escalating a case.

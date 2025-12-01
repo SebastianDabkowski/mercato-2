@@ -624,4 +624,55 @@ public sealed class NotificationService : INotificationService
             returnRequestId);
         return Task.CompletedTask;
     }
+
+    public Task SendSlaBreachNotificationAsync(
+        Guid returnRequestId,
+        string caseNumber,
+        string orderNumber,
+        string sellerEmail,
+        string breachType,
+        DateTime deadline,
+        CancellationToken cancellationToken = default)
+    {
+        // TODO: Replace logging with real email/notification integration.
+        // Notify the seller that their case has breached SLA.
+        // This notification should be high priority and may trigger additional admin visibility.
+        _logger.LogWarning(
+            "SLA breach notification sent to seller {SellerEmail} for case {CaseNumber}. " +
+            "Order: {OrderNumber}. Breach type: {BreachType}. Deadline was: {Deadline:yyyy-MM-dd HH:mm:ss}. Case ID: {ReturnRequestId}",
+            sellerEmail,
+            caseNumber,
+            orderNumber,
+            breachType,
+            deadline,
+            returnRequestId);
+        return Task.CompletedTask;
+    }
+
+    public Task SendSlaWarningNotificationAsync(
+        Guid returnRequestId,
+        string caseNumber,
+        string orderNumber,
+        string sellerEmail,
+        string deadlineType,
+        DateTime deadline,
+        int hoursRemaining,
+        CancellationToken cancellationToken = default)
+    {
+        // TODO: Replace logging with real email/notification integration.
+        // Notify the seller that their case is approaching SLA breach.
+        // This is a soft escalation to encourage timely response.
+        _logger.LogInformation(
+            "SLA warning notification sent to seller {SellerEmail} for case {CaseNumber}. " +
+            "Order: {OrderNumber}. Deadline type: {DeadlineType}. Deadline: {Deadline:yyyy-MM-dd HH:mm:ss}. " +
+            "Hours remaining: {HoursRemaining}. Case ID: {ReturnRequestId}",
+            sellerEmail,
+            caseNumber,
+            orderNumber,
+            deadlineType,
+            deadline,
+            hoursRemaining,
+            returnRequestId);
+        return Task.CompletedTask;
+    }
 }

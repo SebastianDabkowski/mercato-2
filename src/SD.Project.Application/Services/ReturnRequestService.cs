@@ -20,6 +20,7 @@ public sealed class ReturnRequestService
     private readonly IRefundRepository _refundRepository;
     private readonly INotificationService _notificationService;
     private readonly RefundService _refundService;
+    private readonly SlaService? _slaService;
 
     /// <summary>
     /// Number of days after delivery that a return can be initiated.
@@ -33,7 +34,8 @@ public sealed class ReturnRequestService
         IUserRepository userRepository,
         IRefundRepository refundRepository,
         INotificationService notificationService,
-        RefundService refundService)
+        RefundService refundService,
+        SlaService? slaService = null)
     {
         _returnRequestRepository = returnRequestRepository;
         _orderRepository = orderRepository;
@@ -42,6 +44,7 @@ public sealed class ReturnRequestService
         _refundRepository = refundRepository;
         _notificationService = notificationService;
         _refundService = refundService;
+        _slaService = slaService;
     }
 
     /// <summary>
@@ -273,6 +276,12 @@ public sealed class ReturnRequestService
         foreach (var item in command.Items)
         {
             returnRequest.AddItem(item.OrderItemId, item.ProductName, item.Quantity);
+        }
+
+        // Apply SLA deadlines if SLA tracking is enabled
+        if (_slaService is not null)
+        {
+            await _slaService.ApplySlaDeadlinesAsync(returnRequest, cancellationToken);
         }
 
         await _returnRequestRepository.AddAsync(returnRequest, cancellationToken);
@@ -629,6 +638,8 @@ public sealed class ReturnRequestService
         try
         {
             returnRequest.Approve(command.SellerResponse);
+            // Record first response for SLA tracking
+            returnRequest.RecordFirstResponse();
         }
         catch (InvalidOperationException ex)
         {
@@ -673,6 +684,8 @@ public sealed class ReturnRequestService
         try
         {
             returnRequest.Reject(command.RejectionReason);
+            // Record first response for SLA tracking
+            returnRequest.RecordFirstResponse();
         }
         catch (InvalidOperationException ex)
         {
@@ -1067,7 +1080,11 @@ public sealed class ReturnRequestService
                 request.CreatedAt,
                 ageInDays,
                 request.IsEscalated,
-                request.EscalatedAt));
+                request.EscalatedAt,
+                // SLA info (Phase 2)
+                request.SlaBreached,
+                request.SlaBreachedAt,
+                request.SlaBreachType?.ToString()));
         }
 
         return PagedResultDto<AdminReturnRequestSummaryDto>.Create(
@@ -1201,7 +1218,14 @@ public sealed class ReturnRequestService
             returnRequest.AdminDecisionAt,
             // Permissions
             returnRequest.CanEscalate(),
-            returnRequest.Status == ReturnRequestStatus.UnderAdminReview);
+            returnRequest.Status == ReturnRequestStatus.UnderAdminReview,
+            // SLA info (Phase 2)
+            returnRequest.FirstResponseDeadline,
+            returnRequest.ResolutionDeadline,
+            returnRequest.FirstRespondedAt,
+            returnRequest.SlaBreached,
+            returnRequest.SlaBreachedAt,
+            returnRequest.SlaBreachType?.ToString());
     }
 
     /// <summary>
