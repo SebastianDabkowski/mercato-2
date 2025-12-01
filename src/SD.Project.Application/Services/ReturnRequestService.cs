@@ -179,6 +179,119 @@ public sealed class ReturnRequestService
     }
 
     /// <summary>
+    /// Submits a return or complaint request with item selection.
+    /// </summary>
+    public async Task<SubmitReturnOrComplaintResultDto> HandleAsync(
+        SubmitReturnOrComplaintCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+
+        // Validate request type
+        if (!Enum.TryParse<ReturnRequestType>(command.RequestType, ignoreCase: true, out var requestType))
+        {
+            return new SubmitReturnOrComplaintResultDto(false, "Invalid request type. Must be 'Return' or 'Complaint'.");
+        }
+
+        // Validate items
+        if (command.Items is null || command.Items.Count == 0)
+        {
+            return new SubmitReturnOrComplaintResultDto(false, "At least one item must be selected.");
+        }
+
+        // Validate reason
+        if (string.IsNullOrWhiteSpace(command.Reason))
+        {
+            return new SubmitReturnOrComplaintResultDto(false, "Reason is required.");
+        }
+
+        // Check eligibility
+        var eligibility = await HandleAsync(
+            new CheckReturnEligibilityQuery(command.BuyerId, command.OrderId, command.ShipmentId),
+            cancellationToken);
+
+        if (!eligibility.IsEligible)
+        {
+            return new SubmitReturnOrComplaintResultDto(false, eligibility.IneligibilityReason);
+        }
+
+        // Get order
+        var order = await _orderRepository.GetByIdAsync(command.OrderId, cancellationToken);
+        if (order is null)
+        {
+            return new SubmitReturnOrComplaintResultDto(false, "Order not found.");
+        }
+
+        var shipment = order.Shipments.FirstOrDefault(s => s.Id == command.ShipmentId);
+        if (shipment is null)
+        {
+            return new SubmitReturnOrComplaintResultDto(false, "Sub-order not found.");
+        }
+
+        // Validate each item and check for open cases
+        foreach (var item in command.Items)
+        {
+            var orderItem = order.Items.FirstOrDefault(i => i.Id == item.OrderItemId);
+            if (orderItem is null)
+            {
+                return new SubmitReturnOrComplaintResultDto(false, $"Order item not found: {item.OrderItemId}");
+            }
+
+            if (orderItem.StoreId != shipment.StoreId)
+            {
+                return new SubmitReturnOrComplaintResultDto(false, $"Item '{item.ProductName}' does not belong to this sub-order.");
+            }
+
+            // Check for open cases on this item
+            var hasOpenCase = await _returnRequestRepository.HasOpenRequestForOrderItemAsync(item.OrderItemId, cancellationToken);
+            if (hasOpenCase)
+            {
+                var openRequest = await _returnRequestRepository.GetOpenRequestForOrderItemAsync(item.OrderItemId, cancellationToken);
+                return new SubmitReturnOrComplaintResultDto(
+                    false,
+                    $"Item '{item.ProductName}' already has an open case ({openRequest?.CaseNumber ?? "unknown"}).");
+            }
+        }
+
+        // Create the return request
+        var returnRequest = new ReturnRequest(
+            command.OrderId,
+            command.ShipmentId,
+            command.BuyerId,
+            shipment.StoreId,
+            requestType,
+            command.Reason,
+            command.Description);
+
+        // Add items
+        foreach (var item in command.Items)
+        {
+            returnRequest.AddItem(item.OrderItemId, item.ProductName, item.Quantity);
+        }
+
+        await _returnRequestRepository.AddAsync(returnRequest, cancellationToken);
+        await _returnRequestRepository.SaveChangesAsync(cancellationToken);
+
+        // Send notification to seller
+        var store = await _storeRepository.GetByIdAsync(shipment.StoreId, cancellationToken);
+        if (store is not null)
+        {
+            var seller = await _userRepository.GetByIdAsync(store.SellerId, cancellationToken);
+            if (seller?.Email is not null)
+            {
+                await _notificationService.SendReturnRequestCreatedAsync(
+                    returnRequest.Id,
+                    order.OrderNumber,
+                    seller.Email.Value,
+                    command.Reason,
+                    cancellationToken);
+            }
+        }
+
+        return new SubmitReturnOrComplaintResultDto(true, null, returnRequest.Id, returnRequest.CaseNumber);
+    }
+
+    /// <summary>
     /// Gets return request by shipment ID for buyer display.
     /// </summary>
     public async Task<BuyerReturnRequestDto?> HandleAsync(
@@ -204,12 +317,22 @@ public sealed class ReturnRequestService
         var store = await _storeRepository.GetByIdAsync(returnRequest.StoreId, cancellationToken);
         var storeName = store?.Name ?? "Unknown Store";
 
+        // Load items if not already loaded
+        var requestWithItems = await _returnRequestRepository.GetByIdWithItemsAsync(returnRequest.Id, cancellationToken);
+        var items = requestWithItems?.Items.Select(i => new ReturnRequestItemDto(
+            i.Id,
+            i.OrderItemId,
+            i.ProductName,
+            i.Quantity)).ToList() ?? new List<ReturnRequestItemDto>();
+
         return new BuyerReturnRequestDto(
             returnRequest.Id,
             returnRequest.OrderId,
             returnRequest.ShipmentId,
+            returnRequest.CaseNumber,
             order.OrderNumber,
             storeName,
+            returnRequest.Type.ToString(),
             returnRequest.Status.ToString(),
             returnRequest.Reason,
             returnRequest.Comments,
@@ -217,7 +340,8 @@ public sealed class ReturnRequestService
             returnRequest.CreatedAt,
             returnRequest.ApprovedAt,
             returnRequest.RejectedAt,
-            returnRequest.CompletedAt);
+            returnRequest.CompletedAt,
+            items.AsReadOnly());
     }
 
     /// <summary>
@@ -241,12 +365,20 @@ public sealed class ReturnRequestService
             var order = await _orderRepository.GetByIdAsync(request.OrderId, cancellationToken);
             var store = await _storeRepository.GetByIdAsync(request.StoreId, cancellationToken);
 
+            var items = request.Items.Select(i => new ReturnRequestItemDto(
+                i.Id,
+                i.OrderItemId,
+                i.ProductName,
+                i.Quantity)).ToList();
+
             result.Add(new BuyerReturnRequestDto(
                 request.Id,
                 request.OrderId,
                 request.ShipmentId,
+                request.CaseNumber,
                 order?.OrderNumber ?? "Unknown",
                 store?.Name ?? "Unknown Store",
+                request.Type.ToString(),
                 request.Status.ToString(),
                 request.Reason,
                 request.Comments,
@@ -254,7 +386,8 @@ public sealed class ReturnRequestService
                 request.CreatedAt,
                 request.ApprovedAt,
                 request.RejectedAt,
-                request.CompletedAt));
+                request.CompletedAt,
+                items.AsReadOnly()));
         }
 
         return result.AsReadOnly();
@@ -315,7 +448,9 @@ public sealed class ReturnRequestService
             result.Add(new SellerReturnRequestSummaryDto(
                 request.Id,
                 request.OrderId,
+                request.CaseNumber,
                 order?.OrderNumber ?? "Unknown",
+                request.Type.ToString(),
                 request.Status.ToString(),
                 buyerName,
                 request.Reason,
@@ -340,7 +475,7 @@ public sealed class ReturnRequestService
     {
         ArgumentNullException.ThrowIfNull(query);
 
-        var returnRequest = await _returnRequestRepository.GetByIdAsync(query.ReturnRequestId, cancellationToken);
+        var returnRequest = await _returnRequestRepository.GetByIdWithItemsAsync(query.ReturnRequestId, cancellationToken);
         if (returnRequest is null || returnRequest.StoreId != query.StoreId)
         {
             return null;
@@ -383,11 +518,20 @@ public sealed class ReturnRequestService
                 i.RefundedAmount))
             .ToList();
 
+        // Map return request items
+        var requestItems = returnRequest.Items.Select(i => new ReturnRequestItemDto(
+            i.Id,
+            i.OrderItemId,
+            i.ProductName,
+            i.Quantity)).ToList();
+
         return new SellerReturnRequestDto(
             returnRequest.Id,
             returnRequest.OrderId,
             returnRequest.ShipmentId,
+            returnRequest.CaseNumber,
             order.OrderNumber,
+            returnRequest.Type.ToString(),
             returnRequest.Status.ToString(),
             buyerName,
             buyer?.Email?.Value,
@@ -400,7 +544,8 @@ public sealed class ReturnRequestService
             returnRequest.ApprovedAt,
             returnRequest.RejectedAt,
             returnRequest.CompletedAt,
-            items.AsReadOnly());
+            items.AsReadOnly(),
+            requestItems.AsReadOnly());
     }
 
     /// <summary>

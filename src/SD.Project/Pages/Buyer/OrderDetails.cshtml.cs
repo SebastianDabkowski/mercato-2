@@ -133,12 +133,20 @@ public class OrderDetailsModel : PageModel
 
             if (existingReturn is not null)
             {
+                var items = existingReturn.Items.Select(i => new ReturnRequestItemViewModel(
+                    i.ItemId,
+                    i.OrderItemId,
+                    i.ProductName,
+                    i.Quantity)).ToList();
+
                 ExistingReturnRequests[subOrder.SubOrderId] = new BuyerReturnRequestViewModel(
                     existingReturn.ReturnRequestId,
                     existingReturn.OrderId,
                     existingReturn.ShipmentId,
+                    existingReturn.CaseNumber,
                     existingReturn.OrderNumber,
                     existingReturn.StoreName,
+                    existingReturn.Type,
                     existingReturn.Status,
                     existingReturn.Reason,
                     existingReturn.Comments,
@@ -146,7 +154,8 @@ public class OrderDetailsModel : PageModel
                     existingReturn.CreatedAt,
                     existingReturn.ApprovedAt,
                     existingReturn.RejectedAt,
-                    existingReturn.CompletedAt);
+                    existingReturn.CompletedAt,
+                    items.AsReadOnly());
             }
         }
 

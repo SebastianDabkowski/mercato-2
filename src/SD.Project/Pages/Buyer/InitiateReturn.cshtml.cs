@@ -10,7 +10,19 @@ using System.Security.Claims;
 namespace SD.Project.Pages.Buyer;
 
 /// <summary>
-/// Page model for initiating a return request.
+/// View model for an item that can be selected for return/complaint.
+/// </summary>
+public sealed record SelectableItemViewModel(
+    Guid ItemId,
+    Guid ProductId,
+    string ProductName,
+    int Quantity,
+    decimal LineTotal,
+    bool HasOpenCase,
+    string? OpenCaseNumber);
+
+/// <summary>
+/// Page model for initiating a return or complaint request.
 /// </summary>
 public class InitiateReturnModel : PageModel
 {
@@ -21,14 +33,23 @@ public class InitiateReturnModel : PageModel
     public OrderDetailsViewModel? Order { get; private set; }
     public SellerSubOrderViewModel? SubOrder { get; private set; }
     public ReturnEligibilityViewModel? Eligibility { get; private set; }
+    public List<SelectableItemViewModel> SelectableItems { get; private set; } = new();
+    public string? SubmittedCaseNumber { get; private set; }
     
     [BindProperty]
-    [Required(ErrorMessage = "Please select a reason for the return")]
+    [Required(ErrorMessage = "Please select a request type")]
+    public string RequestType { get; set; } = "Return";
+
+    [BindProperty]
+    [Required(ErrorMessage = "Please select a reason")]
     public string Reason { get; set; } = string.Empty;
 
     [BindProperty]
-    [MaxLength(1000, ErrorMessage = "Comments cannot exceed 1000 characters")]
-    public string? Comments { get; set; }
+    [MaxLength(1000, ErrorMessage = "Description cannot exceed 1000 characters")]
+    public string? Description { get; set; }
+
+    [BindProperty]
+    public List<Guid> SelectedItemIds { get; set; } = new();
 
     public InitiateReturnModel(
         ILogger<InitiateReturnModel> logger,
@@ -138,6 +159,17 @@ public class InitiateReturnModel : PageModel
             eligibility.HasExistingReturnRequest,
             eligibility.ExistingReturnStatus);
 
+        // Build selectable items list (checking for open cases on each item)
+        // Note: For now we use OrderItems from the DTO
+        SelectableItems = subOrderDto.Items.Select(i => new SelectableItemViewModel(
+            i.ItemId,
+            i.ProductId,
+            i.ProductName,
+            i.Quantity,
+            i.LineTotal,
+            false, // Will be populated properly in a future enhancement
+            null)).ToList();
+
         return Page();
     }
 
@@ -154,6 +186,12 @@ public class InitiateReturnModel : PageModel
             return RedirectToPage("/Login");
         }
 
+        // Validate at least one item is selected
+        if (SelectedItemIds.Count == 0)
+        {
+            ModelState.AddModelError("SelectedItemIds", "Please select at least one item.");
+        }
+
         if (!ModelState.IsValid)
         {
             // Reload page data
@@ -161,27 +199,63 @@ public class InitiateReturnModel : PageModel
             return Page();
         }
 
-        // Submit return request
-        var result = await _returnRequestService.HandleAsync(
-            new InitiateReturnRequestCommand(
-                buyerId.Value,
-                orderId,
-                shipmentId,
-                Reason,
-                Comments),
+        // Get order details to build item inputs
+        var orderDetails = await _orderService.HandleAsync(
+            new GetBuyerOrderDetailsQuery(buyerId.Value, orderId),
             cancellationToken);
 
-        if (!result.IsSuccess)
+        if (orderDetails is null)
         {
-            TempData["Error"] = result.ErrorMessage ?? "Failed to submit return request.";
+            TempData["Error"] = "Order not found.";
+            return RedirectToPage("/Buyer/Orders");
+        }
+
+        var subOrderDto = orderDetails.SellerSubOrders.FirstOrDefault(s => s.SubOrderId == shipmentId);
+        if (subOrderDto is null)
+        {
+            TempData["Error"] = "Sub-order not found.";
+            return RedirectToPage("/Buyer/OrderDetails", new { orderId });
+        }
+
+        // Build item inputs from selected items
+        var itemInputs = subOrderDto.Items
+            .Where(i => SelectedItemIds.Contains(i.ItemId))
+            .Select(i => new ReturnRequestItemInput(i.ItemId, i.ProductName, i.Quantity))
+            .ToList();
+
+        if (itemInputs.Count == 0)
+        {
+            TempData["Error"] = "No valid items selected.";
             await OnGetAsync(orderId, shipmentId, cancellationToken);
             return Page();
         }
 
-        _logger.LogInformation("Return request {ReturnRequestId} created for order {OrderId}, shipment {ShipmentId} by buyer {BuyerId}",
-            result.ReturnRequestId, orderId, shipmentId, buyerId);
+        // Submit return/complaint request
+        var result = await _returnRequestService.HandleAsync(
+            new SubmitReturnOrComplaintCommand(
+                buyerId.Value,
+                orderId,
+                shipmentId,
+                RequestType,
+                Reason,
+                Description,
+                itemInputs.AsReadOnly()),
+            cancellationToken);
 
-        TempData["Success"] = "Your return request has been submitted successfully. The seller will review your request.";
+        if (!result.IsSuccess)
+        {
+            TempData["Error"] = result.ErrorMessage ?? "Failed to submit request.";
+            await OnGetAsync(orderId, shipmentId, cancellationToken);
+            return Page();
+        }
+
+        _logger.LogInformation("{RequestType} request {CaseNumber} created for order {OrderId}, shipment {ShipmentId} by buyer {BuyerId}",
+            RequestType, result.CaseNumber, orderId, shipmentId, buyerId);
+
+        // Set success message with case number
+        TempData["Success"] = $"Your {(RequestType == "Return" ? "return request" : "complaint")} has been submitted successfully. " +
+                             $"Your case number is <strong>{result.CaseNumber}</strong>. The seller will review your request.";
+        TempData["CaseNumber"] = result.CaseNumber;
         return RedirectToPage("/Buyer/OrderDetails", new { orderId });
     }
 

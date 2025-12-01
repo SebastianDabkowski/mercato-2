@@ -1,14 +1,25 @@
 namespace SD.Project.ViewModels;
 
 /// <summary>
+/// View model for an item in a return/complaint request.
+/// </summary>
+public sealed record ReturnRequestItemViewModel(
+    Guid ItemId,
+    Guid OrderItemId,
+    string ProductName,
+    int Quantity);
+
+/// <summary>
 /// View model for buyer's return request display.
 /// </summary>
 public sealed record BuyerReturnRequestViewModel(
     Guid ReturnRequestId,
     Guid OrderId,
     Guid ShipmentId,
+    string CaseNumber,
     string OrderNumber,
     string StoreName,
+    string Type,
     string Status,
     string Reason,
     string? Comments,
@@ -16,7 +27,8 @@ public sealed record BuyerReturnRequestViewModel(
     DateTime CreatedAt,
     DateTime? ApprovedAt,
     DateTime? RejectedAt,
-    DateTime? CompletedAt);
+    DateTime? CompletedAt,
+    IReadOnlyList<ReturnRequestItemViewModel> Items);
 
 /// <summary>
 /// View model for return eligibility check.
@@ -29,12 +41,26 @@ public sealed record ReturnEligibilityViewModel(
     string? ExistingReturnStatus);
 
 /// <summary>
+/// View model for item eligibility in return/complaint requests.
+/// </summary>
+public sealed record ItemEligibilityViewModel(
+    Guid OrderItemId,
+    string ProductName,
+    int Quantity,
+    bool IsEligible,
+    string? IneligibilityReason,
+    bool HasOpenCase,
+    string? OpenCaseNumber);
+
+/// <summary>
 /// View model for seller's return request summary in list.
 /// </summary>
 public sealed record SellerReturnRequestSummaryViewModel(
     Guid ReturnRequestId,
     Guid OrderId,
+    string CaseNumber,
     string OrderNumber,
+    string Type,
     string Status,
     string BuyerName,
     string Reason,
@@ -49,7 +75,9 @@ public sealed record SellerReturnRequestDetailsViewModel(
     Guid ReturnRequestId,
     Guid OrderId,
     Guid ShipmentId,
+    string CaseNumber,
     string OrderNumber,
+    string Type,
     string Status,
     string BuyerName,
     string? BuyerEmail,
@@ -62,7 +90,8 @@ public sealed record SellerReturnRequestDetailsViewModel(
     DateTime? ApprovedAt,
     DateTime? RejectedAt,
     DateTime? CompletedAt,
-    IReadOnlyList<SellerSubOrderItemViewModel> Items);
+    IReadOnlyList<SellerSubOrderItemViewModel> Items,
+    IReadOnlyList<ReturnRequestItemViewModel> RequestItems);
 
 /// <summary>
 /// Helper class for return request status display.
@@ -98,7 +127,17 @@ public static class ReturnRequestStatusHelper
     /// </summary>
     public static string GetStatusDisplayName(string status) => status switch
     {
-        "Requested" => "Pending Review",
+        "Requested" => "Pending seller review",
         _ => status
+    };
+
+    /// <summary>
+    /// Gets a user-friendly display name for a return request type.
+    /// </summary>
+    public static string GetTypeDisplayName(string type) => type switch
+    {
+        "Return" => "Return Request",
+        "Complaint" => "Product Issue",
+        _ => type
     };
 }
