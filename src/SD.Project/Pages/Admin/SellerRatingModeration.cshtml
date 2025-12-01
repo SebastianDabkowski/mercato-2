@@ -171,7 +171,11 @@
                                     </td>
                                     <td>
                                         <div class="fw-semibold">@(rating.StoreName ?? "Unknown Store")</div>
-                                        <small class="text-muted">Order: @rating.OrderId.ToString()[..8]...</small>
+                                        @{
+                                            var orderIdStr = rating.OrderId.ToString();
+                                            var truncatedOrderId = orderIdStr.Length >= 8 ? orderIdStr[..8] + "..." : orderIdStr;
+                                        }
+                                        <small class="text-muted">Order: @truncatedOrderId</small>
                                     </td>
                                     <td>@(rating.BuyerName ?? "Anonymous")</td>
                                     <td>
