@@ -43,7 +43,7 @@ public static class PermissionHelper
     {
         return Enum.GetValues<Permission>()
             .Where(p => GetModule(p) == module)
-            .ToList();
+            .ToArray();
     }
 
     /// <summary>
@@ -56,6 +56,6 @@ public static class PermissionHelper
             .GroupBy(GetModule)
             .ToDictionary(
                 g => g.Key,
-                g => (IReadOnlyCollection<Permission>)g.ToList());
+                g => (IReadOnlyCollection<Permission>)g.ToArray());
     }
 }

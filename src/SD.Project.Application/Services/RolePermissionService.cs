@@ -47,11 +47,11 @@ public sealed class RolePermissionService
 
         return new RolePermissionConfigurationDto
         {
-            AllPermissions = allPermissions.ToList(),
-            AllModules = Enum.GetValues<PermissionModule>().ToList(),
+            AllPermissions = allPermissions.ToArray(),
+            AllModules = Enum.GetValues<PermissionModule>().ToArray(),
             RolePermissions = rolePermissions.ToDictionary(
                 kvp => kvp.Key,
-                kvp => (IReadOnlyCollection<Permission>)kvp.Value.ToList())
+                kvp => kvp.Value)
         };
     }
 
@@ -73,7 +73,7 @@ public sealed class RolePermissionService
         return new RolePermissionsDto
         {
             Role = query.Role,
-            Permissions = permissions.ToList(),
+            Permissions = permissions,
             IsCustomized = dbMappings.Count > 0
         };
     }

@@ -212,7 +212,7 @@ public sealed class AuthorizationService : IAuthorizationService
         // Otherwise, return default permissions
         if (DefaultPermissions.TryGetValue(userRole, out var defaults))
         {
-            return defaults.ToList();
+            return defaults;
         }
 
         return Array.Empty<Permission>();
