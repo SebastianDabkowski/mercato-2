@@ -17,6 +17,7 @@ public sealed class PaymentWebhookService
 {
     private readonly IOrderRepository _orderRepository;
     private readonly IUserRepository _userRepository;
+    private readonly IStoreRepository _storeRepository;
     private readonly INotificationService _notificationService;
     private readonly EscrowService _escrowService;
     private readonly ILogger<PaymentWebhookService> _logger;
@@ -24,12 +25,14 @@ public sealed class PaymentWebhookService
     public PaymentWebhookService(
         IOrderRepository orderRepository,
         IUserRepository userRepository,
+        IStoreRepository storeRepository,
         INotificationService notificationService,
         EscrowService escrowService,
         ILogger<PaymentWebhookService> logger)
     {
         _orderRepository = orderRepository;
         _userRepository = userRepository;
+        _storeRepository = storeRepository;
         _notificationService = notificationService;
         _escrowService = escrowService;
         _logger = logger;
@@ -88,8 +91,11 @@ public sealed class PaymentWebhookService
                         // Create escrow payment to hold funds
                         await _escrowService.CreateEscrowForOrderAsync(order, cancellationToken);
 
-                        // Send order confirmation notification
+                        // Send order confirmation notification to buyer
                         await SendPaymentConfirmationAsync(order, cancellationToken);
+
+                        // Send notifications to sellers for their sub-orders
+                        await SendNewOrderNotificationsToSellersAsync(order, cancellationToken);
                     }
                     break;
 
@@ -229,6 +235,49 @@ public sealed class PaymentWebhookService
                 buyer.Email.Value,
                 order.OrderNumber,
                 order.RefundedAmount ?? order.TotalAmount,
+                order.Currency,
+                cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// Sends new order notifications to all sellers who have items in the order.
+    /// </summary>
+    private async Task SendNewOrderNotificationsToSellersAsync(Order order, CancellationToken cancellationToken)
+    {
+        // Get all store IDs from the order shipments
+        var storeIds = order.Shipments.Select(s => s.StoreId).Distinct().ToList();
+        var stores = await _storeRepository.GetByIdsAsync(storeIds, cancellationToken);
+
+        // Batch fetch all sellers for the stores
+        var sellerIds = stores.Select(s => s.SellerId).Distinct().ToList();
+        var sellers = await _userRepository.GetByIdsAsync(sellerIds, cancellationToken);
+        var sellerLookup = sellers.ToDictionary(s => s.Id);
+
+        foreach (var shipment in order.Shipments)
+        {
+            var store = stores.FirstOrDefault(s => s.Id == shipment.StoreId);
+            if (store is null)
+            {
+                continue;
+            }
+
+            // Get the seller for this store from cached lookup
+            if (!sellerLookup.TryGetValue(store.SellerId, out var seller) || seller.Email is null)
+            {
+                continue;
+            }
+
+            // Count items for this seller
+            var itemCount = order.Items.Where(i => i.StoreId == shipment.StoreId).Sum(i => i.Quantity);
+
+            await _notificationService.SendNewOrderNotificationToSellerAsync(
+                order.Id,
+                shipment.Id,
+                seller.Email.Value,
+                order.OrderNumber,
+                itemCount,
+                shipment.Subtotal,
                 order.Currency,
                 cancellationToken);
         }

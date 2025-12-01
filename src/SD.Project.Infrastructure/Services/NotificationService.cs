@@ -215,6 +215,45 @@ public sealed class NotificationService : INotificationService
         await _emailSender.SendAsync(message, cancellationToken);
     }
 
+    public async Task SendNewOrderNotificationToSellerAsync(
+        Guid orderId,
+        Guid shipmentId,
+        string sellerEmail,
+        string orderNumber,
+        int itemCount,
+        decimal subtotal,
+        string currency,
+        CancellationToken cancellationToken = default)
+    {
+        var orderLink = $"/Seller/Orders/{shipmentId}";
+        _logger.LogInformation(
+            "Sending new order notification to seller {SellerEmail} for order {OrderNumber}",
+            sellerEmail, orderNumber);
+
+        var encodedLink = HtmlEncodeUrl(orderLink);
+        var itemText = itemCount == 1 ? "1 item" : $"{itemCount} items";
+        var message = new EmailMessage(
+            To: sellerEmail,
+            Subject: $"New Order Received - {orderNumber}",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1>You Have a New Order!</h1>
+                    <p>Great news! You've received a new order <strong>{orderNumber}</strong>.</p>
+                    <p>Items: <strong>{itemText}</strong></p>
+                    <p>Subtotal: <strong>{currency} {subtotal:N2}</strong></p>
+                    <p><a href='{encodedLink}'>View Order Details</a></p>
+                    <p>Please process this order promptly to ensure timely delivery.</p>
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"New order {orderNumber} received. {itemText}, Subtotal: {currency} {subtotal:N2}. View at: {orderLink}",
+            TemplateName: "NewOrderToSeller",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(message, cancellationToken);
+    }
+
     public async Task SendShipmentStatusChangedAsync(
         Guid shipmentId,
         Guid orderId,
@@ -566,50 +605,87 @@ public sealed class NotificationService : INotificationService
         await _emailSender.SendAsync(message, cancellationToken);
     }
 
-    public Task SendPayoutScheduledNotificationAsync(
+    public async Task SendPayoutScheduledNotificationAsync(
         Guid sellerId,
+        string sellerEmail,
         Guid payoutId,
         decimal amount,
         string currency,
         DateTime scheduledDate,
         CancellationToken cancellationToken = default)
     {
-        // TODO: Replace logging with real email/notification integration.
-        // Notify seller when a payout has been scheduled.
+        var payoutLink = $"/Seller/Payouts/{payoutId}";
         _logger.LogInformation(
-            "Payout scheduled notification sent to seller {SellerId}. " +
-            "Payout ID: {PayoutId}. Amount: {Currency} {Amount:N2}. Scheduled date: {ScheduledDate:yyyy-MM-dd}",
-            sellerId,
-            payoutId,
-            currency,
-            amount,
-            scheduledDate);
-        return Task.CompletedTask;
+            "Sending payout scheduled notification to seller {SellerEmail} for payout {PayoutId}",
+            sellerEmail, payoutId);
+
+        var encodedLink = HtmlEncodeUrl(payoutLink);
+        var message = new EmailMessage(
+            To: sellerEmail,
+            Subject: $"Payout Scheduled - {currency} {amount:N2}",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1>Payout Scheduled</h1>
+                    <p>Your payout has been scheduled for processing.</p>
+                    <p>Amount: <strong>{currency} {amount:N2}</strong></p>
+                    <p>Scheduled Date: <strong>{scheduledDate:MMMM dd, yyyy}</strong></p>
+                    <p><a href='{encodedLink}'>View Payout Details</a></p>
+                    <p>You will receive another email once the payout has been processed.</p>
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"Payout of {currency} {amount:N2} scheduled for {scheduledDate:yyyy-MM-dd}. View at: {payoutLink}",
+            TemplateName: "PayoutScheduled",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(message, cancellationToken);
     }
 
-    public Task SendPayoutCompletedNotificationAsync(
+    public async Task SendPayoutCompletedNotificationAsync(
         Guid sellerId,
+        string sellerEmail,
         Guid payoutId,
         decimal amount,
         string currency,
         string? payoutReference,
         CancellationToken cancellationToken = default)
     {
-        // TODO: Replace logging with real email/notification integration.
-        // Notify seller when a payout has been successfully completed.
+        var payoutLink = $"/Seller/Payouts/{payoutId}";
         _logger.LogInformation(
-            "Payout completed notification sent to seller {SellerId}. " +
-            "Payout ID: {PayoutId}. Amount: {Currency} {Amount:N2}. Reference: {PayoutReference}",
-            sellerId,
-            payoutId,
-            currency,
-            amount,
-            payoutReference ?? "N/A");
-        return Task.CompletedTask;
+            "Sending payout completed notification to seller {SellerEmail} for payout {PayoutId}",
+            sellerEmail, payoutId);
+
+        var referenceHtml = !string.IsNullOrEmpty(payoutReference)
+            ? $"<p>Reference: <strong>{HtmlEncode(payoutReference)}</strong></p>"
+            : "";
+
+        var encodedLink = HtmlEncodeUrl(payoutLink);
+        var message = new EmailMessage(
+            To: sellerEmail,
+            Subject: $"Payout Completed - {currency} {amount:N2}",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1>Payout Completed</h1>
+                    <p>Great news! Your payout has been successfully processed.</p>
+                    <p>Amount: <strong>{currency} {amount:N2}</strong></p>
+                    {referenceHtml}
+                    <p><a href='{encodedLink}'>View Payout Details</a></p>
+                    <p>The funds should appear in your account within 1-3 business days.</p>
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"Payout of {currency} {amount:N2} completed. Reference: {payoutReference ?? "N/A"}. View at: {payoutLink}",
+            TemplateName: "PayoutCompleted",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(message, cancellationToken);
     }
 
-    public Task SendPayoutFailedNotificationAsync(
+    public async Task SendPayoutFailedNotificationAsync(
         Guid sellerId,
+        string sellerEmail,
         Guid payoutId,
         decimal amount,
         string currency,
@@ -617,19 +693,40 @@ public sealed class NotificationService : INotificationService
         bool canRetry,
         CancellationToken cancellationToken = default)
     {
-        // TODO: Replace logging with real email/notification integration.
-        // Notify seller when a payout has failed and whether retry is possible.
-        var retryInfo = canRetry ? "Retry will be attempted automatically." : "Maximum retries exceeded.";
-        _logger.LogInformation(
-            "Payout failed notification sent to seller {SellerId}. " +
-            "Payout ID: {PayoutId}. Amount: {Currency} {Amount:N2}. Error: {ErrorMessage}. {RetryInfo}",
-            sellerId,
-            payoutId,
-            currency,
-            amount,
-            errorMessage ?? "Unknown error",
-            retryInfo);
-        return Task.CompletedTask;
+        var payoutLink = $"/Seller/Payouts/{payoutId}";
+        var retryInfo = canRetry
+            ? "We will automatically retry the payout. No action is required from you."
+            : "Please check your payout settings and contact support if the issue persists.";
+
+        _logger.LogWarning(
+            "Sending payout failed notification to seller {SellerEmail} for payout {PayoutId}. CanRetry: {CanRetry}",
+            sellerEmail, payoutId, canRetry);
+
+        var encodedLink = HtmlEncodeUrl(payoutLink);
+        var errorHtml = !string.IsNullOrEmpty(errorMessage)
+            ? $"<p>Error: {HtmlEncode(errorMessage)}</p>"
+            : "";
+
+        var message = new EmailMessage(
+            To: sellerEmail,
+            Subject: $"Payout Failed - {currency} {amount:N2}",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1 style='color: #d9534f;'>Payout Failed</h1>
+                    <p>We were unable to process your payout.</p>
+                    <p>Amount: <strong>{currency} {amount:N2}</strong></p>
+                    {errorHtml}
+                    <p>{retryInfo}</p>
+                    <p><a href='{encodedLink}'>View Payout Details</a></p>
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"Payout of {currency} {amount:N2} failed. {retryInfo} View at: {payoutLink}",
+            TemplateName: "PayoutFailed",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(message, cancellationToken);
     }
 
     public Task SendSettlementGeneratedNotificationAsync(

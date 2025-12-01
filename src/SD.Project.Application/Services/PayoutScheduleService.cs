@@ -17,6 +17,7 @@ public sealed class PayoutScheduleService
     private readonly IEscrowRepository _escrowRepository;
     private readonly IPayoutSettingsRepository _payoutSettingsRepository;
     private readonly IStoreRepository _storeRepository;
+    private readonly IUserRepository _userRepository;
     private readonly INotificationService _notificationService;
     private readonly IOrderRepository _orderRepository;
 
@@ -46,6 +47,7 @@ public sealed class PayoutScheduleService
         IEscrowRepository escrowRepository,
         IPayoutSettingsRepository payoutSettingsRepository,
         IStoreRepository storeRepository,
+        IUserRepository userRepository,
         INotificationService notificationService,
         IOrderRepository orderRepository)
     {
@@ -53,6 +55,7 @@ public sealed class PayoutScheduleService
         _escrowRepository = escrowRepository;
         _payoutSettingsRepository = payoutSettingsRepository;
         _storeRepository = storeRepository;
+        _userRepository = userRepository;
         _notificationService = notificationService;
         _orderRepository = orderRepository;
     }
@@ -160,13 +163,18 @@ public sealed class PayoutScheduleService
         await _payoutRepository.SaveChangesAsync(cancellationToken);
 
         // Notify seller about scheduled payout
-        await _notificationService.SendPayoutScheduledNotificationAsync(
-            command.SellerId,
-            payout.Id,
-            payout.TotalAmount,
-            currency,
-            scheduledDate,
-            cancellationToken);
+        var seller = await _userRepository.GetByIdAsync(command.SellerId, cancellationToken);
+        if (seller?.Email is not null)
+        {
+            await _notificationService.SendPayoutScheduledNotificationAsync(
+                command.SellerId,
+                seller.Email.Value,
+                payout.Id,
+                payout.TotalAmount,
+                currency,
+                scheduledDate,
+                cancellationToken);
+        }
 
         return SchedulePayoutResultDto.Succeeded(
             payout.Id,
@@ -233,13 +241,18 @@ public sealed class PayoutScheduleService
             await _payoutRepository.SaveChangesAsync(cancellationToken);
 
             // Notify seller about successful payout
-            await _notificationService.SendPayoutCompletedNotificationAsync(
-                payout.SellerId,
-                payout.Id,
-                payout.TotalAmount,
-                payout.Currency,
-                payoutReference,
-                cancellationToken);
+            var seller = await _userRepository.GetByIdAsync(payout.SellerId, cancellationToken);
+            if (seller?.Email is not null)
+            {
+                await _notificationService.SendPayoutCompletedNotificationAsync(
+                    payout.SellerId,
+                    seller.Email.Value,
+                    payout.Id,
+                    payout.TotalAmount,
+                    payout.Currency,
+                    payoutReference,
+                    cancellationToken);
+            }
 
             return ProcessPayoutResultDto.Succeeded(payout.Id, payout.TotalAmount, payoutReference);
         }
@@ -250,14 +263,19 @@ public sealed class PayoutScheduleService
             await _payoutRepository.SaveChangesAsync(cancellationToken);
 
             // Notify seller about failed payout
-            await _notificationService.SendPayoutFailedNotificationAsync(
-                payout.SellerId,
-                payout.Id,
-                payout.TotalAmount,
-                payout.Currency,
-                ex.Message,
-                payout.CanRetry(),
-                cancellationToken);
+            var sellerForError = await _userRepository.GetByIdAsync(payout.SellerId, cancellationToken);
+            if (sellerForError?.Email is not null)
+            {
+                await _notificationService.SendPayoutFailedNotificationAsync(
+                    payout.SellerId,
+                    sellerForError.Email.Value,
+                    payout.Id,
+                    payout.TotalAmount,
+                    payout.Currency,
+                    ex.Message,
+                    payout.CanRetry(),
+                    cancellationToken);
+            }
 
             return ProcessPayoutResultDto.Failed(payout.Id, ex.Message);
         }
