@@ -56,7 +56,17 @@
                                     <p class="text-muted mb-0">
                                         <small>
                                             Order @Model.Order.OrderNumber
-                                            &middot; Delivered on @Model.Order.CreatedAt.ToString("MMMM dd, yyyy")
+                                            @{
+                                                var deliveredAt = Model.Order.SellerSubOrders.FirstOrDefault()?.DeliveredAt;
+                                            }
+                                            @if (deliveredAt.HasValue)
+                                            {
+                                                <span>&middot; Delivered on @deliveredAt.Value.ToString("MMMM dd, yyyy")</span>
+                                            }
+                                            else
+                                            {
+                                                <span>&middot; Order date: @Model.Order.CreatedAt.ToString("MMMM dd, yyyy")</span>
+                                            }
                                         </small>
                                     </p>
                                 </div>
