@@ -4,6 +4,7 @@ using SD.Project.Application.Queries;
 using SD.Project.Application.Services;
 using SD.Project.Domain.Entities;
 using SD.Project.Domain.Repositories;
+using SD.Project.Domain.ValueObjects;
 using SD.Project.Filters;
 using SD.Project.ViewModels;
 
@@ -69,7 +70,7 @@ namespace SD.Project.Pages.Admin
             };
 
             OrderStatusOptions = Enum.GetNames<OrderStatus>().ToList();
-            PaymentStatusOptions = new List<string> { "Pending", "Paid", "Failed", "Refunded" };
+            PaymentStatusOptions = Enum.GetNames<PaymentStatus>().ToList();
 
             // Load seller options
             var stores = await _storeRepository.GetPubliclyVisibleAsync();
