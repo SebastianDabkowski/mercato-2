@@ -66,33 +66,20 @@ public class SubmitReviewModel : PageModel
         _reviewService = reviewService;
     }
 
-    public async Task<IActionResult> OnGetAsync(
+    /// <summary>
+    /// Loads page data without modifying bound properties.
+    /// </summary>
+    private async Task<bool> LoadPageDataAsync(
+        Guid buyerId,
         Guid orderId, 
         Guid shipmentId, 
         Guid productId, 
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
-        if (User.Identity?.IsAuthenticated != true)
-        {
-            return RedirectToPage("/Login", new { returnUrl = $"/Buyer/SubmitReview?orderId={orderId}&shipmentId={shipmentId}&productId={productId}" });
-        }
-
-        var buyerId = GetBuyerId();
-        if (!buyerId.HasValue)
-        {
-            return RedirectToPage("/Login");
-        }
-
         // Check eligibility
         var eligibility = await _reviewService.HandleAsync(
-            new CheckReviewEligibilityQuery(buyerId.Value, orderId, shipmentId, productId),
+            new CheckReviewEligibilityQuery(buyerId, orderId, shipmentId, productId),
             cancellationToken);
-
-        if (!eligibility.IsEligible)
-        {
-            TempData["Error"] = eligibility.IneligibilityReason ?? "You cannot submit a review for this item.";
-            return RedirectToPage("/Buyer/OrderDetails", new { orderId });
-        }
 
         Eligibility = new ReviewEligibilityViewModel(
             eligibility.IsEligible,
@@ -101,27 +88,26 @@ public class SubmitReviewModel : PageModel
 
         // Get order details
         var orderDetails = await _orderService.HandleAsync(
-            new GetBuyerOrderDetailsQuery(buyerId.Value, orderId),
+            new GetBuyerOrderDetailsQuery(buyerId, orderId),
             cancellationToken);
 
         if (orderDetails is null)
         {
-            return RedirectToPage("/Buyer/Orders");
+            return false;
         }
 
         // Find the specific sub-order
         var subOrderDto = orderDetails.SellerSubOrders.FirstOrDefault(s => s.SubOrderId == shipmentId);
         if (subOrderDto is null)
         {
-            return RedirectToPage("/Buyer/OrderDetails", new { orderId });
+            return false;
         }
 
         // Find the product being reviewed
         var productDto = subOrderDto.Items.FirstOrDefault(i => i.ProductId == productId);
         if (productDto is null)
         {
-            TempData["Error"] = "Product not found in this order.";
-            return RedirectToPage("/Buyer/OrderDetails", new { orderId });
+            return false;
         }
 
         // Map to ViewModels
@@ -186,6 +172,43 @@ public class SubmitReviewModel : PageModel
 
         StoreName = subOrderDto.StoreName;
 
+        return true;
+    }
+
+    public async Task<IActionResult> OnGetAsync(
+        Guid orderId, 
+        Guid shipmentId, 
+        Guid productId, 
+        CancellationToken cancellationToken = default)
+    {
+        if (User.Identity?.IsAuthenticated != true)
+        {
+            return RedirectToPage("/Login", new { returnUrl = $"/Buyer/SubmitReview?orderId={orderId}&shipmentId={shipmentId}&productId={productId}" });
+        }
+
+        var buyerId = GetBuyerId();
+        if (!buyerId.HasValue)
+        {
+            return RedirectToPage("/Login");
+        }
+
+        // Check eligibility first
+        var eligibility = await _reviewService.HandleAsync(
+            new CheckReviewEligibilityQuery(buyerId.Value, orderId, shipmentId, productId),
+            cancellationToken);
+
+        if (!eligibility.IsEligible)
+        {
+            TempData["Error"] = eligibility.IneligibilityReason ?? "You cannot submit a review for this item.";
+            return RedirectToPage("/Buyer/OrderDetails", new { orderId });
+        }
+
+        // Load page data
+        if (!await LoadPageDataAsync(buyerId.Value, orderId, shipmentId, productId, cancellationToken))
+        {
+            return RedirectToPage("/Buyer/Orders");
+        }
+
         // Set hidden form fields
         OrderId = orderId;
         ShipmentId = shipmentId;
@@ -209,8 +232,8 @@ public class SubmitReviewModel : PageModel
 
         if (!ModelState.IsValid)
         {
-            // Reload page data
-            await OnGetAsync(OrderId, ShipmentId, ProductId, cancellationToken);
+            // Reload page data while preserving bound property values (Rating, Comment)
+            await LoadPageDataAsync(buyerId.Value, OrderId, ShipmentId, ProductId, cancellationToken);
             return Page();
         }
 
@@ -228,7 +251,8 @@ public class SubmitReviewModel : PageModel
         if (!result.Success)
         {
             TempData["Error"] = result.ErrorMessage ?? "Failed to submit review.";
-            await OnGetAsync(OrderId, ShipmentId, ProductId, cancellationToken);
+            // Reload page data while preserving bound property values
+            await LoadPageDataAsync(buyerId.Value, OrderId, ShipmentId, ProductId, cancellationToken);
             return Page();
         }
 

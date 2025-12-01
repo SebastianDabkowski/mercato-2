@@ -243,7 +243,7 @@ public sealed class ReviewService
             string? buyerName = null;
             if (buyerLookup.TryGetValue(r.BuyerId, out var buyer))
             {
-                buyerName = buyer.FirstName is not null && buyer.LastName is not null
+                buyerName = !string.IsNullOrEmpty(buyer.FirstName) && !string.IsNullOrEmpty(buyer.LastName)
                     ? $"{buyer.FirstName} {buyer.LastName[0]}."
                     : null;
             }
