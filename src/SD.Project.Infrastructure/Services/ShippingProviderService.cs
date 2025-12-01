@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SD.Project.Application.Interfaces;
 using SD.Project.Domain.Entities;
@@ -25,6 +26,9 @@ public sealed class ShippingProviderSettings
 /// Implementation of shipping provider service.
 /// Integrates with external shipping providers for creating shipments and tracking.
 /// In development mode, simulates provider responses.
+/// 
+/// Note: Real provider API integrations (DHL, UPS, FedEx, InPost) are not yet implemented.
+/// The service falls back to simulation mode for all providers until real implementations are added.
 /// </summary>
 public sealed class ShippingProviderService : IShippingProviderService
 {
@@ -37,11 +41,13 @@ public sealed class ShippingProviderService : IShippingProviderService
 
     public ShippingProviderService(
         IShippingProviderRepository providerRepository,
-        ILogger<ShippingProviderService> logger)
+        ILogger<ShippingProviderService> logger,
+        IConfiguration configuration)
     {
         _providerRepository = providerRepository;
         _logger = logger;
         _settings = new ShippingProviderSettings();
+        configuration.GetSection("ShippingProvider").Bind(_settings);
     }
 
     /// <inheritdoc />
