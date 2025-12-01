@@ -1,5 +1,4 @@
 using SD.Project.Application.DTOs;
-using SD.Project.Application.Interfaces;
 using SD.Project.Domain.Entities;
 using SD.Project.Domain.Repositories;
 
@@ -12,7 +11,6 @@ namespace SD.Project.Application.Services;
 public sealed class CriticalActionAuditQueryService
 {
     private readonly ICriticalActionAuditLogRepository _auditLogRepository;
-    private readonly IAuthorizationService _authorizationService;
 
     /// <summary>
     /// Roles that are authorized to view audit logs.
@@ -25,11 +23,9 @@ public sealed class CriticalActionAuditQueryService
     };
 
     public CriticalActionAuditQueryService(
-        ICriticalActionAuditLogRepository auditLogRepository,
-        IAuthorizationService authorizationService)
+        ICriticalActionAuditLogRepository auditLogRepository)
     {
         _auditLogRepository = auditLogRepository;
-        _authorizationService = authorizationService;
     }
 
     /// <summary>

@@ -143,19 +143,12 @@ public sealed class CriticalActionAuditLogRepository : ICriticalActionAuditLogRe
     public async Task<int> CleanupExpiredRecordsAsync(CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;
-        var expiredRecords = await _context.CriticalActionAuditLogs
+        // Use ExecuteDeleteAsync for better performance - avoids loading records into memory
+        var deletedCount = await _context.CriticalActionAuditLogs
             .Where(a => a.RetentionExpiresAt <= now)
-            .ToListAsync(cancellationToken);
+            .ExecuteDeleteAsync(cancellationToken);
 
-        if (expiredRecords.Count == 0)
-        {
-            return 0;
-        }
-
-        _context.CriticalActionAuditLogs.RemoveRange(expiredRecords);
-        await _context.SaveChangesAsync(cancellationToken);
-
-        return expiredRecords.Count;
+        return deletedCount;
     }
 
     /// <inheritdoc />
