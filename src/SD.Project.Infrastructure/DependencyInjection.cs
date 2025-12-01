@@ -68,6 +68,7 @@ public static class DependencyInjection
         services.AddScoped<IReviewModerationAuditLogRepository, ReviewModerationAuditLogRepository>();
         services.AddScoped<ISellerRatingRepository, SellerRatingRepository>();
         services.AddScoped<ISellerReputationRepository, SellerReputationRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
         services.AddScoped<IPaymentProviderService, PaymentProviderService>();

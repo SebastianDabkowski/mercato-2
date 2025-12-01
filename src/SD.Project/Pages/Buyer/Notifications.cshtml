@@ -1,0 +1,173 @@
+@page
+@model SD.Project.Pages.Buyer.NotificationsModel
+@{
+    ViewData["Title"] = "Notifications";
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-bell me-2" viewBox="0 0 16 16">
+                    <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2M8 1.918l-.797.161A4 4 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4 4 0 0 0-3.203-3.92zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5 5 0 0 1 13 6c0 .88.32 4.2 1.22 6"/>
+                </svg>
+                Notifications
+            </h1>
+            @if (Model.Notifications.UnreadCount > 0)
+            {
+                <p class="text-muted mb-0">You have <strong>@Model.Notifications.UnreadCount</strong> unread notification@(Model.Notifications.UnreadCount == 1 ? "" : "s").</p>
+            }
+            else
+            {
+                <p class="text-muted mb-0">You're all caught up!</p>
+            }
+        </div>
+        @if (Model.Notifications.UnreadCount > 0)
+        {
+            <form method="post" asp-page-handler="MarkAllAsRead">
+                <button type="submit" class="btn btn-outline-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-all me-1" viewBox="0 0 16 16">
+                        <path d="M8.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L2.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093L8.95 4.992zm-.92 5.14.92.92a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 1 0-1.091-1.028L9.477 9.417l-.485-.486z"/>
+                    </svg>
+                    Mark All as Read
+                </button>
+            </form>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Filter Tabs -->
+    <ul class="nav nav-tabs mb-4">
+        <li class="nav-item">
+            <a class="nav-link @(string.IsNullOrEmpty(Model.Notifications.FilterType) ? "active" : "")" 
+               asp-page="/Buyer/Notifications">
+                All
+                <span class="badge bg-secondary ms-1">@Model.Notifications.TotalCount</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(Model.Notifications.FilterType == "unread" ? "active" : "")" 
+               asp-page="/Buyer/Notifications" asp-route-filter="unread">
+                Unread
+                @if (Model.Notifications.UnreadCount > 0)
+                {
+                    <span class="badge bg-primary ms-1">@Model.Notifications.UnreadCount</span>
+                }
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(Model.Notifications.FilterType == "read" ? "active" : "")" 
+               asp-page="/Buyer/Notifications" asp-route-filter="read">
+                Read
+            </a>
+        </li>
+    </ul>
+
+    <!-- Notifications List -->
+    @if (Model.Notifications.Notifications.Count == 0)
+    {
+        <div class="text-center py-5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-bell-slash text-muted mb-3" viewBox="0 0 16 16">
+                <path d="M5.164 14H15c-.299-.199-.557-.553-.78-1-.9-1.8-1.22-5.12-1.22-6q0-.396-.06-.776l-.938.938c.02.708.157 2.154.457 3.58.161.767.377 1.566.663 2.258H6.164zm5.581-9.91a4 4 0 0 0-1.948-1.01L8 2.917l-.797.161A4 4 0 0 0 4 7c0 .628-.134 2.197-.459 3.742q-.075.358-.166.718l-1.653 1.653q.03-.055.059-.113C2.679 11.2 3 7.88 3 7c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0c.942.19 1.788.645 2.457 1.284zM10 15a2 2 0 1 1-4 0zm-9.375.625a.53.53 0 0 0 .75.75l14.75-14.75a.53.53 0 0 0-.75-.75z"/>
+            </svg>
+            @if (Model.Notifications.FilterType == "unread")
+            {
+                <h5 class="text-muted">No unread notifications</h5>
+                <p class="text-muted">You've read all your notifications.</p>
+            }
+            else if (Model.Notifications.FilterType == "read")
+            {
+                <h5 class="text-muted">No read notifications</h5>
+                <p class="text-muted">Notifications you've read will appear here.</p>
+            }
+            else
+            {
+                <h5 class="text-muted">No notifications yet</h5>
+                <p class="text-muted">When you receive notifications, they'll show up here.</p>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="list-group">
+            @foreach (var notification in Model.Notifications.Notifications)
+            {
+                <div class="list-group-item list-group-item-action @(!notification.IsRead ? "bg-light border-primary border-start border-3" : "")">
+                    <div class="d-flex align-items-start">
+                        <div class="me-3 mt-1">
+                            <span class="@notification.ColorClass">
+                                <i class="bi @notification.IconClass fs-4"></i>
+                            </span>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <h6 class="mb-0 @(!notification.IsRead ? "fw-bold" : "")">
+                                    @notification.Title
+                                </h6>
+                                <small class="text-muted ms-2 text-nowrap">@notification.TimeAgo</small>
+                            </div>
+                            <p class="mb-2 text-muted">@notification.Message</p>
+                            <div class="d-flex gap-2">
+                                @if (!string.IsNullOrEmpty(notification.RelatedUrl))
+                                {
+                                    <a href="@notification.RelatedUrl" class="btn btn-sm btn-outline-primary">
+                                        View Details
+                                    </a>
+                                }
+                                @if (!notification.IsRead)
+                                {
+                                    <form method="post" asp-page-handler="MarkAsRead" class="d-inline">
+                                        <input type="hidden" name="notificationId" value="@notification.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                            Mark as Read
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Pagination -->
+        @if (Model.Notifications.TotalPages > 1)
+        {
+            <nav aria-label="Notification pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item @(!Model.Notifications.HasPreviousPage ? "disabled" : "")">
+                        <a class="page-link" asp-page="/Buyer/Notifications" 
+                           asp-route-filter="@Model.Notifications.FilterType"
+                           asp-route-page="@(Model.Notifications.PageNumber - 1)">
+                            Previous
+                        </a>
+                    </li>
+                    @for (var i = 1; i <= Model.Notifications.TotalPages; i++)
+                    {
+                        <li class="page-item @(i == Model.Notifications.PageNumber ? "active" : "")">
+                            <a class="page-link" asp-page="/Buyer/Notifications" 
+                               asp-route-filter="@Model.Notifications.FilterType"
+                               asp-route-page="@i">
+                                @i
+                            </a>
+                        </li>
+                    }
+                    <li class="page-item @(!Model.Notifications.HasNextPage ? "disabled" : "")">
+                        <a class="page-link" asp-page="/Buyer/Notifications" 
+                           asp-route-filter="@Model.Notifications.FilterType"
+                           asp-route-page="@(Model.Notifications.PageNumber + 1)">
+                            Next
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        }
+    }
+</div>

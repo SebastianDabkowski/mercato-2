@@ -639,5 +639,100 @@ public static class SeedDataExtensions
                 await sellerRatingRepo.SaveChangesAsync();
             }
         }
+
+        // Seed sample notifications for testing the notification center
+        var notificationRepo = scope.ServiceProvider.GetRequiredService<INotificationRepository>();
+        
+        // Add notifications for the demo buyer
+        var demoBuyerId = Guid.Parse("33333333-3333-3333-3333-333333333333");
+        var existingNotifications = await notificationRepo.GetByUserIdAsync(demoBuyerId);
+        
+        if (existingNotifications.TotalCount == 0)
+        {
+            var notificationData = new[]
+            {
+                (Type: NotificationType.OrderEvent, Title: "Order Shipped!", Message: "Your order ORD-2024-0005 has been shipped and is on its way.", 
+                    RelatedUrl: "/Buyer/OrderDetails?orderId=55555555-5555-5555-5555-555555555555", DaysAgo: 1, IsRead: false),
+                (Type: NotificationType.OrderEvent, Title: "Order Confirmed", Message: "Your order ORD-2024-0004 has been confirmed and is being processed.", 
+                    RelatedUrl: "/Buyer/OrderDetails", DaysAgo: 2, IsRead: false),
+                (Type: NotificationType.Return, Title: "Return Request Updated", Message: "Your return request for order ORD-2024-0003 has been approved.", 
+                    RelatedUrl: "/Buyer/Cases", DaysAgo: 5, IsRead: true),
+                (Type: NotificationType.Payout, Title: "Refund Processed", Message: "Your refund of $54.98 has been processed and will appear in your account within 5-10 business days.", 
+                    RelatedUrl: (string?)null, DaysAgo: 5, IsRead: true),
+                (Type: NotificationType.Message, Title: "New Message from Demo Store", Message: "The seller has responded to your inquiry about Sample Product 1.", 
+                    RelatedUrl: "/Buyer/CaseDetails", DaysAgo: 7, IsRead: false),
+                (Type: NotificationType.SystemUpdate, Title: "Welcome to Mercato!", Message: "Thank you for joining Mercato Marketplace. Start exploring our wide range of products.", 
+                    RelatedUrl: "/Buyer/Search", DaysAgo: 30, IsRead: true),
+                (Type: NotificationType.OrderEvent, Title: "Order Delivered", Message: "Your order ORD-2024-0001 has been delivered. We hope you enjoy your purchase!", 
+                    RelatedUrl: "/Buyer/OrderDetails", DaysAgo: 10, IsRead: true),
+                (Type: NotificationType.SystemUpdate, Title: "New Features Available", Message: "Check out our new search filters and improved product recommendations.", 
+                    RelatedUrl: "/Buyer/Search", DaysAgo: 15, IsRead: true)
+            };
+
+            foreach (var data in notificationData)
+            {
+                var notification = new Notification(
+                    Guid.NewGuid(),
+                    demoBuyerId,
+                    data.Type,
+                    data.Title,
+                    data.Message,
+                    relatedEntityId: null,
+                    relatedEntityType: null,
+                    relatedUrl: data.RelatedUrl);
+                
+                if (data.IsRead)
+                {
+                    notification.MarkAsRead();
+                }
+                
+                await notificationRepo.AddAsync(notification);
+            }
+            
+            await notificationRepo.SaveChangesAsync();
+        }
+
+        // Add notifications for the demo seller
+        var demoSellerId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        var existingSellerNotifications = await notificationRepo.GetByUserIdAsync(demoSellerId);
+        
+        if (existingSellerNotifications.TotalCount == 0)
+        {
+            var sellerNotificationData = new[]
+            {
+                (Type: NotificationType.OrderEvent, Title: "New Order Received!", Message: "You have received a new order ORD-2024-0004. Please process it promptly.", 
+                    RelatedUrl: "/Seller/Orders", DaysAgo: 2, IsRead: false),
+                (Type: NotificationType.Payout, Title: "Payout Scheduled", Message: "Your payout of $150.00 has been scheduled for processing.", 
+                    RelatedUrl: "/Seller/Payouts", DaysAgo: 3, IsRead: false),
+                (Type: NotificationType.Return, Title: "Return Request Received", Message: "A buyer has requested a return for order ORD-2024-0003.", 
+                    RelatedUrl: "/Seller/Returns", DaysAgo: 6, IsRead: true),
+                (Type: NotificationType.Message, Title: "Customer Inquiry", Message: "You have a new message from a buyer about Sample Product 1.", 
+                    RelatedUrl: "/Seller/Messages", DaysAgo: 7, IsRead: true),
+                (Type: NotificationType.SystemUpdate, Title: "Store Verification Complete", Message: "Congratulations! Your store Demo Store has been verified and is now live.", 
+                    RelatedUrl: "/Seller/Dashboard", DaysAgo: 60, IsRead: true)
+            };
+
+            foreach (var data in sellerNotificationData)
+            {
+                var notification = new Notification(
+                    Guid.NewGuid(),
+                    demoSellerId,
+                    data.Type,
+                    data.Title,
+                    data.Message,
+                    relatedEntityId: null,
+                    relatedEntityType: null,
+                    relatedUrl: data.RelatedUrl);
+                
+                if (data.IsRead)
+                {
+                    notification.MarkAsRead();
+                }
+                
+                await notificationRepo.AddAsync(notification);
+            }
+            
+            await notificationRepo.SaveChangesAsync();
+        }
     }
 }
