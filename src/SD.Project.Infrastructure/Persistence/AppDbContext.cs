@@ -90,6 +90,8 @@ public class AppDbContext : DbContext
     public DbSet<AccountDeletionRequest> AccountDeletionRequests => Set<AccountDeletionRequest>();
     public DbSet<AccountDeletionAuditLog> AccountDeletionAuditLogs => Set<AccountDeletionAuditLog>();
     public DbSet<CriticalActionAuditLog> CriticalActionAuditLogs => Set<CriticalActionAuditLog>();
+    public DbSet<SecurityIncident> SecurityIncidents => Set<SecurityIncident>();
+    public DbSet<SecurityIncidentStatusHistory> SecurityIncidentStatusHistories => Set<SecurityIncidentStatusHistory>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -78,6 +78,7 @@ public static class DependencyInjection
         services.AddScoped<UserConsentService>();
         services.AddScoped<UserDataExportService>();
         services.AddScoped<AccountDeletionService>();
+        services.AddScoped<SecurityIncidentService>();
 
         // Domain services for cart totals calculation
         services.AddSingleton<CartTotalsCalculator>();
