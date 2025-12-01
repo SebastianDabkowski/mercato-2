@@ -270,10 +270,12 @@ public class ReturnDetailModel : PageModel
         }
         else
         {
-            var refundInfo = result.RefundId.HasValue
-                ? $" Refund initiated (Status: {result.RefundStatus})."
-                : "";
-            TempData["Success"] = $"Case resolved with {ReturnRequestStatusHelper.GetResolutionTypeDisplayName(result.ResolutionType)}.{refundInfo}";
+            var successMessage = $"Case resolved with {ReturnRequestStatusHelper.GetResolutionTypeDisplayName(result.ResolutionType)}.";
+            if (result.RefundId.HasValue)
+            {
+                successMessage += $" Refund initiated (Status: {result.RefundStatus}).";
+            }
+            TempData["Success"] = successMessage;
             _logger.LogInformation("Case {ReturnRequestId} resolved by seller {UserId} with {ResolutionType}", returnRequestId, userId, result.ResolutionType);
         }
 
