@@ -40,6 +40,33 @@ public class OrderShipment
     /// </summary>
     public string? TrackingUrl { get; private set; }
 
+    /// <summary>
+    /// The shipping provider ID if created via provider integration.
+    /// Null for manually tracked shipments.
+    /// </summary>
+    public Guid? ShippingProviderId { get; private set; }
+
+    /// <summary>
+    /// The shipment ID returned by the external provider API.
+    /// Used to correlate status updates from the provider.
+    /// </summary>
+    public string? ProviderShipmentId { get; private set; }
+
+    /// <summary>
+    /// The label URL or data from the provider for printing shipping labels.
+    /// </summary>
+    public string? LabelUrl { get; private set; }
+
+    /// <summary>
+    /// Last status update received from the shipping provider.
+    /// </summary>
+    public string? ProviderStatus { get; private set; }
+
+    /// <summary>
+    /// When the last status update was received from the provider.
+    /// </summary>
+    public DateTime? ProviderStatusUpdatedAt { get; private set; }
+
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
     public DateTime? ShippedAt { get; private set; }
@@ -141,6 +168,80 @@ public class OrderShipment
         CarrierName = carrierName;
         TrackingNumber = trackingNumber;
         TrackingUrl = trackingUrl;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Marks the shipment as shipped via a shipping provider.
+    /// Associates the shipment with provider details and tracking information.
+    /// </summary>
+    public void ShipViaProvider(
+        Guid shippingProviderId,
+        string providerShipmentId,
+        string? carrierName,
+        string? trackingNumber,
+        string? trackingUrl,
+        string? labelUrl)
+    {
+        if (Status != ShipmentStatus.Paid && Status != ShipmentStatus.Processing)
+        {
+            throw new InvalidOperationException($"Cannot ship shipment in status {Status}.");
+        }
+
+        if (shippingProviderId == Guid.Empty)
+        {
+            throw new ArgumentException("Shipping provider ID is required.", nameof(shippingProviderId));
+        }
+
+        if (string.IsNullOrWhiteSpace(providerShipmentId))
+        {
+            throw new ArgumentException("Provider shipment ID is required.", nameof(providerShipmentId));
+        }
+
+        Status = ShipmentStatus.Shipped;
+        ShippingProviderId = shippingProviderId;
+        ProviderShipmentId = providerShipmentId;
+        CarrierName = carrierName;
+        TrackingNumber = trackingNumber;
+        TrackingUrl = trackingUrl;
+        LabelUrl = labelUrl;
+        ShippedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Updates the provider status for this shipment.
+    /// Called when receiving status updates from the shipping provider.
+    /// </summary>
+    public void UpdateProviderStatus(string providerStatus)
+    {
+        if (string.IsNullOrWhiteSpace(providerStatus))
+        {
+            throw new ArgumentException("Provider status is required.", nameof(providerStatus));
+        }
+
+        ProviderStatus = providerStatus;
+        ProviderStatusUpdatedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Marks the shipment as in transit based on provider status update.
+    /// Only applicable for shipped shipments.
+    /// </summary>
+    public void MarkInTransit(string? providerStatus = null)
+    {
+        if (Status != ShipmentStatus.Shipped)
+        {
+            throw new InvalidOperationException($"Cannot mark as in transit shipment in status {Status}.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(providerStatus))
+        {
+            ProviderStatus = providerStatus;
+            ProviderStatusUpdatedAt = DateTime.UtcNow;
+        }
+
         UpdatedAt = DateTime.UtcNow;
     }
 
