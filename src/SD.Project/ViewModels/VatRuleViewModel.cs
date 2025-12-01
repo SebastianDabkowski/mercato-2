@@ -81,8 +81,11 @@ public sealed class VatRuleViewModel
         get
         {
             if (!IsActive) return "bg-secondary";
-            if (IsExpired) return "bg-warning text-dark";
-            if (IsFutureDated) return "bg-info";
+            var now = DateTime.UtcNow;
+            var expired = EffectiveTo.HasValue && EffectiveTo.Value < now;
+            var futureDated = EffectiveFrom.HasValue && EffectiveFrom.Value > now;
+            if (expired) return "bg-warning text-dark";
+            if (futureDated) return "bg-info";
             return "bg-success";
         }
     }
@@ -95,8 +98,11 @@ public sealed class VatRuleViewModel
         get
         {
             if (!IsActive) return "Inactive";
-            if (IsExpired) return "Expired";
-            if (IsFutureDated) return "Scheduled";
+            var now = DateTime.UtcNow;
+            var expired = EffectiveTo.HasValue && EffectiveTo.Value < now;
+            var futureDated = EffectiveFrom.HasValue && EffectiveFrom.Value > now;
+            if (expired) return "Expired";
+            if (futureDated) return "Scheduled";
             return "Active";
         }
     }

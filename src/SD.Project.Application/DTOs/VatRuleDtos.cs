@@ -32,10 +32,17 @@ public record VatRuleDto(
     /// <summary>
     /// Checks if this rule is currently effective.
     /// </summary>
-    public bool IsCurrentlyEffective =>
-        IsActive &&
-        (!EffectiveFrom.HasValue || EffectiveFrom.Value <= DateTime.UtcNow) &&
-        (!EffectiveTo.HasValue || EffectiveTo.Value >= DateTime.UtcNow);
+    public bool IsCurrentlyEffective
+    {
+        get
+        {
+            if (!IsActive) return false;
+            var now = DateTime.UtcNow;
+            if (EffectiveFrom.HasValue && now < EffectiveFrom.Value) return false;
+            if (EffectiveTo.HasValue && now > EffectiveTo.Value) return false;
+            return true;
+        }
+    }
 
     /// <summary>
     /// Checks if this rule has a future effective date.
