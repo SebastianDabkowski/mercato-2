@@ -251,6 +251,127 @@ public sealed class ReturnRequestRepository : IReturnRequestRepository
         return Task.CompletedTask;
     }
 
+    public async Task<IReadOnlyList<ReturnRequest>> GetCasesPendingSlaBreachCheckAsync(CancellationToken cancellationToken = default)
+    {
+        // Get cases that:
+        // 1. Have SLA tracking enabled (FirstResponseDeadline is set)
+        // 2. Are not yet marked as breached
+        // 3. Are still pending (Requested or Approved status)
+        var pendingStatuses = new[] { ReturnRequestStatus.Requested, ReturnRequestStatus.Approved };
+
+        var cases = await _context.ReturnRequests
+            .Where(r => r.FirstResponseDeadline.HasValue
+                && !r.SlaBreached
+                && pendingStatuses.Contains(r.Status))
+            .ToListAsync(cancellationToken);
+
+        return cases.AsReadOnly();
+    }
+
+    public async Task<(IReadOnlyList<ReturnRequest> Requests, int TotalCount)> GetSlaBreachedCasesAsync(
+        Guid? storeId,
+        SlaBreachType? breachType,
+        DateTime? fromDate,
+        DateTime? toDate,
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.ReturnRequests
+            .Where(r => r.SlaBreached);
+
+        if (storeId.HasValue)
+        {
+            query = query.Where(r => r.StoreId == storeId.Value);
+        }
+
+        if (breachType.HasValue)
+        {
+            query = query.Where(r => r.SlaBreachType == breachType.Value);
+        }
+
+        if (fromDate.HasValue)
+        {
+            query = query.Where(r => r.SlaBreachedAt >= fromDate.Value);
+        }
+
+        if (toDate.HasValue)
+        {
+            var endOfDay = toDate.Value.Date.AddDays(1);
+            query = query.Where(r => r.SlaBreachedAt < endOfDay);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var requests = await query
+            .OrderByDescending(r => r.SlaBreachedAt)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+
+        return (requests.AsReadOnly(), totalCount);
+    }
+
+    public async Task<(int TotalCases, int CasesWithSla, int CasesResolvedWithinSla, int FirstResponseBreaches, int ResolutionBreaches, TimeSpan AvgFirstResponseTime, TimeSpan AvgResolutionTime)> GetStoreSlaStatisticsAsync(
+        Guid storeId,
+        DateTime fromDate,
+        DateTime toDate,
+        CancellationToken cancellationToken = default)
+    {
+        var cases = await _context.ReturnRequests
+            .Where(r => r.StoreId == storeId && r.CreatedAt >= fromDate && r.CreatedAt < toDate.Date.AddDays(1))
+            .ToListAsync(cancellationToken);
+
+        var totalCases = cases.Count;
+        var casesWithSla = cases.Count(c => c.HasSlaTracking);
+        var casesResolvedWithinSla = cases.Count(c => c.HasSlaTracking && !c.SlaBreached && c.Status == ReturnRequestStatus.Completed);
+        var firstResponseBreaches = cases.Count(c => c.SlaBreachType == SlaBreachType.FirstResponse);
+        var resolutionBreaches = cases.Count(c => c.SlaBreachType == SlaBreachType.Resolution);
+
+        // Calculate average first response time
+        var casesWithResponse = cases.Where(c => c.FirstRespondedAt.HasValue).ToList();
+        var avgFirstResponseTime = casesWithResponse.Count > 0
+            ? TimeSpan.FromTicks((long)casesWithResponse.Average(c => (c.FirstRespondedAt!.Value - c.CreatedAt).Ticks))
+            : TimeSpan.Zero;
+
+        // Calculate average resolution time
+        var resolvedCases = cases.Where(c => c.Status == ReturnRequestStatus.Completed && c.CompletedAt.HasValue).ToList();
+        var avgResolutionTime = resolvedCases.Count > 0
+            ? TimeSpan.FromTicks((long)resolvedCases.Average(c => (c.CompletedAt!.Value - c.CreatedAt).Ticks))
+            : TimeSpan.Zero;
+
+        return (totalCases, casesWithSla, casesResolvedWithinSla, firstResponseBreaches, resolutionBreaches, avgFirstResponseTime, avgResolutionTime);
+    }
+
+    public async Task<(int TotalCases, int CasesWithSla, int CasesResolvedWithinSla, int TotalBreaches, TimeSpan AvgFirstResponseTime, TimeSpan AvgResolutionTime)> GetAggregateSlaStatisticsAsync(
+        DateTime fromDate,
+        DateTime toDate,
+        CancellationToken cancellationToken = default)
+    {
+        var cases = await _context.ReturnRequests
+            .Where(r => r.CreatedAt >= fromDate && r.CreatedAt < toDate.Date.AddDays(1))
+            .ToListAsync(cancellationToken);
+
+        var totalCases = cases.Count;
+        var casesWithSla = cases.Count(c => c.HasSlaTracking);
+        var casesResolvedWithinSla = cases.Count(c => c.HasSlaTracking && !c.SlaBreached && c.Status == ReturnRequestStatus.Completed);
+        var totalBreaches = cases.Count(c => c.SlaBreached);
+
+        // Calculate average first response time
+        var casesWithResponse = cases.Where(c => c.FirstRespondedAt.HasValue).ToList();
+        var avgFirstResponseTime = casesWithResponse.Count > 0
+            ? TimeSpan.FromTicks((long)casesWithResponse.Average(c => (c.FirstRespondedAt!.Value - c.CreatedAt).Ticks))
+            : TimeSpan.Zero;
+
+        // Calculate average resolution time
+        var resolvedCases = cases.Where(c => c.Status == ReturnRequestStatus.Completed && c.CompletedAt.HasValue).ToList();
+        var avgResolutionTime = resolvedCases.Count > 0
+            ? TimeSpan.FromTicks((long)resolvedCases.Average(c => (c.CompletedAt!.Value - c.CreatedAt).Ticks))
+            : TimeSpan.Zero;
+
+        return (totalCases, casesWithSla, casesResolvedWithinSla, totalBreaches, avgFirstResponseTime, avgResolutionTime);
+    }
+
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         return _context.SaveChangesAsync(cancellationToken);

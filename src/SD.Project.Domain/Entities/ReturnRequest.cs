@@ -221,6 +221,38 @@ public class ReturnRequest
     /// </summary>
     public DateTime? AdminDecisionAt { get; private set; }
 
+    // SLA Tracking Properties (Phase 2)
+
+    /// <summary>
+    /// Deadline for seller's first response.
+    /// </summary>
+    public DateTime? FirstResponseDeadline { get; private set; }
+
+    /// <summary>
+    /// Deadline for case resolution.
+    /// </summary>
+    public DateTime? ResolutionDeadline { get; private set; }
+
+    /// <summary>
+    /// When the seller first responded to the case.
+    /// </summary>
+    public DateTime? FirstRespondedAt { get; private set; }
+
+    /// <summary>
+    /// Whether an SLA has been breached.
+    /// </summary>
+    public bool SlaBreached { get; private set; }
+
+    /// <summary>
+    /// When the SLA was breached.
+    /// </summary>
+    public DateTime? SlaBreachedAt { get; private set; }
+
+    /// <summary>
+    /// The type of SLA that was breached.
+    /// </summary>
+    public SlaBreachType? SlaBreachType { get; private set; }
+
     /// <summary>
     /// Items included in this return/complaint request.
     /// </summary>
@@ -583,4 +615,99 @@ public class ReturnRequest
     /// Checks if the case has an admin decision recorded.
     /// </summary>
     public bool HasAdminDecision => AdminDecision.HasValue;
+
+    // SLA Tracking Methods (Phase 2)
+
+    /// <summary>
+    /// Sets SLA deadlines for this case based on configuration.
+    /// </summary>
+    /// <param name="firstResponseDeadline">The deadline for first response.</param>
+    /// <param name="resolutionDeadline">The deadline for resolution.</param>
+    public void SetSlaDeadlines(DateTime firstResponseDeadline, DateTime resolutionDeadline)
+    {
+        if (resolutionDeadline <= firstResponseDeadline)
+        {
+            throw new ArgumentException("Resolution deadline must be after first response deadline.", nameof(resolutionDeadline));
+        }
+
+        FirstResponseDeadline = firstResponseDeadline;
+        ResolutionDeadline = resolutionDeadline;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Records the seller's first response to this case.
+    /// </summary>
+    public void RecordFirstResponse()
+    {
+        if (FirstRespondedAt.HasValue)
+        {
+            return; // Already recorded
+        }
+
+        FirstRespondedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Marks this case as having breached SLA.
+    /// </summary>
+    /// <param name="breachType">The type of SLA breach.</param>
+    public void MarkSlaBreached(SlaBreachType breachType)
+    {
+        if (SlaBreached)
+        {
+            return; // Already breached
+        }
+
+        SlaBreached = true;
+        SlaBreachedAt = DateTime.UtcNow;
+        SlaBreachType = breachType;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Checks if the first response SLA is breached (deadline passed without response).
+    /// </summary>
+    /// <param name="currentTime">The current time to check against.</param>
+    /// <returns>True if first response SLA is breached.</returns>
+    public bool IsFirstResponseSlaBreached(DateTime currentTime)
+    {
+        if (!FirstResponseDeadline.HasValue)
+        {
+            return false; // No SLA configured
+        }
+
+        if (FirstRespondedAt.HasValue)
+        {
+            return false; // Already responded
+        }
+
+        return currentTime > FirstResponseDeadline.Value;
+    }
+
+    /// <summary>
+    /// Checks if the resolution SLA is breached (deadline passed without resolution).
+    /// </summary>
+    /// <param name="currentTime">The current time to check against.</param>
+    /// <returns>True if resolution SLA is breached.</returns>
+    public bool IsResolutionSlaBreached(DateTime currentTime)
+    {
+        if (!ResolutionDeadline.HasValue)
+        {
+            return false; // No SLA configured
+        }
+
+        if (Status == ReturnRequestStatus.Completed)
+        {
+            return false; // Already resolved
+        }
+
+        return currentTime > ResolutionDeadline.Value;
+    }
+
+    /// <summary>
+    /// Checks if this case has SLA tracking enabled.
+    /// </summary>
+    public bool HasSlaTracking => FirstResponseDeadline.HasValue && ResolutionDeadline.HasValue;
 }

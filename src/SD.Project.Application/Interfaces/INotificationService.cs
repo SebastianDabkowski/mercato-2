@@ -498,4 +498,46 @@ public interface INotificationService
         string decisionType,
         string? decisionNotes,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a notification when a case SLA is breached.
+    /// Notifies the seller about the breach and surfaces it in admin views.
+    /// </summary>
+    /// <param name="returnRequestId">The ID of the return request (case).</param>
+    /// <param name="caseNumber">The case number for display.</param>
+    /// <param name="orderNumber">The order number for display.</param>
+    /// <param name="sellerEmail">The seller's email address.</param>
+    /// <param name="breachType">The type of SLA breach (FirstResponse or Resolution).</param>
+    /// <param name="deadline">The deadline that was missed.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendSlaBreachNotificationAsync(
+        Guid returnRequestId,
+        string caseNumber,
+        string orderNumber,
+        string sellerEmail,
+        string breachType,
+        DateTime deadline,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a warning notification when a case is approaching SLA breach.
+    /// Used as a soft escalation to alert sellers before breaching.
+    /// </summary>
+    /// <param name="returnRequestId">The ID of the return request (case).</param>
+    /// <param name="caseNumber">The case number for display.</param>
+    /// <param name="orderNumber">The order number for display.</param>
+    /// <param name="sellerEmail">The seller's email address.</param>
+    /// <param name="deadlineType">The type of deadline approaching (FirstResponse or Resolution).</param>
+    /// <param name="deadline">The deadline that is approaching.</param>
+    /// <param name="hoursRemaining">Hours remaining until breach.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendSlaWarningNotificationAsync(
+        Guid returnRequestId,
+        string caseNumber,
+        string orderNumber,
+        string sellerEmail,
+        string deadlineType,
+        DateTime deadline,
+        int hoursRemaining,
+        CancellationToken cancellationToken = default);
 }
