@@ -1,0 +1,267 @@
+@page
+@model SD.Project.Pages.Admin.LegalContentModel
+@{
+    ViewData["Title"] = "Legal Content Management";
+}
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>Legal Content Management</h1>
+            <p class="text-muted mb-0">Manage Terms of Service, Privacy Policy, and other legal documents.</p>
+        </div>
+        @if (Model.DocumentTypeOptions.Any())
+        {
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createDocumentModal">
+                <i class="bi bi-plus-lg me-1"></i> Add Document
+            </button>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (Model.Documents.Count == 0)
+    {
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <h4 class="text-muted">No legal documents yet</h4>
+                <p class="text-muted">Start by creating your first legal document such as Terms of Service or Privacy Policy.</p>
+                @if (Model.DocumentTypeOptions.Any())
+                {
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createDocumentModal">
+                        Add Your First Document
+                    </button>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var document in Model.Documents)
+            {
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="badge @(document.IsActive ? "bg-success" : "bg-warning text-dark") me-2">
+                                    @(document.IsActive ? "Active" : "Inactive")
+                                </span>
+                                <strong>@document.DocumentTypeName</strong>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    Actions
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item" asp-page="/Admin/LegalContentVersions" asp-route-documentId="@document.Id">
+                                            <i class="bi bi-clock-history me-1"></i> Manage Versions
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <button class="dropdown-item" type="button"
+                                                data-bs-toggle="modal" data-bs-target="#editDocumentModal"
+                                                data-document-id="@document.Id"
+                                                data-document-title="@document.Title"
+                                                data-document-description="@(document.Description ?? "")">
+                                            <i class="bi bi-pencil me-1"></i> Edit Details
+                                        </button>
+                                    </li>
+                                    <li><hr class="dropdown-divider" /></li>
+                                    <li>
+                                        <form method="post" asp-page-handler="ToggleStatus" asp-route-documentId="@document.Id">
+                                            <button type="submit" class="dropdown-item">
+                                                @if (document.IsActive)
+                                                {
+                                                    <i class="bi bi-eye-slash me-1"></i>@:Deactivate
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-eye me-1"></i>@:Activate
+                                                }
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title">@document.Title</h5>
+                            @if (!string.IsNullOrEmpty(document.Description))
+                            {
+                                <p class="card-text text-muted small">@document.Description</p>
+                            }
+
+                            <hr />
+
+                            <div class="row small">
+                                <div class="col-6">
+                                    <strong>Current Version:</strong>
+                                    @if (document.CurrentVersionNumber is not null)
+                                    {
+                                        <div>
+                                            <span class="badge bg-primary">v@document.CurrentVersionNumber</span>
+                                            <br />
+                                            <span class="text-muted">Since @document.CurrentVersionEffectiveFrom?.ToString("MMM d, yyyy")</span>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="text-muted">No active version</div>
+                                    }
+                                </div>
+                                <div class="col-6">
+                                    <strong>Scheduled Version:</strong>
+                                    @if (document.ScheduledVersionNumber is not null)
+                                    {
+                                        <div>
+                                            <span class="badge bg-info">v@document.ScheduledVersionNumber</span>
+                                            <br />
+                                            <span class="text-muted">From @document.ScheduledVersionEffectiveFrom?.ToString("MMM d, yyyy")</span>
+                                            @if (!string.IsNullOrEmpty(document.ScheduledVersionChangesSummary))
+                                            {
+                                                <br />
+                                                <small class="text-info" title="@document.ScheduledVersionChangesSummary">
+                                                    <i class="bi bi-info-circle"></i> Changes noted
+                                                </small>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="text-muted">None scheduled</div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer text-muted small">
+                            Created @document.CreatedAt.ToString("MMM d, yyyy") • Last updated @document.UpdatedAt.ToString("MMM d, yyyy")
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <div class="mt-4">
+        <a asp-page="/Admin/Dashboard" class="btn btn-outline-secondary">Back to Dashboard</a>
+    </div>
+</div>
+
+<!-- Create Document Modal -->
+<div class="modal fade" id="createDocumentModal" tabindex="-1" aria-labelledby="createDocumentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Create">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createDocumentModalLabel">Create Legal Document</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="NewDocument.DocumentType" class="form-label">Document Type <span class="text-danger">*</span></label>
+                            <select asp-for="NewDocument.DocumentType" asp-items="Model.DocumentTypeOptions" class="form-select">
+                                <option value="">Select a document type...</option>
+                            </select>
+                            <span asp-validation-for="NewDocument.DocumentType" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="NewDocument.Title" class="form-label">Title <span class="text-danger">*</span></label>
+                            <input asp-for="NewDocument.Title" class="form-control" placeholder="e.g., Terms of Service" />
+                            <span asp-validation-for="NewDocument.Title" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="NewDocument.Description" class="form-label">Description</label>
+                        <textarea asp-for="NewDocument.Description" class="form-control" rows="2" placeholder="Brief description of this legal document"></textarea>
+                        <span asp-validation-for="NewDocument.Description" class="text-danger"></span>
+                    </div>
+
+                    <hr />
+                    <h6>Initial Version (Optional)</h6>
+                    <p class="text-muted small">You can create an initial version now, or add versions later from the version management page.</p>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="NewDocument.InitialVersionNumber" class="form-label">Version Number</label>
+                            <input asp-for="NewDocument.InitialVersionNumber" class="form-control" placeholder="e.g., 1.0" />
+                            <span asp-validation-for="NewDocument.InitialVersionNumber" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="NewDocument.InitialEffectiveFrom" class="form-label">Effective From</label>
+                            <input asp-for="NewDocument.InitialEffectiveFrom" type="datetime-local" class="form-control" />
+                            <div class="form-text">Leave empty to use current date/time.</div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="NewDocument.InitialContent" class="form-label">Content (HTML supported)</label>
+                        <textarea asp-for="NewDocument.InitialContent" class="form-control" rows="6" placeholder="Enter the legal document content..."></textarea>
+                        <div class="form-text">You can use HTML formatting for rich text content.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Document</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Document Modal -->
+<div class="modal fade" id="editDocumentModal" tabindex="-1" aria-labelledby="editDocumentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Edit">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editDocumentModalLabel">Edit Legal Document</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="EditDocument.DocumentId" id="editDocumentId" />
+                    <div class="mb-3">
+                        <label asp-for="EditDocument.Title" class="form-label">Title <span class="text-danger">*</span></label>
+                        <input asp-for="EditDocument.Title" class="form-control" id="editDocumentTitle" placeholder="Enter document title" />
+                        <span asp-validation-for="EditDocument.Title" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="EditDocument.Description" class="form-label">Description</label>
+                        <textarea asp-for="EditDocument.Description" class="form-control" rows="3" id="editDocumentDescription" placeholder="Brief description of this legal document"></textarea>
+                        <span asp-validation-for="EditDocument.Description" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('editDocumentModal').addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            document.getElementById('editDocumentId').value = button.getAttribute('data-document-id');
+            document.getElementById('editDocumentTitle').value = button.getAttribute('data-document-title');
+            document.getElementById('editDocumentDescription').value = button.getAttribute('data-document-description');
+        });
+    </script>
+}

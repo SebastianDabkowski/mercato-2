@@ -95,6 +95,8 @@ public class AppDbContext : DbContext
     public DbSet<CategoryAttribute> CategoryAttributes => Set<CategoryAttribute>();
     public DbSet<SharedAttribute> SharedAttributes => Set<SharedAttribute>();
     public DbSet<Integration> Integrations => Set<Integration>();
+    public DbSet<LegalDocument> LegalDocuments => Set<LegalDocument>();
+    public DbSet<LegalDocumentVersion> LegalDocumentVersions => Set<LegalDocumentVersion>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
