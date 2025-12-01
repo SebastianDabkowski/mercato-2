@@ -37,7 +37,8 @@ public sealed record GetSellerReturnRequestsQuery(
     DateTime? FromDate = null,
     DateTime? ToDate = null,
     int PageNumber = 1,
-    int PageSize = 20);
+    int PageSize = 20,
+    string? Type = null);
 
 /// <summary>
 /// Query to get a specific return request for a seller.

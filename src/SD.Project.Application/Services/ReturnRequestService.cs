@@ -417,6 +417,14 @@ public sealed class ReturnRequestService
             statusFilter = parsedStatus;
         }
 
+        // Parse type filter
+        ReturnRequestType? typeFilter = null;
+        if (!string.IsNullOrWhiteSpace(query.Type) &&
+            Enum.TryParse<ReturnRequestType>(query.Type, ignoreCase: true, out var parsedType))
+        {
+            typeFilter = parsedType;
+        }
+
         var (requests, totalCount) = await _returnRequestRepository.GetFilteredByStoreIdAsync(
             query.StoreId,
             statusFilter,
@@ -424,6 +432,7 @@ public sealed class ReturnRequestService
             query.ToDate,
             skip,
             pageSize,
+            typeFilter,
             cancellationToken);
 
         if (requests.Count == 0)

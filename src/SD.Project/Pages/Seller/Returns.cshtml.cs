@@ -11,7 +11,7 @@ using System.Security.Claims;
 namespace SD.Project.Pages.Seller;
 
 /// <summary>
-/// Page model for displaying seller's return requests.
+/// Page model for displaying seller's return and complaint cases.
 /// </summary>
 [RequireRole(UserRole.Seller, UserRole.Admin)]
 public class ReturnsModel : PageModel
@@ -22,6 +22,9 @@ public class ReturnsModel : PageModel
 
     public string? StoreName { get; private set; }
     public PagedResultDto<SellerReturnRequestSummaryDto>? ReturnRequests { get; private set; }
+
+    [BindProperty(SupportsGet = true)]
+    public string? Type { get; set; }
 
     [BindProperty(SupportsGet = true)]
     public string? Status { get; set; }
@@ -71,10 +74,11 @@ public class ReturnsModel : PageModel
                 FromDate,
                 ToDate,
                 PageNumber,
-                20),
+                20,
+                Type),
             cancellationToken);
 
-        _logger.LogInformation("Seller returns page viewed for store {StoreId}, found {Count} return requests",
+        _logger.LogInformation("Seller returns page viewed for store {StoreId}, found {Count} cases",
             store.Id, ReturnRequests.TotalCount);
 
         return Page();

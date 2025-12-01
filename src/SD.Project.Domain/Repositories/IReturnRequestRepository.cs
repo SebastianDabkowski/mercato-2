@@ -47,6 +47,7 @@ public interface IReturnRequestRepository
         DateTime? toDate,
         int skip,
         int take,
+        ReturnRequestType? type = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
