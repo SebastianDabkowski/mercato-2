@@ -5,6 +5,9 @@ namespace SD.Project.ViewModels;
 /// </summary>
 public sealed class DataProcessingActivityViewModel
 {
+    private const int DefaultTruncationLength = 100;
+    private const int ShortTruncationLength = 80;
+
     public Guid Id { get; init; }
     public string Name { get; init; } = default!;
     public string Description { get; init; } = string.Empty;
@@ -47,24 +50,39 @@ public sealed class DataProcessingActivityViewModel
         : $"{CreatedByUserName ?? "Unknown"} on {CreatedAt:MMM d, yyyy 'at' h:mm tt}";
 
     /// <summary>
+    /// Gets the truncated description for table display.
+    /// </summary>
+    public string TruncatedDescription => Truncate(Description, DefaultTruncationLength);
+
+    /// <summary>
     /// Gets the truncated purpose for table display.
     /// </summary>
-    public string TruncatedPurpose => Purpose.Length > 100 ? $"{Purpose[..97]}..." : Purpose;
+    public string TruncatedPurpose => Truncate(Purpose, DefaultTruncationLength);
 
     /// <summary>
     /// Gets the truncated data categories for table display.
     /// </summary>
-    public string TruncatedDataCategories => DataCategories.Length > 100 ? $"{DataCategories[..97]}..." : DataCategories;
+    public string TruncatedDataCategories => Truncate(DataCategories, DefaultTruncationLength);
 
     /// <summary>
     /// Gets the truncated data subjects for table display.
     /// </summary>
-    public string TruncatedDataSubjects => DataSubjects.Length > 80 ? $"{DataSubjects[..77]}..." : DataSubjects;
+    public string TruncatedDataSubjects => Truncate(DataSubjects, ShortTruncationLength);
 
     /// <summary>
     /// Gets whether there are international transfers.
     /// </summary>
     public bool HasInternationalTransfers => !string.IsNullOrWhiteSpace(InternationalTransfers);
+
+    private static string Truncate(string value, int maxLength)
+    {
+        if (string.IsNullOrEmpty(value) || value.Length <= maxLength)
+        {
+            return value;
+        }
+
+        return $"{value[..(maxLength - 3)]}...";
+    }
 }
 
 /// <summary>

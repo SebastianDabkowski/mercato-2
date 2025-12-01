@@ -34,6 +34,21 @@ public class DataProcessingRegistryModel : PageModel
         "Legitimate Interests (Art. 6(1)(f))"
     };
 
+    /// <summary>
+    /// Static SelectListItem options for the legal basis dropdown.
+    /// </summary>
+    public static readonly IReadOnlyCollection<SelectListItem> LegalBasisOptions = CreateLegalBasisOptions();
+
+    private static IReadOnlyCollection<SelectListItem> CreateLegalBasisOptions()
+    {
+        var items = new List<SelectListItem>
+        {
+            new SelectListItem("Select a legal basis...", "")
+        };
+        items.AddRange(LegalBases.Select(lb => new SelectListItem(lb, lb)));
+        return items;
+    }
+
     public DataProcessingRegistryModel(
         ILogger<DataProcessingRegistryModel> logger,
         DataProcessingRegistryService registryService)
@@ -43,7 +58,6 @@ public class DataProcessingRegistryModel : PageModel
     }
 
     public IReadOnlyCollection<DataProcessingActivityViewModel> Activities { get; private set; } = Array.Empty<DataProcessingActivityViewModel>();
-    public IReadOnlyCollection<SelectListItem> LegalBasisOptions { get; private set; } = Array.Empty<SelectListItem>();
 
     public string? SuccessMessage { get; private set; }
     public string? ErrorMessage { get; private set; }
@@ -267,13 +281,6 @@ public class DataProcessingRegistryModel : PageModel
             CreatedAt = a.CreatedAt,
             UpdatedAt = a.UpdatedAt
         }).ToList();
-
-        var legalBasisItems = new List<SelectListItem>
-        {
-            new SelectListItem("Select a legal basis...", "")
-        };
-        legalBasisItems.AddRange(LegalBases.Select(lb => new SelectListItem(lb, lb)));
-        LegalBasisOptions = legalBasisItems;
     }
 
     private string GetUserId()

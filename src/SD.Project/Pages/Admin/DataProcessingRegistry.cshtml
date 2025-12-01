@@ -133,7 +133,7 @@
                                         @if (!string.IsNullOrEmpty(activity.Description))
                                         {
                                             <br />
-                                            <small class="text-muted">@(activity.Description.Length > 60 ? activity.Description[..57] + "..." : activity.Description)</small>
+                                            <small class="text-muted">@activity.TruncatedDescription</small>
                                         }
                                     </td>
                                     <td>@activity.TruncatedPurpose</td>
@@ -247,7 +247,7 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label asp-for="NewActivity.LegalBasis" class="form-label">Legal Basis <span class="text-danger">*</span></label>
-                            <select asp-for="NewActivity.LegalBasis" asp-items="Model.LegalBasisOptions" class="form-select">
+                            <select asp-for="NewActivity.LegalBasis" asp-items="DataProcessingRegistryModel.LegalBasisOptions" class="form-select">
                             </select>
                             <span asp-validation-for="NewActivity.LegalBasis" class="text-danger"></span>
                         </div>
@@ -323,7 +323,7 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label asp-for="EditActivity.LegalBasis" class="form-label">Legal Basis <span class="text-danger">*</span></label>
-                            <select asp-for="EditActivity.LegalBasis" asp-items="Model.LegalBasisOptions" class="form-select" id="editLegalBasis">
+                            <select asp-for="EditActivity.LegalBasis" asp-items="DataProcessingRegistryModel.LegalBasisOptions" class="form-select" id="editLegalBasis">
                             </select>
                             <span asp-validation-for="EditActivity.LegalBasis" class="text-danger"></span>
                         </div>
