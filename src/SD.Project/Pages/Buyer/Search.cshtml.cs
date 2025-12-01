@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using SD.Project.Application.DTOs;
+using SD.Project.Application.Interfaces;
 using SD.Project.Application.Queries;
 using SD.Project.Application.Services;
 using SD.Project.ViewModels;
+using System.Security.Claims;
 
 namespace SD.Project.Pages.Buyer;
 
@@ -19,6 +21,7 @@ public class SearchModel : PageModel
     private readonly ProductService _productService;
     private readonly CategoryService _categoryService;
     private readonly StoreService _storeService;
+    private readonly IAnalyticsService _analyticsService;
 
     /// <summary>
     /// The search term entered by the user.
@@ -127,12 +130,14 @@ public class SearchModel : PageModel
         ILogger<SearchModel> logger,
         ProductService productService,
         CategoryService categoryService,
-        StoreService storeService)
+        StoreService storeService,
+        IAnalyticsService analyticsService)
     {
         _logger = logger;
         _productService = productService;
         _categoryService = categoryService;
         _storeService = storeService;
+        _analyticsService = analyticsService;
     }
 
     public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken = default)
@@ -200,6 +205,18 @@ public class SearchModel : PageModel
             TotalCount = pagedResult.TotalCount;
             TotalPages = pagedResult.TotalPages;
             PageSize = pagedResult.PageSize;
+
+            // Track search analytics event (only for explicit search terms)
+            if (!string.IsNullOrWhiteSpace(sanitizedTerm))
+            {
+                var (buyerId, sessionId) = GetCartIdentifiers();
+                _ = _analyticsService.TrackSearchAsync(
+                    sanitizedTerm,
+                    TotalCount,
+                    buyerId,
+                    sessionId,
+                    cancellationToken);
+            }
 
             _logger.LogDebug("Search for '{SearchTerm}' with filters returned {Count} results (page {Page} of {TotalPages})", 
                 sanitizedTerm, TotalCount, PageNumber, TotalPages);
@@ -329,5 +346,28 @@ public class SearchModel : PageModel
             dto.HeightCm,
             dto.MainImageUrl,
             dto.MainImageThumbnailUrl);
+    }
+
+    private (Guid? BuyerId, string? SessionId) GetCartIdentifiers()
+    {
+        // Check if user is authenticated
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (Guid.TryParse(userIdClaim, out var buyerId))
+            {
+                return (buyerId, null);
+            }
+        }
+
+        // For anonymous users, use session
+        var sessionId = HttpContext.Session.GetString(Constants.CartSessionKey);
+        if (string.IsNullOrEmpty(sessionId))
+        {
+            sessionId = Guid.NewGuid().ToString();
+            HttpContext.Session.SetString(Constants.CartSessionKey, sessionId);
+        }
+
+        return (null, sessionId);
     }
 }

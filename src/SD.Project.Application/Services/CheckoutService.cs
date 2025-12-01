@@ -26,6 +26,7 @@ public sealed class CheckoutService
     private readonly IPaymentProviderService _paymentProviderService;
     private readonly CheckoutValidationService _checkoutValidationService;
     private readonly EscrowService _escrowService;
+    private readonly IAnalyticsService _analyticsService;
 
     public CheckoutService(
         ICartRepository cartRepository,
@@ -39,7 +40,8 @@ public sealed class CheckoutService
         INotificationService notificationService,
         IPaymentProviderService paymentProviderService,
         CheckoutValidationService checkoutValidationService,
-        EscrowService escrowService)
+        EscrowService escrowService,
+        IAnalyticsService analyticsService)
     {
         _cartRepository = cartRepository;
         _productRepository = productRepository;
@@ -53,6 +55,7 @@ public sealed class CheckoutService
         _paymentProviderService = paymentProviderService;
         _checkoutValidationService = checkoutValidationService;
         _escrowService = escrowService;
+        _analyticsService = analyticsService;
     }
 
     /// <summary>
@@ -380,6 +383,20 @@ public sealed class CheckoutService
                 validationIssues);
         }
 
+        // Track checkout start analytics event
+        var cartTotalValue = cart.Items.Sum(item =>
+        {
+            var product = productLookup.GetValueOrDefault(item.ProductId);
+            return product is not null ? product.Price.Amount * item.Quantity : 0m;
+        });
+        _ = _analyticsService.TrackCheckoutStartAsync(
+            cartTotalValue,
+            currency,
+            cart.TotalItemCount,
+            command.BuyerId,
+            null,
+            cancellationToken);
+
         var storeIds = cart.Items.Select(i => i.StoreId).Distinct().ToList();
         var stores = await _storeRepository.GetByIdsAsync(storeIds, cancellationToken);
         var storeLookup = stores.ToDictionary(s => s.Id);
@@ -573,6 +590,16 @@ public sealed class CheckoutService
         // Send notifications to sellers for their sub-orders
         await SendNewOrderNotificationsToSellersAsync(order, cancellationToken);
 
+        // Track order completion analytics event
+        _ = _analyticsService.TrackOrderCompleteAsync(
+            order.Id,
+            order.TotalAmount,
+            order.Currency,
+            order.Items.Sum(i => i.Quantity),
+            command.BuyerId,
+            null,
+            cancellationToken);
+
         return InitiatePaymentResultDto.Succeeded(order.Id, order.OrderNumber);
     }
 
@@ -660,6 +687,16 @@ public sealed class CheckoutService
         // Send notifications to sellers for their sub-orders
         await SendNewOrderNotificationsToSellersAsync(order, cancellationToken);
 
+        // Track order completion analytics event
+        _ = _analyticsService.TrackOrderCompleteAsync(
+            order.Id,
+            order.TotalAmount,
+            order.Currency,
+            order.Items.Sum(i => i.Quantity),
+            order.BuyerId,
+            null,
+            cancellationToken);
+
         return SubmitBlikCodeResultDto.Succeeded(order.Id, order.OrderNumber);
     }
 
@@ -721,6 +758,16 @@ public sealed class CheckoutService
                 // Send notifications to sellers for their sub-orders
                 await SendNewOrderNotificationsToSellersAsync(order, cancellationToken);
 
+                // Track order completion analytics event
+                _ = _analyticsService.TrackOrderCompleteAsync(
+                    order.Id,
+                    order.TotalAmount,
+                    order.Currency,
+                    order.Items.Sum(i => i.Quantity),
+                    order.BuyerId,
+                    null,
+                    cancellationToken);
+
                 return ConfirmPaymentResultDto.Succeeded(order.Id, order.OrderNumber);
             }
             else if (confirmationResult.Status == PaymentConfirmationStatus.Failed ||
@@ -747,6 +794,16 @@ public sealed class CheckoutService
                 order.ConfirmPayment(command.TransactionId);
                 await _orderRepository.UpdateAsync(order, cancellationToken);
                 await _orderRepository.SaveChangesAsync(cancellationToken);
+
+                // Track order completion analytics event
+                _ = _analyticsService.TrackOrderCompleteAsync(
+                    order.Id,
+                    order.TotalAmount,
+                    order.Currency,
+                    order.Items.Sum(i => i.Quantity),
+                    order.BuyerId,
+                    null,
+                    cancellationToken);
             }
 
             return ConfirmPaymentResultDto.Succeeded(order.Id, order.OrderNumber);
