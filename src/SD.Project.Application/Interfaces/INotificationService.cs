@@ -577,4 +577,53 @@ public interface INotificationService
         DateTime deadline,
         int hoursRemaining,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a notification to the seller when a new product question is asked.
+    /// </summary>
+    /// <param name="questionId">The ID of the question.</param>
+    /// <param name="productId">The ID of the product.</param>
+    /// <param name="productName">The name of the product.</param>
+    /// <param name="sellerEmail">The seller's email address.</param>
+    /// <param name="buyerName">The display name of the buyer.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendProductQuestionAskedAsync(
+        Guid questionId,
+        Guid productId,
+        string productName,
+        string sellerEmail,
+        string buyerName,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a notification to the buyer when their product question is answered.
+    /// </summary>
+    /// <param name="questionId">The ID of the question.</param>
+    /// <param name="productId">The ID of the product.</param>
+    /// <param name="productName">The name of the product.</param>
+    /// <param name="buyerEmail">The buyer's email address.</param>
+    /// <param name="storeName">The name of the seller's store.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendProductQuestionAnsweredAsync(
+        Guid questionId,
+        Guid productId,
+        string productName,
+        string buyerEmail,
+        string storeName,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a notification when a new message is received in an order thread.
+    /// </summary>
+    /// <param name="orderId">The ID of the order.</param>
+    /// <param name="orderNumber">The order number for display.</param>
+    /// <param name="recipientEmail">The recipient's email address.</param>
+    /// <param name="senderName">The name of the sender.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendOrderMessageReceivedAsync(
+        Guid orderId,
+        string orderNumber,
+        string recipientEmail,
+        string senderName,
+        CancellationToken cancellationToken = default);
 }

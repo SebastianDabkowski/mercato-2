@@ -321,6 +321,88 @@ else
             }
         </section>
 
+        <!-- Product Q&A Section -->
+        <section class="mt-5" id="questions">
+            <h4 class="mb-4">Questions & Answers</h4>
+
+            <!-- Ask a Question Form -->
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0">Have a question about this product?</h6>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" asp-page-handler="AskQuestion" asp-route-productId="@Model.Product.Id">
+                            <div class="mb-3">
+                                <textarea class="form-control" asp-for="QuestionInput.Question" rows="3" 
+                                          placeholder="Ask the seller a question about this product..." 
+                                          maxlength="2000" required></textarea>
+                                <div class="form-text">Maximum 2000 characters</div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-question-circle me-1" viewBox="0 0 16 16">
+                                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                                    <path d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286zm1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94z"/>
+                                </svg>
+                                Submit Question
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info mb-4">
+                    <a asp-page="/Login" asp-route-returnUrl="@($"/Buyer/Product?id={Model.Product.Id}#questions")">Log in</a> to ask a question about this product.
+                </div>
+            }
+
+            <!-- Q&A List -->
+            @if (Model.Questions.Count == 0)
+            {
+                <div class="alert alert-light border text-center py-4" role="alert">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-chat-square-quote text-muted mb-3" viewBox="0 0 16 16">
+                        <path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-2.5a2 2 0 0 0-1.6.8L8 14.333 6.1 11.8a2 2 0 0 0-1.6-.8H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2.5a1 1 0 0 1 .8.4l1.9 2.533a1 1 0 0 0 1.6 0l1.9-2.533a1 1 0 0 1 .8-.4H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+                        <path d="M7.066 4.76A1.665 1.665 0 0 0 4 5.668a1.667 1.667 0 0 0 2.561 1.406c-.131.389-.375.804-.777 1.22a.417.417 0 1 0 .6.58c1.486-1.54 1.293-3.214.682-4.112zm4 0A1.665 1.665 0 0 0 8 5.668a1.667 1.667 0 0 0 2.561 1.406c-.131.389-.375.804-.777 1.22a.417.417 0 1 0 .6.58c1.486-1.54 1.293-3.214.682-4.112z"/>
+                    </svg>
+                    <h5 class="text-muted mb-2">No Questions Yet</h5>
+                    <p class="text-muted mb-0">Be the first to ask a question about this product.</p>
+                </div>
+            }
+            else
+            {
+                <div class="list-group mb-4">
+                    @foreach (var question in Model.Questions)
+                    {
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <span class="badge bg-primary me-2">Q</span>
+                                    <strong>@question.BuyerDisplayName</strong>
+                                </div>
+                                <small class="text-muted">@question.AskedAtDisplay</small>
+                            </div>
+                            <p class="mb-3">@question.Question</p>
+                            @if (question.IsAnswered && !string.IsNullOrEmpty(question.Answer))
+                            {
+                                <div class="ps-4 border-start border-success border-3">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div>
+                                            <span class="badge bg-success me-2">A</span>
+                                            <strong>@(Model.Store?.Name ?? "Seller")</strong>
+                                        </div>
+                                        <small class="text-muted">@question.AnsweredAtDisplay</small>
+                                    </div>
+                                    <p class="mb-0">@question.Answer</p>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </section>
+
         <!-- Recently Viewed Products Section -->
         <section class="mt-5" data-recently-viewed data-current-product-id="@Model.Product.Id" data-max-display="5" style="display: none;">
             <h4 class="mb-3">Recently Viewed</h4>

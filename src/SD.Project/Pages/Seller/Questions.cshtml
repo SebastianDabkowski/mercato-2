@@ -1,0 +1,122 @@
+@page
+@model SD.Project.Pages.Seller.QuestionsModel
+@{
+    ViewData["Title"] = "Product Questions";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>Product Questions</h1>
+            @if (!string.IsNullOrEmpty(Model.StoreName))
+            {
+                <p class="text-muted mb-0">@Model.StoreName</p>
+            }
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.Message))
+    {
+        <div class="alert @(Model.IsSuccess ? "alert-success" : "alert-danger") alert-dismissible fade show" role="alert">
+            @Model.Message
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Filter Tabs -->
+    <ul class="nav nav-tabs mb-4">
+        <li class="nav-item">
+            <a class="nav-link @(Model.Filter == "pending" ? "active" : "")" asp-page="/Seller/Questions" asp-route-filter="pending">
+                Pending
+                @if (Model.Questions.Count > 0 && Model.Filter == "pending")
+                {
+                    <span class="badge bg-warning text-dark ms-1">@Model.Questions.Count</span>
+                }
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(Model.Filter == "all" ? "active" : "")" asp-page="/Seller/Questions" asp-route-filter="all">All</a>
+        </li>
+    </ul>
+
+    @if (Model.Questions.Count == 0)
+    {
+        <div class="alert alert-light border text-center py-5" role="alert">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-chat-square-text text-muted mb-3" viewBox="0 0 16 16">
+                <path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-2.5a2 2 0 0 0-1.6.8L8 14.333 6.1 11.8a2 2 0 0 0-1.6-.8H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2.5a1 1 0 0 1 .8.4l1.9 2.533a1 1 0 0 0 1.6 0l1.9-2.533a1 1 0 0 1 .8-.4H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+                <path d="M3 3.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zM3 6a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9A.5.5 0 0 1 3 6zm0 2.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5z"/>
+            </svg>
+            <h5 class="text-muted mb-2">No Pending Questions</h5>
+            <p class="text-muted mb-0">You don't have any questions waiting for an answer.</p>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var question in Model.Questions)
+            {
+                <div class="col-12 mb-4">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>@question.ProductName</strong>
+                                @if (question.Status == SD.Project.Domain.Entities.ProductQuestionStatus.Pending)
+                                {
+                                    <span class="badge bg-warning text-dark ms-2">Pending</span>
+                                }
+                                else if (question.Status == SD.Project.Domain.Entities.ProductQuestionStatus.Answered)
+                                {
+                                    <span class="badge bg-success ms-2">Answered</span>
+                                }
+                            </div>
+                            <small class="text-muted">Asked @question.AskedAt.ToString("MMM d, yyyy")</small>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <span class="badge bg-primary me-2">Q</span>
+                                <strong>@question.BuyerDisplayName</strong> asks:
+                            </div>
+                            <p class="mb-4 ps-4">@question.Question</p>
+
+                            @if (question.Status == SD.Project.Domain.Entities.ProductQuestionStatus.Answered && !string.IsNullOrEmpty(question.Answer))
+                            {
+                                <!-- Show the existing answer -->
+                                <div class="ps-4 border-start border-success border-3 mb-3">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div>
+                                            <span class="badge bg-success me-2">A</span>
+                                            <strong>@Model.StoreName</strong>
+                                        </div>
+                                        <small class="text-muted">@question.AnsweredAt?.ToString("MMM d, yyyy")</small>
+                                    </div>
+                                    <p class="mb-0">@question.Answer</p>
+                                </div>
+                            }
+                            else
+                            {
+                                <!-- Answer form for pending questions -->
+                                <form method="post" asp-page-handler="Answer">
+                                    <input type="hidden" asp-for="AnswerInput.QuestionId" value="@question.Id" />
+                                    <div class="mb-3">
+                                        <label for="answer-@question.Id" class="form-label">Your Answer</label>
+                                        <textarea class="form-control" id="answer-@question.Id" 
+                                                  name="AnswerInput.Answer" rows="3" 
+                                                  placeholder="Write your answer to this question..." 
+                                                  maxlength="2000" required></textarea>
+                                        <div class="form-text">Maximum 2000 characters. Your answer will be visible to all customers.</div>
+                                    </div>
+                                    <button type="submit" class="btn btn-success">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-send me-1" viewBox="0 0 16 16">
+                                            <path d="M15.854.146a.5.5 0 0 1 .11.54l-5.819 14.547a.75.75 0 0 1-1.329.124l-3.178-4.995L.643 7.184a.75.75 0 0 1 .124-1.33L15.314.037a.5.5 0 0 1 .54.11ZM6.636 10.07l2.761 4.338L14.13 2.576 6.636 10.07Zm6.787-8.201L1.591 6.602l4.339 2.76 7.494-7.493Z"/>
+                                        </svg>
+                                        Post Answer
+                                    </button>
+                                </form>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
