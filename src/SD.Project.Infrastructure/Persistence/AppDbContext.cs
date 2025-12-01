@@ -75,6 +75,8 @@ public class AppDbContext : DbContext
     public DbSet<UserBlockInfo> UserBlockInfos => Set<UserBlockInfo>();
     public DbSet<ProductModerationAuditLog> ProductModerationAuditLogs => Set<ProductModerationAuditLog>();
     public DbSet<PhotoModerationAuditLog> PhotoModerationAuditLogs => Set<PhotoModerationAuditLog>();
+    public DbSet<VatRule> VatRules => Set<VatRule>();
+    public DbSet<VatRuleHistory> VatRuleHistories => Set<VatRuleHistory>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

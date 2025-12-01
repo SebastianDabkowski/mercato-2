@@ -80,6 +80,8 @@ public static class DependencyInjection
         services.AddScoped<IAnalyticsEventRepository, AnalyticsEventRepository>();
         services.AddScoped<IProductModerationAuditLogRepository, ProductModerationAuditLogRepository>();
         services.AddScoped<IPhotoModerationAuditLogRepository, PhotoModerationAuditLogRepository>();
+        services.AddScoped<IVatRuleRepository, VatRuleRepository>();
+        services.AddScoped<IVatRuleHistoryRepository, VatRuleHistoryRepository>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IPushNotificationService, PushNotificationService>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
