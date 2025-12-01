@@ -3,7 +3,7 @@ using SD.Project.Domain.Entities;
 namespace SD.Project.Application.Interfaces;
 
 /// <summary>
-/// Service for logging access to sensitive data for audit and compliance purposes.
+/// Service for logging access to sensitive data and critical actions for audit and compliance purposes.
 /// </summary>
 public interface IAuditLoggingService
 {
@@ -47,5 +47,68 @@ public interface IAuditLoggingService
         Guid accessedByUserId,
         int skip = 0,
         int take = 50,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Logs a critical action in the system.
+    /// </summary>
+    /// <param name="userId">The ID of the user performing the action.</param>
+    /// <param name="userRole">The role of the user at the time of the action.</param>
+    /// <param name="actionType">The type of critical action.</param>
+    /// <param name="targetResourceType">The type of resource affected.</param>
+    /// <param name="targetResourceId">The ID of the target resource (optional).</param>
+    /// <param name="outcome">The outcome of the action.</param>
+    /// <param name="details">Additional details about the action (optional).</param>
+    /// <param name="ipAddress">The IP address of the client (optional).</param>
+    /// <param name="userAgent">The user agent string (optional).</param>
+    /// <param name="correlationId">Correlation ID for tracing (optional).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task LogCriticalActionAsync(
+        Guid userId,
+        UserRole userRole,
+        CriticalActionType actionType,
+        string targetResourceType,
+        Guid? targetResourceId,
+        CriticalActionOutcome outcome,
+        string? details = null,
+        string? ipAddress = null,
+        string? userAgent = null,
+        string? correlationId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets critical action audit logs for a specific user.
+    /// </summary>
+    /// <param name="userId">The ID of the user who performed the actions.</param>
+    /// <param name="skip">Number of records to skip for pagination.</param>
+    /// <param name="take">Number of records to take.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>List of audit logs for the user.</returns>
+    Task<IReadOnlyList<CriticalActionAuditLog>> GetCriticalActionLogsByUserAsync(
+        Guid userId,
+        int skip = 0,
+        int take = 50,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets critical action audit logs within a date range with optional filters.
+    /// </summary>
+    /// <param name="fromDate">Start of the date range (inclusive).</param>
+    /// <param name="toDate">End of the date range (inclusive).</param>
+    /// <param name="userId">Optional filter by user ID.</param>
+    /// <param name="actionType">Optional filter by action type.</param>
+    /// <param name="outcome">Optional filter by outcome.</param>
+    /// <param name="skip">Number of records to skip for pagination.</param>
+    /// <param name="take">Number of records to take.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>List of audit logs matching the criteria.</returns>
+    Task<IReadOnlyList<CriticalActionAuditLog>> GetCriticalActionLogsAsync(
+        DateTime fromDate,
+        DateTime toDate,
+        Guid? userId = null,
+        CriticalActionType? actionType = null,
+        CriticalActionOutcome? outcome = null,
+        int skip = 0,
+        int take = 100,
         CancellationToken cancellationToken = default);
 }

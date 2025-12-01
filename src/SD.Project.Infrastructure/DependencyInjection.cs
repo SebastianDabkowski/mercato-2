@@ -87,6 +87,7 @@ public static class DependencyInjection
         services.AddScoped<IDataProcessingActivityRepository, DataProcessingActivityRepository>();
         services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
         services.AddScoped<ISensitiveAccessAuditLogRepository, SensitiveAccessAuditLogRepository>();
+        services.AddScoped<ICriticalActionAuditLogRepository, CriticalActionAuditLogRepository>();
         services.AddScoped<IUserConsentRepository, UserConsentRepository>();
         services.AddScoped<IUserDataExportRepository, UserDataExportRepository>();
         services.AddScoped<IAccountDeletionRequestRepository, AccountDeletionRequestRepository>();
