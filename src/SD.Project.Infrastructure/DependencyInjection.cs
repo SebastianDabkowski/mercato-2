@@ -83,6 +83,7 @@ public static class DependencyInjection
         services.AddScoped<IVatRuleRepository, VatRuleRepository>();
         services.AddScoped<IVatRuleHistoryRepository, VatRuleHistoryRepository>();
         services.AddScoped<ICurrencyRepository, CurrencyRepository>();
+        services.AddScoped<IDataProcessingActivityRepository, DataProcessingActivityRepository>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IPushNotificationService, PushNotificationService>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();

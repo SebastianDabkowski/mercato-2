@@ -1,0 +1,134 @@
+@page
+@model SD.Project.Pages.Admin.DataProcessingHistoryModel
+@{
+    ViewData["Title"] = "Processing Activity History";
+}
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>Processing Activity History</h1>
+            @if (Model.Activity != null)
+            {
+                <p class="text-muted mb-0">Audit trail for: <strong>@Model.Activity.Name</strong></p>
+            }
+            else
+            {
+                <p class="text-muted mb-0">Audit trail for the specified data processing activity.</p>
+            }
+        </div>
+        <div>
+            <a asp-page="/Admin/DataProcessingRegistry" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Back to Registry
+            </a>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (Model.Activity != null)
+    {
+        <!-- Current Activity Summary -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Current Record</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <h6 class="text-muted">Activity Name</h6>
+                        <p>@Model.Activity.Name</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h6 class="text-muted">Legal Basis</h6>
+                        <p>@Model.Activity.LegalBasis</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h6 class="text-muted">Status</h6>
+                        <span class="badge @Model.Activity.StatusBadgeClass">@Model.Activity.StatusDisplay</span>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Purpose</h6>
+                        <p class="small">@Model.Activity.Purpose</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Data Categories</h6>
+                        <p class="small">@Model.Activity.DataCategories</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Audit Trail -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Audit Trail</h5>
+            </div>
+            <div class="card-body p-0">
+                @if (Model.AuditLogs.Count == 0)
+                {
+                    <div class="text-center py-5">
+                        <p class="text-muted">No change history available.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Action</th>
+                                    <th>Changed By</th>
+                                    <th>Change Reason</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var log in Model.AuditLogs)
+                                {
+                                    <tr>
+                                        <td>
+                                            <small>@log.TimestampDisplay</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge @log.ActionBadgeClass">@log.Action</span>
+                                        </td>
+                                        <td>@log.UserName</td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(log.ChangeReason))
+                                            {
+                                                <small>@log.ChangeReason</small>
+                                            }
+                                            else
+                                            {
+                                                <small class="text-muted">No reason provided</small>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-warning">
+            The specified data processing activity was not found.
+        </div>
+    }
+
+    <div class="mt-4">
+        <a asp-page="/Admin/DataProcessingRegistry" class="btn btn-outline-secondary">Back to Registry</a>
+    </div>
+</div>
