@@ -89,14 +89,13 @@ public sealed class SellerDashboardRepository : ISellerDashboardRepository
         // Filter by category if specified
         if (!string.IsNullOrWhiteSpace(category))
         {
-            // Join with products to get category
-            var productIds = await _context.Products
+            // Use a subquery to filter by category without materializing IDs in memory
+            var productIdsInCategory = _context.Products
                 .AsNoTracking()
                 .Where(p => p.StoreId == storeId && p.Category == category)
-                .Select(p => p.Id)
-                .ToListAsync(cancellationToken);
+                .Select(p => p.Id);
 
-            query = query.Where(oi => productIds.Contains(oi.ProductId));
+            query = query.Where(oi => productIdsInCategory.Contains(oi.ProductId));
         }
 
         var orderItems = await query.ToListAsync(cancellationToken);
@@ -108,18 +107,17 @@ public sealed class SellerDashboardRepository : ISellerDashboardRepository
         Guid storeId,
         CancellationToken cancellationToken = default)
     {
-        // Get unique products that have been sold by this store
-        var productIds = await _context.OrderItems
+        // Use a subquery to get unique product IDs that have been sold
+        var productIdsWithSales = _context.OrderItems
             .AsNoTracking()
             .Where(oi => oi.StoreId == storeId)
             .Select(oi => oi.ProductId)
-            .Distinct()
-            .ToListAsync(cancellationToken);
+            .Distinct();
 
-        // Get product names
+        // Get product names using the subquery directly
         var products = await _context.Products
             .AsNoTracking()
-            .Where(p => productIds.Contains(p.Id))
+            .Where(p => productIdsWithSales.Contains(p.Id))
             .Select(p => new SellerProductFilterOption(p.Id, p.Name))
             .OrderBy(p => p.ProductName)
             .ToListAsync(cancellationToken);
@@ -132,18 +130,17 @@ public sealed class SellerDashboardRepository : ISellerDashboardRepository
         Guid storeId,
         CancellationToken cancellationToken = default)
     {
-        // Get unique products that have been sold by this store
-        var productIds = await _context.OrderItems
+        // Use a subquery to get unique product IDs that have been sold
+        var productIdsWithSales = _context.OrderItems
             .AsNoTracking()
             .Where(oi => oi.StoreId == storeId)
             .Select(oi => oi.ProductId)
-            .Distinct()
-            .ToListAsync(cancellationToken);
+            .Distinct();
 
-        // Get unique categories from those products
+        // Get unique categories using the subquery directly
         var categories = await _context.Products
             .AsNoTracking()
-            .Where(p => productIds.Contains(p.Id) && !string.IsNullOrEmpty(p.Category))
+            .Where(p => productIdsWithSales.Contains(p.Id) && !string.IsNullOrEmpty(p.Category))
             .Select(p => p.Category)
             .Distinct()
             .OrderBy(c => c)
