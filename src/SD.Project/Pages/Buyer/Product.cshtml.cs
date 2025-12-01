@@ -148,6 +148,7 @@ public class ProductModel : PageModel
         _logger.LogDebug("Loaded product {ProductId}: {ProductName}", id.Value, Product.Name);
 
         // Track product view analytics event
+        // Fire-and-forget: AnalyticsService handles exceptions internally
         var (buyerId, sessionId) = GetCartIdentifiers();
         _ = _analyticsService.TrackProductViewAsync(
             productDto.Id,

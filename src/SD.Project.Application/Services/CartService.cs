@@ -131,7 +131,8 @@ public sealed class CartService
         await _cartRepository.UpdateAsync(cart, cancellationToken);
         await _cartRepository.SaveChangesAsync(cancellationToken);
 
-        // Track add-to-cart analytics event (fire-and-forget to avoid impacting user flow)
+        // Track add-to-cart analytics event
+        // Fire-and-forget: AnalyticsService handles exceptions internally
         _ = _analyticsService.TrackAddToCartAsync(
             command.ProductId,
             product.StoreId,

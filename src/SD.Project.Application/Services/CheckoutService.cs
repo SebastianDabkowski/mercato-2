@@ -384,6 +384,7 @@ public sealed class CheckoutService
         }
 
         // Track checkout start analytics event
+        // Fire-and-forget: AnalyticsService handles exceptions internally
         var cartTotalValue = cart.Items.Sum(item =>
         {
             var product = productLookup.GetValueOrDefault(item.ProductId);
@@ -591,6 +592,7 @@ public sealed class CheckoutService
         await SendNewOrderNotificationsToSellersAsync(order, cancellationToken);
 
         // Track order completion analytics event
+        // Fire-and-forget: AnalyticsService handles exceptions internally
         _ = _analyticsService.TrackOrderCompleteAsync(
             order.Id,
             order.TotalAmount,
@@ -688,6 +690,7 @@ public sealed class CheckoutService
         await SendNewOrderNotificationsToSellersAsync(order, cancellationToken);
 
         // Track order completion analytics event
+        // Fire-and-forget: AnalyticsService handles exceptions internally
         _ = _analyticsService.TrackOrderCompleteAsync(
             order.Id,
             order.TotalAmount,
@@ -759,6 +762,7 @@ public sealed class CheckoutService
                 await SendNewOrderNotificationsToSellersAsync(order, cancellationToken);
 
                 // Track order completion analytics event
+                // Fire-and-forget: AnalyticsService handles exceptions internally
                 _ = _analyticsService.TrackOrderCompleteAsync(
                     order.Id,
                     order.TotalAmount,
@@ -796,6 +800,7 @@ public sealed class CheckoutService
                 await _orderRepository.SaveChangesAsync(cancellationToken);
 
                 // Track order completion analytics event
+                // Fire-and-forget: AnalyticsService handles exceptions internally
                 _ = _analyticsService.TrackOrderCompleteAsync(
                     order.Id,
                     order.TotalAmount,

@@ -207,6 +207,7 @@ public class SearchModel : PageModel
             PageSize = pagedResult.PageSize;
 
             // Track search analytics event (only for explicit search terms)
+            // Fire-and-forget: AnalyticsService handles exceptions internally
             if (!string.IsNullOrWhiteSpace(sanitizedTerm))
             {
                 var (buyerId, sessionId) = GetCartIdentifiers();
