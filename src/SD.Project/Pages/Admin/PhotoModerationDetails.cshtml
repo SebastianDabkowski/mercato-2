@@ -1,0 +1,234 @@
+@page "{id:guid}"
+@model SD.Project.Pages.Admin.PhotoModerationDetailsModel
+@using SD.Project.ViewModels
+@{
+    ViewData["Title"] = "Photo Moderation Details";
+}
+
+<div class="container-fluid">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-page="/Admin/PhotoModeration">Photo Moderation</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Details</li>
+        </ol>
+    </nav>
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (Model.Photo is not null)
+    {
+        <div class="row">
+            <!-- Photo Preview -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Photo Preview</h5>
+                        @if (Model.Photo.IsMain)
+                        {
+                            <span class="badge bg-primary">Main Image</span>
+                        }
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="position-relative d-inline-block">
+                            <img src="@Model.Photo.ImageUrl" alt="@Model.Photo.FileName" 
+                                 class="img-fluid rounded shadow @(Model.Photo.ModerationStatus == "Removed" ? "opacity-50" : "")"
+                                 style="max-height: 400px;">
+                            @if (Model.Photo.IsFlagged)
+                            {
+                                <span class="badge bg-danger position-absolute top-0 start-0 m-2">
+                                    <i class="bi bi-flag-fill"></i> Flagged
+                                </span>
+                            }
+                        </div>
+                        <div class="mt-3">
+                            <a href="@Model.Photo.ImageUrl" target="_blank" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrows-fullscreen"></i> View Full Size
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Photo Details -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">Photo Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4">File Name</dt>
+                            <dd class="col-sm-8">@Model.Photo.FileName</dd>
+
+                            <dt class="col-sm-4">Status</dt>
+                            <dd class="col-sm-8">
+                                <span class="badge @PhotoModerationStatusHelper.GetStatusBadgeClass(Model.Photo.ModerationStatus)">
+                                    @PhotoModerationStatusHelper.GetStatusDisplayName(Model.Photo.ModerationStatus)
+                                </span>
+                            </dd>
+
+                            <dt class="col-sm-4">Uploaded</dt>
+                            <dd class="col-sm-8">@Model.Photo.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</dd>
+
+                            <dt class="col-sm-4">Product</dt>
+                            <dd class="col-sm-8">
+                                <a asp-page="/Admin/ProductModerationDetails" asp-route-id="@Model.Photo.ProductId">
+                                    @(Model.Photo.ProductName ?? "Unknown")
+                                </a>
+                            </dd>
+
+                            <dt class="col-sm-4">Store</dt>
+                            <dd class="col-sm-8">@(Model.Photo.StoreName ?? "Unknown")</dd>
+
+                            <dt class="col-sm-4">Seller</dt>
+                            <dd class="col-sm-8">@(Model.Photo.SellerName ?? "Unknown")</dd>
+
+                            @if (!string.IsNullOrEmpty(Model.Photo.SellerEmail))
+                            {
+                                <dt class="col-sm-4">Seller Email</dt>
+                                <dd class="col-sm-8">@Model.Photo.SellerEmail</dd>
+                            }
+
+                            @if (Model.Photo.IsFlagged)
+                            {
+                                <dt class="col-sm-4 text-danger">Flag Reason</dt>
+                                <dd class="col-sm-8 text-danger">@Model.Photo.FlagReason</dd>
+
+                                <dt class="col-sm-4 text-danger">Flagged At</dt>
+                                <dd class="col-sm-8 text-danger">@Model.Photo.FlaggedAt?.ToString("yyyy-MM-dd HH:mm:ss")</dd>
+                            }
+
+                            @if (!string.IsNullOrEmpty(Model.Photo.ModerationRemovalReason))
+                            {
+                                <dt class="col-sm-4">Removal Reason</dt>
+                                <dd class="col-sm-8">@Model.Photo.ModerationRemovalReason</dd>
+                            }
+
+                            @if (Model.Photo.LastModeratedAt.HasValue)
+                            {
+                                <dt class="col-sm-4">Last Moderated</dt>
+                                <dd class="col-sm-8">@Model.Photo.LastModeratedAt.Value.ToString("yyyy-MM-dd HH:mm:ss")</dd>
+
+                                <dt class="col-sm-4">Moderator</dt>
+                                <dd class="col-sm-8">@(Model.Photo.LastModeratorName ?? "Unknown")</dd>
+                            }
+                        </dl>
+                    </div>
+                    <div class="card-footer">
+                        <div class="d-flex gap-2">
+                            @if (Model.Photo.ModerationStatus != "Approved")
+                            {
+                                <form method="post" asp-page-handler="Approve" class="d-inline">
+                                    <button type="submit" class="btn btn-success" 
+                                            onclick="return confirm('Are you sure you want to approve this photo?')">
+                                        <i class="bi bi-check-lg"></i> Approve
+                                    </button>
+                                </form>
+                            }
+                            @if (Model.Photo.ModerationStatus != "Removed")
+                            {
+                                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#removeModal">
+                                    <i class="bi bi-x-lg"></i> Remove
+                                </button>
+                            }
+                            <a asp-page="/Admin/PhotoModeration" class="btn btn-outline-secondary ms-auto">
+                                <i class="bi bi-arrow-left"></i> Back to Queue
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Moderation History -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Moderation History</h5>
+            </div>
+            <div class="card-body">
+                @if (Model.AuditLogs.Count == 0)
+                {
+                    <p class="text-muted text-center mb-0">No moderation history available.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Action</th>
+                                    <th>Moderator</th>
+                                    <th>Reason</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var log in Model.AuditLogs)
+                                {
+                                    <tr>
+                                        <td>@log.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                        <td>
+                                            <span class="badge @PhotoModerationStatusHelper.GetStatusBadgeClass(log.Decision)">
+                                                @PhotoModerationStatusHelper.GetStatusDisplayName(log.Decision)
+                                            </span>
+                                        </td>
+                                        <td>@(log.ModeratorName ?? "Unknown")</td>
+                                        <td>@(log.Reason ?? "-")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Remove Modal -->
+<div class="modal fade" id="removeModal" tabindex="-1" aria-labelledby="removeModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Remove">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="removeModalLabel">Remove Photo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>You are about to remove this photo. This will notify the seller.</p>
+                    <div class="mb-3">
+                        <label for="removeReason" class="form-label">Removal Reason <span class="text-danger">*</span></label>
+                        <select class="form-select" id="removeReason" name="reason" required>
+                            <option value="">Select reason...</option>
+                            <option value="Inappropriate content - Image contains inappropriate or offensive content">Inappropriate content</option>
+                            <option value="Illegal content - Image appears to depict illegal activities or content">Illegal content</option>
+                            <option value="Copyright violation - Image may infringe on copyright or intellectual property">Copyright violation</option>
+                            <option value="Misleading image - Image does not accurately represent the product">Misleading image</option>
+                            <option value="Low quality - Image quality is too low for marketplace standards">Low quality</option>
+                            <option value="Watermark or branding - Image contains unauthorized watermarks or branding">Watermark or branding</option>
+                            <option value="Other - Please contact support for more information">Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Remove Photo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

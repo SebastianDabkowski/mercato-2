@@ -654,4 +654,21 @@ public interface INotificationService
         string sellerEmail,
         string rejectionReason,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a notification when a product photo is removed by a moderator.
+    /// </summary>
+    /// <param name="photoId">The ID of the photo.</param>
+    /// <param name="productId">The ID of the product.</param>
+    /// <param name="productName">The name of the product.</param>
+    /// <param name="sellerEmail">The seller's email address.</param>
+    /// <param name="removalReason">The reason for removal.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendPhotoRemovedAsync(
+        Guid photoId,
+        Guid productId,
+        string productName,
+        string sellerEmail,
+        string removalReason,
+        CancellationToken cancellationToken = default);
 }

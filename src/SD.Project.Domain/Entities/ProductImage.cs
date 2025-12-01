@@ -76,6 +76,42 @@ public class ProductImage
 
     public DateTime CreatedAt { get; private set; }
 
+    // Moderation properties
+    /// <summary>
+    /// The moderation status of the photo for admin review.
+    /// </summary>
+    public PhotoModerationStatus ModerationStatus { get; private set; }
+
+    /// <summary>
+    /// The reason for removal if the photo was removed by a moderator.
+    /// </summary>
+    public string? ModerationRemovalReason { get; private set; }
+
+    /// <summary>
+    /// The ID of the moderator who last reviewed the photo.
+    /// </summary>
+    public Guid? LastModeratorId { get; private set; }
+
+    /// <summary>
+    /// The timestamp of the last moderation action.
+    /// </summary>
+    public DateTime? LastModeratedAt { get; private set; }
+
+    /// <summary>
+    /// Indicates whether this photo has been flagged for review.
+    /// </summary>
+    public bool IsFlagged { get; private set; }
+
+    /// <summary>
+    /// The reason why this photo was flagged.
+    /// </summary>
+    public string? FlagReason { get; private set; }
+
+    /// <summary>
+    /// The timestamp when this photo was flagged.
+    /// </summary>
+    public DateTime? FlaggedAt { get; private set; }
+
     private ProductImage()
     {
         // EF Core constructor
@@ -144,6 +180,7 @@ public class ProductImage
         IsMain = isMain;
         DisplayOrder = displayOrder;
         CreatedAt = DateTime.UtcNow;
+        ModerationStatus = PhotoModerationStatus.PendingReview;
     }
 
     /// <summary>
@@ -200,4 +237,130 @@ public class ProductImage
     {
         return fileSizeBytes > 0 && fileSizeBytes <= MaxFileSizeBytes;
     }
+
+    /// <summary>
+    /// Approves the photo for display on the product page.
+    /// </summary>
+    /// <param name="moderatorId">The ID of the moderator approving the photo.</param>
+    /// <returns>A list of validation errors. Empty if approval succeeded.</returns>
+    public IReadOnlyList<string> ApproveModeration(Guid moderatorId)
+    {
+        if (moderatorId == Guid.Empty)
+        {
+            return new[] { "Moderator ID is required." };
+        }
+
+        if (ModerationStatus == PhotoModerationStatus.Approved)
+        {
+            return new[] { "Photo is already approved." };
+        }
+
+        ModerationStatus = PhotoModerationStatus.Approved;
+        ModerationRemovalReason = null;
+        LastModeratorId = moderatorId;
+        LastModeratedAt = DateTime.UtcNow;
+        IsFlagged = false;
+        FlagReason = null;
+        FlaggedAt = null;
+
+        return Array.Empty<string>();
+    }
+
+    /// <summary>
+    /// Removes the photo with a reason.
+    /// The photo will no longer be displayed on the product page.
+    /// </summary>
+    /// <param name="moderatorId">The ID of the moderator removing the photo.</param>
+    /// <param name="reason">The reason for removal.</param>
+    /// <returns>A list of validation errors. Empty if removal succeeded.</returns>
+    public IReadOnlyList<string> RemoveModeration(Guid moderatorId, string reason)
+    {
+        if (moderatorId == Guid.Empty)
+        {
+            return new[] { "Moderator ID is required." };
+        }
+
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return new[] { "Removal reason is required." };
+        }
+
+        if (ModerationStatus == PhotoModerationStatus.Removed)
+        {
+            return new[] { "Photo is already removed." };
+        }
+
+        ModerationStatus = PhotoModerationStatus.Removed;
+        ModerationRemovalReason = reason.Trim();
+        LastModeratorId = moderatorId;
+        LastModeratedAt = DateTime.UtcNow;
+
+        // If this was the main image, clear the flag
+        if (IsMain)
+        {
+            IsMain = false;
+        }
+
+        return Array.Empty<string>();
+    }
+
+    /// <summary>
+    /// Flags the photo for moderation review.
+    /// </summary>
+    /// <param name="reason">The reason for flagging.</param>
+    /// <returns>A list of validation errors. Empty if flagging succeeded.</returns>
+    public IReadOnlyList<string> Flag(string reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return new[] { "Flag reason is required." };
+        }
+
+        if (ModerationStatus == PhotoModerationStatus.Removed)
+        {
+            return new[] { "Cannot flag a removed photo." };
+        }
+
+        IsFlagged = true;
+        FlagReason = reason.Trim();
+        FlaggedAt = DateTime.UtcNow;
+
+        // Set status to pending review if it was approved
+        if (ModerationStatus == PhotoModerationStatus.Approved)
+        {
+            ModerationStatus = PhotoModerationStatus.PendingReview;
+        }
+
+        return Array.Empty<string>();
+    }
+
+    /// <summary>
+    /// Clears the flag on the photo.
+    /// </summary>
+    public void ClearFlag()
+    {
+        IsFlagged = false;
+        FlagReason = null;
+        FlaggedAt = null;
+    }
+
+    /// <summary>
+    /// Checks if the photo is visible (not removed).
+    /// </summary>
+    public bool IsVisible => ModerationStatus != PhotoModerationStatus.Removed;
+
+    /// <summary>
+    /// Checks if the photo is pending moderation review.
+    /// </summary>
+    public bool IsPendingModeration => ModerationStatus == PhotoModerationStatus.PendingReview;
+
+    /// <summary>
+    /// Checks if the photo has been removed by moderation.
+    /// </summary>
+    public bool IsModerationRemoved => ModerationStatus == PhotoModerationStatus.Removed;
+
+    /// <summary>
+    /// Checks if the photo has been approved by moderation.
+    /// </summary>
+    public bool IsModerationApproved => ModerationStatus == PhotoModerationStatus.Approved;
 }

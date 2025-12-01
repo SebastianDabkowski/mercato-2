@@ -64,4 +64,61 @@ public sealed class ProductImageRepository : IProductImageRepository
     {
         await _context.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task<(IReadOnlyCollection<ProductImage> Items, int TotalCount)> GetByModerationStatusPagedAsync(
+        PhotoModerationStatus? status,
+        bool? isFlagged,
+        string? searchTerm,
+        int pageNumber,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.ProductImages.AsQueryable();
+
+        if (status.HasValue)
+        {
+            query = query.Where(i => i.ModerationStatus == status.Value);
+        }
+
+        if (isFlagged.HasValue)
+        {
+            query = query.Where(i => i.IsFlagged == isFlagged.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var searchLower = searchTerm.ToLower();
+            query = query.Where(i => i.FileName.ToLower().Contains(searchLower));
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .OrderByDescending(i => i.IsFlagged)
+            .ThenByDescending(i => i.CreatedAt)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        return (items, totalCount);
+    }
+
+    public async Task<IReadOnlyCollection<ProductImage>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
+    {
+        var idList = ids.ToList();
+        return await _context.ProductImages
+            .Where(i => idList.Contains(i.Id))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyCollection<ProductImage>> GetVisibleByProductIdAsync(Guid productId, CancellationToken cancellationToken = default)
+    {
+        return await _context.ProductImages
+            .Where(i => i.ProductId == productId && i.ModerationStatus != PhotoModerationStatus.Removed)
+            .OrderBy(i => i.DisplayOrder)
+            .ThenBy(i => i.CreatedAt)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+    }
 }
