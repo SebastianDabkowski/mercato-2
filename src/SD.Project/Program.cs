@@ -115,6 +115,22 @@ builder.Services.AddSession(options =>
     options.Cookie.SameSite = SameSiteMode.Strict;
 });
 
+// Configure HSTS for production environments
+// These settings enforce HTTPS and protect against protocol downgrade attacks
+builder.Services.AddHsts(options =>
+{
+    options.Preload = true;
+    options.IncludeSubDomains = true;
+    options.MaxAge = TimeSpan.FromDays(365); // 1 year is recommended for production
+});
+
+// Configure HTTPS redirection
+builder.Services.AddHttpsRedirection(options =>
+{
+    options.RedirectStatusCode = StatusCodes.Status307TemporaryRedirect;
+    options.HttpsPort = 443;
+});
+
 var app = builder.Build();
 
 // Seed development data
@@ -127,7 +143,8 @@ if (app.Environment.IsDevelopment())
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+    // Configure HSTS for production with stricter settings
+    // HSTS enforces HTTPS connections and protects against protocol downgrade attacks
     app.UseHsts();
 }
 
