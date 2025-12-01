@@ -155,9 +155,9 @@
                                     <td>
                                         @if (!string.IsNullOrEmpty(log.Details))
                                         {
-                                            <button type="button" class="btn btn-sm btn-outline-secondary" 
+                                            <button type="button" class="btn btn-sm btn-outline-secondary details-btn" 
                                                     data-bs-toggle="modal" data-bs-target="#detailsModal"
-                                                    onclick="showDetails('@System.Net.WebUtility.HtmlEncode(log.Details?.Replace("'", "\\'") ?? "")')">
+                                                    data-details="@log.Details">
                                                 <i class="bi bi-eye"></i> View
                                             </button>
                                         }
@@ -254,8 +254,14 @@
 
 @section Scripts {
     <script>
-        function showDetails(details) {
-            document.getElementById('detailsContent').textContent = details;
-        }
+        document.addEventListener('DOMContentLoaded', function() {
+            // Use event delegation for details buttons
+            document.querySelectorAll('.details-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var details = this.getAttribute('data-details');
+                    document.getElementById('detailsContent').textContent = details;
+                });
+            });
+        });
     </script>
 }

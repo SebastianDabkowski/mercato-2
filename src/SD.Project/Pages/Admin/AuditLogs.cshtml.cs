@@ -222,7 +222,7 @@ public class AuditLogsModel : PageModel
                 ResourceType,
                 resourceGuid,
                 (Page - 1) * PageSize,
-                PageSize);
+                PageSize + 1); // Request one extra to determine if there are more pages
 
             if (resourceLogs == null)
             {
@@ -230,10 +230,13 @@ public class AuditLogsModel : PageModel
                 return;
             }
 
-            AuditLogs = resourceLogs.Select(MapToViewModel).ToList();
-            TotalCount = resourceLogs.Count;
-            TotalPages = 1; // Resource-filtered results typically don't paginate
-            CurrentPage = 1;
+            var hasMorePages = resourceLogs.Count > PageSize;
+            var logs = resourceLogs.Take(PageSize).ToList();
+
+            AuditLogs = logs.Select(MapToViewModel).ToList();
+            TotalCount = hasMorePages ? (Page * PageSize) + 1 : ((Page - 1) * PageSize) + logs.Count;
+            TotalPages = hasMorePages ? Page + 1 : Page;
+            CurrentPage = Page;
             return;
         }
 

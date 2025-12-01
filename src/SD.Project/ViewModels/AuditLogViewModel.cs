@@ -65,12 +65,30 @@ public sealed class AuditLogViewModel
     /// <summary>
     /// Returns a display-friendly short ID for the user.
     /// </summary>
-    public string ShortUserId => UserId.ToString()[..8] + "...";
+    public string ShortUserId
+    {
+        get
+        {
+            var idStr = UserId.ToString();
+            return idStr.Length >= 8 ? idStr[..8] + "..." : idStr;
+        }
+    }
 
     /// <summary>
     /// Returns a display-friendly short ID for the target resource.
     /// </summary>
-    public string ShortTargetResourceId => TargetResourceId?.ToString()[..8] + "..." ?? "-";
+    public string ShortTargetResourceId
+    {
+        get
+        {
+            if (!TargetResourceId.HasValue)
+            {
+                return "-";
+            }
+            var idStr = TargetResourceId.Value.ToString();
+            return idStr.Length >= 8 ? idStr[..8] + "..." : idStr;
+        }
+    }
 
     /// <summary>
     /// Returns the Bootstrap badge class for the outcome.
