@@ -447,4 +447,32 @@ public sealed class OrderRepository : IOrderRepository
 
         return result.AsReadOnly();
     }
+
+    public async Task<(int DeliveredCount, int CancelledCount, int OnTimeCount, int TotalShipments)> GetStoreShipmentStatsAsync(
+        Guid storeId,
+        CancellationToken cancellationToken = default)
+    {
+        var shipments = await _context.OrderShipments
+            .AsNoTracking()
+            .Where(s => s.StoreId == storeId)
+            .Select(s => new { s.Status, s.ShippedAt, s.CreatedAt })
+            .ToListAsync(cancellationToken);
+
+        if (shipments.Count == 0)
+        {
+            return (0, 0, 0, 0);
+        }
+
+        var deliveredCount = shipments.Count(s => s.Status == ShipmentStatus.Delivered);
+        var cancelledCount = shipments.Count(s => s.Status == ShipmentStatus.Cancelled);
+
+        // Calculate on-time shipments
+        // A shipment is considered on-time if it was shipped within 48 hours of being created
+        // This is a simplified heuristic; in a real system you might use SLA configurations
+        var onTimeShipments = shipments.Count(s =>
+            s.ShippedAt.HasValue &&
+            (s.ShippedAt.Value - s.CreatedAt).TotalHours <= 48);
+
+        return (deliveredCount, cancelledCount, onTimeShipments, shipments.Count);
+    }
 }

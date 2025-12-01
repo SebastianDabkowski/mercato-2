@@ -111,4 +111,12 @@ public interface IOrderRepository
     /// Used for idempotency to prevent duplicate orders from payment callbacks.
     /// </summary>
     Task<bool> ExistsByPaymentTransactionIdAsync(string transactionId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets shipment statistics for a store for reputation calculation.
+    /// Returns counts of delivered, cancelled, and on-time shipments.
+    /// </summary>
+    Task<(int DeliveredCount, int CancelledCount, int OnTimeCount, int TotalShipments)> GetStoreShipmentStatsAsync(
+        Guid storeId,
+        CancellationToken cancellationToken = default);
 }

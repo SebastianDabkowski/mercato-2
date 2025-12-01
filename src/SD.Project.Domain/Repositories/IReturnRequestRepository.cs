@@ -128,4 +128,10 @@ public interface IReturnRequestRepository
     /// Saves all changes to the database.
     /// </summary>
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the count of disputes/return requests for a store.
+    /// Used for reputation calculation.
+    /// </summary>
+    Task<int> GetDisputeCountByStoreIdAsync(Guid storeId, CancellationToken cancellationToken = default);
 }

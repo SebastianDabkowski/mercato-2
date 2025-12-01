@@ -376,4 +376,10 @@ public sealed class ReturnRequestRepository : IReturnRequestRepository
     {
         return _context.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task<int> GetDisputeCountByStoreIdAsync(Guid storeId, CancellationToken cancellationToken = default)
+    {
+        return await _context.ReturnRequests
+            .CountAsync(r => r.StoreId == storeId, cancellationToken);
+    }
 }
