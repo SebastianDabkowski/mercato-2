@@ -84,4 +84,25 @@ public interface ICommissionRuleRepository
     /// Saves all changes to the database.
     /// </summary>
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets overlapping commission rules that may conflict with the given parameters.
+    /// Used for validation before creating or updating rules.
+    /// </summary>
+    /// <param name="ruleType">The type of rule to check.</param>
+    /// <param name="categoryId">Category ID for category-specific rules.</param>
+    /// <param name="storeId">Store ID for seller-specific rules.</param>
+    /// <param name="effectiveFrom">Start of effective period.</param>
+    /// <param name="effectiveTo">End of effective period.</param>
+    /// <param name="excludeRuleId">Optional rule ID to exclude (for updates).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>List of conflicting rules with overlapping effective dates.</returns>
+    Task<IReadOnlyList<CommissionRule>> GetOverlappingRulesAsync(
+        CommissionRuleType ruleType,
+        Guid? categoryId,
+        Guid? storeId,
+        DateTime? effectiveFrom,
+        DateTime? effectiveTo,
+        Guid? excludeRuleId = null,
+        CancellationToken cancellationToken = default);
 }
