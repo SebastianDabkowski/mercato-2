@@ -254,10 +254,10 @@
             var storeContainer = document.getElementById(prefix + 'StoreContainer');
             
             if (categoryContainer) {
-                categoryContainer.style.display = ruleType === '@((int)CommissionRuleType.Category)' ? '' : 'none';
+                categoryContainer.style.display = ruleType === 'Category' ? '' : 'none';
             }
             if (storeContainer) {
-                storeContainer.style.display = ruleType === '@((int)CommissionRuleType.Seller)' ? '' : 'none';
+                storeContainer.style.display = ruleType === 'Seller' ? '' : 'none';
             }
         }
 
@@ -274,7 +274,7 @@
             // Show/hide scope container based on rule type
             var scopeContainer = document.getElementById('editScopeContainer');
             var ruleType = button.getAttribute('data-rule-type');
-            scopeContainer.style.display = ruleType === '@((int)CommissionRuleType.Global)' ? 'none' : '';
+            scopeContainer.style.display = ruleType === 'Global' ? 'none' : '';
         });
 
         // Initialize create form scope fields
