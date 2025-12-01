@@ -75,7 +75,7 @@
                                             <strong>@category.Name</strong>
                                             @if (!string.IsNullOrEmpty(category.Description))
                                             {
-                                                <br /><small class="text-muted">@(category.Description.Length > 50 ? category.Description.Substring(0, 50) + "..." : category.Description)</small>
+                                                <br /><small class="text-muted">@(category.Description!.Length > 50 ? category.Description.Substring(0, 50) + "..." : category.Description)</small>
                                             }
                                         </span>
                                     </td>

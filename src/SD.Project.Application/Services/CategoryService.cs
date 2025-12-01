@@ -66,7 +66,7 @@ public sealed class CategoryService
             if (generatedSlugExists)
             {
                 // Append a unique suffix if the auto-generated slug conflicts
-                category.UpdateSlug(category.Slug + "-" + Guid.NewGuid().ToString("N")[..8]);
+                category.UpdateSlug(category.Slug + "-" + Guid.NewGuid().ToString("N").Substring(0, 8));
             }
 
             await _repository.AddAsync(category, cancellationToken);
