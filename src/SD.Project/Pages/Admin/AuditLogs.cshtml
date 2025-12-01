@@ -1,0 +1,261 @@
+@page
+@model SD.Project.Pages.Admin.AuditLogsModel
+@{
+    ViewData["Title"] = "Audit Logs";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">
+                <i class="bi bi-journal-text me-2"></i>Audit Logs
+            </h1>
+            <p class="text-muted mb-0">View and investigate administrative actions</p>
+        </div>
+        <span class="badge bg-primary fs-6">@Model.TotalCount entries</span>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-funnel me-2"></i>Filters
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-2">
+                    <label for="FromDate" class="form-label">From Date</label>
+                    <input type="date" class="form-control" id="FromDate" name="FromDate" 
+                           value="@Model.FromDate?.ToString("yyyy-MM-dd")">
+                </div>
+                <div class="col-md-2">
+                    <label for="ToDate" class="form-label">To Date</label>
+                    <input type="date" class="form-control" id="ToDate" name="ToDate" 
+                           value="@Model.ToDate?.ToString("yyyy-MM-dd")">
+                </div>
+                <div class="col-md-2">
+                    <label for="ActionType" class="form-label">Action Type</label>
+                    <select class="form-select" id="ActionType" name="ActionType">
+                        @foreach (var option in Model.ActionTypeOptions)
+                        {
+                            <option value="@option.Value" selected="@(option.Value == Model.ActionType)">@option.Text</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="Outcome" class="form-label">Outcome</label>
+                    <select class="form-select" id="Outcome" name="Outcome">
+                        @foreach (var option in Model.OutcomeOptions)
+                        {
+                            <option value="@option.Value" selected="@(option.Value == Model.Outcome)">@option.Text</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="AdminUserId" class="form-label">Admin User ID</label>
+                    <input type="text" class="form-control" id="AdminUserId" name="AdminUserId" 
+                           value="@Model.AdminUserId" placeholder="User GUID...">
+                </div>
+                <div class="col-md-2 d-flex align-items-end gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Search
+                    </button>
+                    <a href="@Url.Page("/Admin/AuditLogs")" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-lg"></i> Clear
+                    </a>
+                </div>
+            </form>
+
+            <!-- Advanced Filters (Resource Search) -->
+            <div class="mt-3 pt-3 border-top">
+                <details>
+                    <summary class="text-primary fw-semibold" style="cursor: pointer;">
+                        <i class="bi bi-gear me-1"></i>Advanced: Search by Resource ID
+                    </summary>
+                    <div class="row g-3 mt-2">
+                        <div class="col-md-3">
+                            <label for="ResourceType" class="form-label">Resource Type</label>
+                            <input type="text" class="form-control" id="ResourceType" name="ResourceType"
+                                   value="@Model.ResourceType" placeholder="e.g., User, Order, Store...">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="ResourceId" class="form-label">Resource ID</label>
+                            <input type="text" class="form-control" id="ResourceId" name="ResourceId"
+                                   value="@Model.ResourceId" placeholder="Resource GUID...">
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-outline-primary">
+                                <i class="bi bi-search"></i> Search Resource History
+                            </button>
+                        </div>
+                    </div>
+                </details>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audit Logs Table -->
+    <div class="card">
+        <div class="card-body p-0">
+            @if (Model.AuditLogs.Count == 0)
+            {
+                <div class="text-center py-5">
+                    <i class="bi bi-journal-x fs-1 text-muted"></i>
+                    <p class="text-muted mt-2">No audit log entries found matching your criteria.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Admin User</th>
+                                <th>Action Type</th>
+                                <th>Target Resource</th>
+                                <th>Outcome</th>
+                                <th>Details</th>
+                                <th>IP Address</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var log in Model.AuditLogs)
+                            {
+                                <tr>
+                                    <td>
+                                        <span title="@log.OccurredAt.ToString("yyyy-MM-dd HH:mm:ss") UTC">
+                                            <small class="text-muted d-block">@log.OccurredAt.ToString("MMM dd, yyyy")</small>
+                                            <small>@log.OccurredAt.ToString("HH:mm:ss")</small>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="font-monospace" title="@log.UserId">@log.ShortUserId</span>
+                                        <br />
+                                        <span class="badge bg-secondary">@log.UserRole</span>
+                                    </td>
+                                    <td>
+                                        <span title="@log.ActionType">
+                                            <i class="@log.ActionTypeIcon me-1"></i>@log.ActionTypeDisplayName
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted d-block">@log.TargetResourceType</small>
+                                        @if (log.TargetResourceId.HasValue)
+                                        {
+                                            <span class="font-monospace" title="@log.TargetResourceId">@log.ShortTargetResourceId</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="badge @log.OutcomeBadgeClass">@log.Outcome</span>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(log.Details))
+                                        {
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" 
+                                                    data-bs-toggle="modal" data-bs-target="#detailsModal"
+                                                    onclick="showDetails('@System.Net.WebUtility.HtmlEncode(log.Details?.Replace("'", "\\'") ?? "")')">
+                                                <i class="bi bi-eye"></i> View
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(log.IpAddress))
+                                        {
+                                            <small class="font-monospace">@log.IpAddress</small>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    @if (Model.TotalPages > 1)
+    {
+        <nav aria-label="Audit log pagination" class="mt-4">
+            <ul class="pagination justify-content-center">
+                <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                    <a class="page-link" asp-page="/Admin/AuditLogs" 
+                       asp-route-Page="@(Model.CurrentPage - 1)"
+                       asp-route-FromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
+                       asp-route-ToDate="@Model.ToDate?.ToString("yyyy-MM-dd")"
+                       asp-route-ActionType="@Model.ActionType"
+                       asp-route-Outcome="@Model.Outcome"
+                       asp-route-AdminUserId="@Model.AdminUserId">Previous</a>
+                </li>
+                @for (int i = Math.Max(1, Model.CurrentPage - 2); i <= Math.Min(Model.TotalPages, Model.CurrentPage + 2); i++)
+                {
+                    <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                        <a class="page-link" asp-page="/Admin/AuditLogs"
+                           asp-route-Page="@i"
+                           asp-route-FromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
+                           asp-route-ToDate="@Model.ToDate?.ToString("yyyy-MM-dd")"
+                           asp-route-ActionType="@Model.ActionType"
+                           asp-route-Outcome="@Model.Outcome"
+                           asp-route-AdminUserId="@Model.AdminUserId">@i</a>
+                    </li>
+                }
+                <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                    <a class="page-link" asp-page="/Admin/AuditLogs"
+                       asp-route-Page="@(Model.CurrentPage + 1)"
+                       asp-route-FromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
+                       asp-route-ToDate="@Model.ToDate?.ToString("yyyy-MM-dd")"
+                       asp-route-ActionType="@Model.ActionType"
+                       asp-route-Outcome="@Model.Outcome"
+                       asp-route-AdminUserId="@Model.AdminUserId">Next</a>
+                </li>
+            </ul>
+        </nav>
+    }
+
+    <!-- Retention Notice -->
+    <div class="alert alert-info mt-4" role="alert">
+        <i class="bi bi-info-circle me-2"></i>
+        <strong>Retention Policy:</strong> Audit logs are retained for 365 days from the date of the action, 
+        in accordance with legal and operational requirements. Logs are immutable and cannot be modified or deleted.
+    </div>
+</div>
+
+<!-- Details Modal -->
+<div class="modal fade" id="detailsModal" tabindex="-1" aria-labelledby="detailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="detailsModalLabel">
+                    <i class="bi bi-card-text me-2"></i>Action Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <pre id="detailsContent" class="bg-light p-3 rounded" style="white-space: pre-wrap; word-break: break-word;"></pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function showDetails(details) {
+            document.getElementById('detailsContent').textContent = details;
+        }
+    </script>
+}
