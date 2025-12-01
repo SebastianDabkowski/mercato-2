@@ -1,95 +1,186 @@
+using System.Net;
 using Microsoft.Extensions.Logging;
 using SD.Project.Application.Interfaces;
 
 namespace SD.Project.Infrastructure.Services;
 
 /// <summary>
-/// Logs notification intents until real channel is available.
+/// Notification service that sends emails via IEmailSender and logs all notification events.
 /// </summary>
 public sealed class NotificationService : INotificationService
 {
     private const string DefaultCarrierName = "Unknown Carrier";
     private readonly ILogger<NotificationService> _logger;
+    private readonly IEmailSender _emailSender;
 
-    public NotificationService(ILogger<NotificationService> logger)
+    public NotificationService(ILogger<NotificationService> logger, IEmailSender emailSender)
     {
         _logger = logger;
+        _emailSender = emailSender;
     }
+
+    /// <summary>
+    /// HTML-encodes a string to prevent XSS vulnerabilities in email content.
+    /// </summary>
+    private static string HtmlEncode(string? value) => WebUtility.HtmlEncode(value ?? string.Empty);
+
+    /// <summary>
+    /// HTML-encodes a URL for safe use in href attributes.
+    /// </summary>
+    private static string HtmlEncodeUrl(string? url) => WebUtility.HtmlEncode(url ?? string.Empty);
 
     public Task SendProductCreatedAsync(Guid productId, CancellationToken cancellationToken = default)
     {
-        // TODO: Replace logging with integration (email, message bus, etc.).
+        // Product notifications are logged only (no email recipients specified)
         _logger.LogInformation("Product {ProductId} created", productId);
         return Task.CompletedTask;
     }
 
     public Task SendProductUpdatedAsync(Guid productId, CancellationToken cancellationToken = default)
     {
-        // TODO: Replace logging with integration (email, message bus, etc.).
+        // Product notifications are logged only (no email recipients specified)
         _logger.LogInformation("Product {ProductId} updated", productId);
         return Task.CompletedTask;
     }
 
     public Task SendProductDeletedAsync(Guid productId, CancellationToken cancellationToken = default)
     {
-        // TODO: Replace logging with integration (email, message bus, etc.).
+        // Product notifications are logged only (no email recipients specified)
         _logger.LogInformation("Product {ProductId} deleted (archived)", productId);
         return Task.CompletedTask;
     }
 
     public Task SendProductStatusChangedAsync(Guid productId, string previousStatus, string newStatus, CancellationToken cancellationToken = default)
     {
-        // TODO: Replace logging with integration (email, message bus, etc.).
+        // Product notifications are logged only (no email recipients specified)
         _logger.LogInformation("Product {ProductId} status changed from {PreviousStatus} to {NewStatus}", productId, previousStatus, newStatus);
         return Task.CompletedTask;
     }
 
-    public Task SendEmailVerificationAsync(Guid userId, string email, string verificationToken, CancellationToken cancellationToken = default)
+    public async Task SendRegistrationConfirmationAsync(Guid userId, string email, string firstName, CancellationToken cancellationToken = default)
     {
-        // TODO: Replace logging with real email sending integration.
-        // In a production environment, this would generate a full URL like:
-        // https://yourdomain.com/VerifyEmail?token={verificationToken}
+        _logger.LogInformation(
+            "Sending registration confirmation email to {Email} for user {UserId}",
+            email, userId);
+
+        var encodedFirstName = HtmlEncode(firstName);
+        var message = new EmailMessage(
+            To: email,
+            Subject: "Welcome to Mercato Marketplace!",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1>Welcome, {encodedFirstName}!</h1>
+                    <p>Thank you for registering with Mercato Marketplace.</p>
+                    <p>Your account has been created successfully. You can now start exploring our marketplace.</p>
+                    <p>If you have any questions, please don't hesitate to contact our support team.</p>
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"Welcome, {firstName}! Thank you for registering with Mercato Marketplace. Your account has been created successfully.",
+            TemplateName: "RegistrationConfirmation",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(message, cancellationToken);
+    }
+
+    public async Task SendEmailVerificationAsync(Guid userId, string email, string verificationToken, CancellationToken cancellationToken = default)
+    {
         var verificationLink = $"/VerifyEmail?token={verificationToken}";
         _logger.LogInformation(
-            "Verification email sent to {Email} for user {UserId}. Verification link: {VerificationLink}",
-            email, userId, verificationLink);
-        return Task.CompletedTask;
+            "Sending verification email to {Email} for user {UserId}",
+            email, userId);
+
+        var encodedLink = HtmlEncodeUrl(verificationLink);
+        var message = new EmailMessage(
+            To: email,
+            Subject: "Verify Your Email Address - Mercato Marketplace",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1>Verify Your Email Address</h1>
+                    <p>Please click the link below to verify your email address:</p>
+                    <p><a href='{encodedLink}'>Verify Email</a></p>
+                    <p>If you didn't create an account with us, please ignore this email.</p>
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"Please verify your email address by visiting: {verificationLink}",
+            TemplateName: "EmailVerification",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(message, cancellationToken);
     }
 
-    public Task SendPasswordResetEmailAsync(Guid userId, string email, string resetToken, CancellationToken cancellationToken = default)
+    public async Task SendPasswordResetEmailAsync(Guid userId, string email, string resetToken, CancellationToken cancellationToken = default)
     {
-        // TODO: Replace logging with real email sending integration.
-        // In a production environment, this would generate a full URL like:
-        // https://yourdomain.com/ResetPassword?token={resetToken}
         var resetLink = $"/ResetPassword?token={resetToken}";
         _logger.LogInformation(
-            "Password reset email sent to {Email} for user {UserId}. Reset link: {ResetLink}",
-            email, userId, resetLink);
-        return Task.CompletedTask;
+            "Sending password reset email to {Email} for user {UserId}",
+            email, userId);
+
+        var encodedLink = HtmlEncodeUrl(resetLink);
+        var message = new EmailMessage(
+            To: email,
+            Subject: "Reset Your Password - Mercato Marketplace",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1>Reset Your Password</h1>
+                    <p>You requested to reset your password. Click the link below to create a new password:</p>
+                    <p><a href='{encodedLink}'>Reset Password</a></p>
+                    <p>This link will expire in 24 hours.</p>
+                    <p>If you didn't request this, please ignore this email.</p>
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"Reset your password by visiting: {resetLink}",
+            TemplateName: "PasswordReset",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(message, cancellationToken);
     }
 
-    public Task SendInternalUserInvitationAsync(string email, string storeName, string role, string invitationToken, CancellationToken cancellationToken = default)
+    public async Task SendInternalUserInvitationAsync(string email, string storeName, string role, string invitationToken, CancellationToken cancellationToken = default)
     {
-        // TODO: Replace logging with real email sending integration.
-        // In a production environment, this would generate a full URL like:
-        // https://yourdomain.com/AcceptInvitation?token={invitationToken}
         var invitationLink = $"/AcceptInvitation?token={invitationToken}";
         _logger.LogInformation(
-            "Internal user invitation sent to {Email} for store {StoreName} with role {Role}. Invitation link: {InvitationLink}",
-            email, storeName, role, invitationLink);
-        return Task.CompletedTask;
+            "Sending internal user invitation to {Email} for store {StoreName} with role {Role}",
+            email, storeName, role);
+
+        var encodedStoreName = HtmlEncode(storeName);
+        var encodedRole = HtmlEncode(role);
+        var encodedLink = HtmlEncodeUrl(invitationLink);
+        var message = new EmailMessage(
+            To: email,
+            Subject: $"You're Invited to Join {storeName} on Mercato Marketplace",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1>You're Invited!</h1>
+                    <p>You have been invited to join <strong>{encodedStoreName}</strong> on Mercato Marketplace as a <strong>{encodedRole}</strong>.</p>
+                    <p><a href='{encodedLink}'>Accept Invitation</a></p>
+                    <p>This invitation will expire in 7 days.</p>
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"You have been invited to join {storeName} as a {role}. Accept at: {invitationLink}",
+            TemplateName: "InternalUserInvitation",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(message, cancellationToken);
     }
 
     public Task SendBulkUpdateCompletedAsync(Guid sellerId, int successCount, int failureCount, CancellationToken cancellationToken = default)
     {
-        // TODO: Replace logging with real notification integration.
+        // Bulk update notifications are logged only (seller doesn't have email in this context)
         _logger.LogInformation(
             "Bulk update completed for seller {SellerId}: {SuccessCount} succeeded, {FailureCount} failed",
             sellerId, successCount, failureCount);
         return Task.CompletedTask;
     }
 
-    public Task SendOrderConfirmationAsync(
+    public async Task SendOrderConfirmationAsync(
         Guid orderId,
         string buyerEmail,
         string orderNumber,
@@ -97,23 +188,34 @@ public sealed class NotificationService : INotificationService
         string currency,
         CancellationToken cancellationToken = default)
     {
-        // TODO: Replace logging with real email/notification integration.
-        // In a production environment, this would send an email with order details,
-        // tracking information, and receipt to the buyer using an email template.
-        // Email templates should be configurable and localized.
         var confirmationLink = $"/Buyer/OrderConfirmation/{orderId}";
         _logger.LogInformation(
-            "Order confirmation email sent to {BuyerEmail} for order {OrderNumber}. " +
-            "Total: {Currency} {TotalAmount:N2}. Confirmation link: {ConfirmationLink}",
-            buyerEmail,
-            orderNumber,
-            currency,
-            totalAmount,
-            confirmationLink);
-        return Task.CompletedTask;
+            "Sending order confirmation email to {BuyerEmail} for order {OrderNumber}",
+            buyerEmail, orderNumber);
+
+        var encodedLink = HtmlEncodeUrl(confirmationLink);
+        var message = new EmailMessage(
+            To: buyerEmail,
+            Subject: $"Order Confirmation - {orderNumber}",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1>Thank You for Your Order!</h1>
+                    <p>Your order <strong>{orderNumber}</strong> has been confirmed.</p>
+                    <p>Total: <strong>{currency} {totalAmount:N2}</strong></p>
+                    <p><a href='{encodedLink}'>View Order Details</a></p>
+                    <p>We'll send you another email when your order ships.</p>
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"Thank you for your order {orderNumber}. Total: {currency} {totalAmount:N2}. View details at: {confirmationLink}",
+            TemplateName: "OrderConfirmation",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(message, cancellationToken);
     }
 
-    public Task SendShipmentStatusChangedAsync(
+    public async Task SendShipmentStatusChangedAsync(
         Guid shipmentId,
         Guid orderId,
         string buyerEmail,
@@ -124,25 +226,42 @@ public sealed class NotificationService : INotificationService
         string? carrierName,
         CancellationToken cancellationToken = default)
     {
-        // TODO: Replace logging with real email/notification integration.
-        // In a production environment, this would send an email notification to the buyer
-        // when the shipment status changes (e.g., preparing, shipped, delivered).
-        // For shipped status, include tracking information if available.
         var trackingInfo = !string.IsNullOrEmpty(trackingNumber)
-            ? $" Tracking: {carrierName ?? DefaultCarrierName} - {trackingNumber}"
+            ? $"Tracking: {carrierName ?? DefaultCarrierName} - {trackingNumber}"
             : "";
         _logger.LogInformation(
-            "Shipment status changed notification sent to {BuyerEmail} for order {OrderNumber}. " +
-            "Status: {PreviousStatus} -> {NewStatus}.{TrackingInfo}",
-            buyerEmail,
-            orderNumber,
-            previousStatus,
-            newStatus,
-            trackingInfo);
-        return Task.CompletedTask;
+            "Sending shipment status notification to {BuyerEmail} for order {OrderNumber}. Status: {NewStatus}",
+            buyerEmail, orderNumber, newStatus);
+
+        var subject = newStatus.Equals("Shipped", StringComparison.OrdinalIgnoreCase)
+            ? $"Your Order {orderNumber} Has Shipped!"
+            : $"Order {orderNumber} - Shipment Update";
+
+        var trackingHtml = !string.IsNullOrEmpty(trackingNumber)
+            ? $"<p>Carrier: <strong>{carrierName ?? DefaultCarrierName}</strong><br/>Tracking Number: <strong>{trackingNumber}</strong></p>"
+            : "";
+
+        var message = new EmailMessage(
+            To: buyerEmail,
+            Subject: subject,
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1>Shipment Update</h1>
+                    <p>Your order <strong>{orderNumber}</strong> has been updated.</p>
+                    <p>Status: <strong>{newStatus}</strong></p>
+                    {trackingHtml}
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"Your order {orderNumber} status: {newStatus}. {trackingInfo}",
+            TemplateName: "ShipmentStatusChanged",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(message, cancellationToken);
     }
 
-    public Task SendTrackingInfoUpdatedAsync(
+    public async Task SendTrackingInfoUpdatedAsync(
         Guid shipmentId,
         Guid orderId,
         string buyerEmail,
@@ -152,96 +271,162 @@ public sealed class NotificationService : INotificationService
         string? trackingUrl,
         CancellationToken cancellationToken = default)
     {
-        // TODO: Replace logging with real email/notification integration.
-        // In a production environment, this would send an email notification to the buyer
-        // when tracking information is updated for their shipment.
-        var trackingInfo = !string.IsNullOrEmpty(trackingNumber)
-            ? $"Tracking: {carrierName ?? DefaultCarrierName} - {trackingNumber}"
-            : "Tracking information updated";
-        var urlInfo = !string.IsNullOrEmpty(trackingUrl)
-            ? $" (Track at: {trackingUrl})"
-            : "";
         _logger.LogInformation(
-            "Tracking info updated notification sent to {BuyerEmail} for order {OrderNumber}. " +
-            "{TrackingInfo}{UrlInfo}",
-            buyerEmail,
-            orderNumber,
-            trackingInfo,
-            urlInfo);
-        return Task.CompletedTask;
+            "Sending tracking info update to {BuyerEmail} for order {OrderNumber}",
+            buyerEmail, orderNumber);
+
+        var trackingLinkHtml = !string.IsNullOrEmpty(trackingUrl)
+            ? $"<p><a href='{HtmlEncodeUrl(trackingUrl)}'>Track Your Package</a></p>"
+            : "";
+
+        var message = new EmailMessage(
+            To: buyerEmail,
+            Subject: $"Tracking Update for Order {orderNumber}",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1>Tracking Information Updated</h1>
+                    <p>Tracking has been updated for your order <strong>{orderNumber}</strong>.</p>
+                    <p>Carrier: <strong>{carrierName ?? DefaultCarrierName}</strong></p>
+                    <p>Tracking Number: <strong>{trackingNumber ?? "Pending"}</strong></p>
+                    {trackingLinkHtml}
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"Tracking update for order {orderNumber}. Carrier: {carrierName ?? DefaultCarrierName}, Tracking: {trackingNumber ?? "Pending"}",
+            TemplateName: "TrackingInfoUpdated",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(message, cancellationToken);
     }
 
-    public Task SendReturnRequestCreatedAsync(
+    public async Task SendReturnRequestCreatedAsync(
         Guid returnRequestId,
         string orderNumber,
         string sellerEmail,
         string reason,
         CancellationToken cancellationToken = default)
     {
-        // TODO: Replace logging with real email/notification integration.
         _logger.LogInformation(
-            "Return request notification sent to seller {SellerEmail} for order {OrderNumber}. " +
-            "Return request ID: {ReturnRequestId}. Reason: {Reason}",
-            sellerEmail,
-            orderNumber,
-            returnRequestId,
-            reason);
-        return Task.CompletedTask;
+            "Sending return request notification to seller {SellerEmail} for order {OrderNumber}",
+            sellerEmail, orderNumber);
+
+        var encodedReason = HtmlEncode(reason);
+        var message = new EmailMessage(
+            To: sellerEmail,
+            Subject: $"Return Request Received - Order {orderNumber}",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1>Return Request Received</h1>
+                    <p>A buyer has requested a return for order <strong>{orderNumber}</strong>.</p>
+                    <p>Reason: {encodedReason}</p>
+                    <p>Please review this request in your seller dashboard.</p>
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"Return request for order {orderNumber}. Reason: {reason}",
+            TemplateName: "ReturnRequestCreated",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(message, cancellationToken);
     }
 
-    public Task SendReturnRequestApprovedAsync(
+    public async Task SendReturnRequestApprovedAsync(
         Guid returnRequestId,
         string orderNumber,
         string buyerEmail,
         string? sellerResponse,
         CancellationToken cancellationToken = default)
     {
-        // TODO: Replace logging with real email/notification integration.
-        var responseInfo = !string.IsNullOrEmpty(sellerResponse)
-            ? $" Seller response: {sellerResponse}"
-            : "";
         _logger.LogInformation(
-            "Return request approved notification sent to buyer {BuyerEmail} for order {OrderNumber}. " +
-            "Return request ID: {ReturnRequestId}.{ResponseInfo}",
-            buyerEmail,
-            orderNumber,
-            returnRequestId,
-            responseInfo);
-        return Task.CompletedTask;
+            "Sending return approved notification to {BuyerEmail} for order {OrderNumber}",
+            buyerEmail, orderNumber);
+
+        var responseHtml = !string.IsNullOrEmpty(sellerResponse)
+            ? $"<p>Seller's message: {HtmlEncode(sellerResponse)}</p>"
+            : "";
+
+        var message = new EmailMessage(
+            To: buyerEmail,
+            Subject: $"Return Request Approved - Order {orderNumber}",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1>Return Request Approved</h1>
+                    <p>Good news! Your return request for order <strong>{orderNumber}</strong> has been approved.</p>
+                    {responseHtml}
+                    <p>Please follow the return instructions provided in your account.</p>
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"Your return request for order {orderNumber} has been approved.",
+            TemplateName: "ReturnRequestApproved",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(message, cancellationToken);
     }
 
-    public Task SendReturnRequestRejectedAsync(
+    public async Task SendReturnRequestRejectedAsync(
         Guid returnRequestId,
         string orderNumber,
         string buyerEmail,
         string rejectionReason,
         CancellationToken cancellationToken = default)
     {
-        // TODO: Replace logging with real email/notification integration.
         _logger.LogInformation(
-            "Return request rejected notification sent to buyer {BuyerEmail} for order {OrderNumber}. " +
-            "Return request ID: {ReturnRequestId}. Rejection reason: {RejectionReason}",
-            buyerEmail,
-            orderNumber,
-            returnRequestId,
-            rejectionReason);
-        return Task.CompletedTask;
+            "Sending return rejected notification to {BuyerEmail} for order {OrderNumber}",
+            buyerEmail, orderNumber);
+
+        var encodedRejectionReason = HtmlEncode(rejectionReason);
+        var message = new EmailMessage(
+            To: buyerEmail,
+            Subject: $"Return Request Update - Order {orderNumber}",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1>Return Request Update</h1>
+                    <p>Your return request for order <strong>{orderNumber}</strong> could not be approved.</p>
+                    <p>Reason: {encodedRejectionReason}</p>
+                    <p>If you have questions, please contact our support team.</p>
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"Your return request for order {orderNumber} was not approved. Reason: {rejectionReason}",
+            TemplateName: "ReturnRequestRejected",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(message, cancellationToken);
     }
 
-    public Task SendReturnRequestCompletedAsync(
+    public async Task SendReturnRequestCompletedAsync(
         Guid returnRequestId,
         string orderNumber,
         string buyerEmail,
         CancellationToken cancellationToken = default)
     {
-        // TODO: Replace logging with real email/notification integration.
         _logger.LogInformation(
-            "Return request completed notification sent to buyer {BuyerEmail} for order {OrderNumber}. " +
-            "Return request ID: {ReturnRequestId}",
-            buyerEmail,
-            orderNumber,
-            returnRequestId);
-        return Task.CompletedTask;
+            "Sending return completed notification to {BuyerEmail} for order {OrderNumber}",
+            buyerEmail, orderNumber);
+
+        var message = new EmailMessage(
+            To: buyerEmail,
+            Subject: $"Return Completed - Order {orderNumber}",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1>Return Completed</h1>
+                    <p>Your return for order <strong>{orderNumber}</strong> has been completed.</p>
+                    <p>Your refund will be processed shortly.</p>
+                    <p>Thank you for shopping with Mercato.</p>
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"Your return for order {orderNumber} has been completed. Refund will be processed shortly.",
+            TemplateName: "ReturnRequestCompleted",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(message, cancellationToken);
     }
 
     public Task SendItemStatusChangedAsync(
@@ -256,20 +441,14 @@ public sealed class NotificationService : INotificationService
         string? carrierName,
         CancellationToken cancellationToken = default)
     {
-        // TODO: Replace logging with real email/notification integration.
-        // Phase 2: Partial fulfilment - notify buyer when individual item status changes.
+        // Item-level notifications are logged for now (Phase 2: partial fulfilment)
         var trackingInfo = !string.IsNullOrEmpty(trackingNumber)
             ? $" Tracking: {carrierName ?? DefaultCarrierName} - {trackingNumber}"
             : "";
         _logger.LogInformation(
-            "Item status changed notification sent to {BuyerEmail} for order {OrderNumber}. " +
-            "Product: {ProductName}. Status: {PreviousStatus} -> {NewStatus}.{TrackingInfo}",
-            buyerEmail,
-            orderNumber,
-            productName,
-            previousStatus,
-            newStatus,
-            trackingInfo);
+            "Item status changed notification for {BuyerEmail}, order {OrderNumber}. " +
+            "Product: {ProductName}. Status: {NewStatus}.{TrackingInfo}",
+            buyerEmail, orderNumber, productName, newStatus, trackingInfo);
         return Task.CompletedTask;
     }
 
@@ -282,20 +461,15 @@ public sealed class NotificationService : INotificationService
         string newStatus,
         CancellationToken cancellationToken = default)
     {
-        // TODO: Replace logging with real email/notification integration.
-        // Phase 2: Partial fulfilment - notify buyer when multiple items' status changes.
+        // Batch item notifications are logged for now (Phase 2: partial fulfilment)
         _logger.LogInformation(
-            "Batch item status changed notification sent to {BuyerEmail} for order {OrderNumber}. " +
-            "{ItemCount} items ({ItemNames}) changed to status {NewStatus}",
-            buyerEmail,
-            orderNumber,
-            itemCount,
-            itemNames,
-            newStatus);
+            "Batch item status changed notification for {BuyerEmail}, order {OrderNumber}. " +
+            "{ItemCount} items changed to status {NewStatus}",
+            buyerEmail, orderNumber, itemCount, newStatus);
         return Task.CompletedTask;
     }
 
-    public Task SendItemsRefundedAsync(
+    public async Task SendItemsRefundedAsync(
         Guid orderId,
         string buyerEmail,
         string orderNumber,
@@ -304,20 +478,31 @@ public sealed class NotificationService : INotificationService
         string currency,
         CancellationToken cancellationToken = default)
     {
-        // TODO: Replace logging with real email/notification integration.
-        // Phase 2: Partial fulfilment - notify buyer when items are refunded.
         _logger.LogInformation(
-            "Items refunded notification sent to {BuyerEmail} for order {OrderNumber}. " +
-            "{ItemCount} items refunded for {Currency} {RefundAmount:N2}",
-            buyerEmail,
-            orderNumber,
-            itemCount,
-            currency,
-            refundAmount);
-        return Task.CompletedTask;
+            "Sending items refunded notification to {BuyerEmail} for order {OrderNumber}",
+            buyerEmail, orderNumber);
+
+        var message = new EmailMessage(
+            To: buyerEmail,
+            Subject: $"Refund Processed - Order {orderNumber}",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1>Refund Processed</h1>
+                    <p>A refund has been processed for {itemCount} item(s) from your order <strong>{orderNumber}</strong>.</p>
+                    <p>Refund Amount: <strong>{currency} {refundAmount:N2}</strong></p>
+                    <p>The refund will be credited to your original payment method within 5-10 business days.</p>
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"Refund of {currency} {refundAmount:N2} processed for {itemCount} item(s) from order {orderNumber}.",
+            TemplateName: "ItemsRefunded",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(message, cancellationToken);
     }
 
-    public Task SendPaymentFailedAsync(
+    public async Task SendPaymentFailedAsync(
         Guid orderId,
         string buyerEmail,
         string orderNumber,
@@ -325,19 +510,31 @@ public sealed class NotificationService : INotificationService
         string currency,
         CancellationToken cancellationToken = default)
     {
-        // TODO: Replace logging with real email/notification integration.
-        // Notify buyer when payment fails so they can retry or use a different payment method.
         _logger.LogInformation(
-            "Payment failed notification sent to {BuyerEmail} for order {OrderNumber}. " +
-            "Amount: {Currency} {TotalAmount:N2}",
-            buyerEmail,
-            orderNumber,
-            currency,
-            totalAmount);
-        return Task.CompletedTask;
+            "Sending payment failed notification to {BuyerEmail} for order {OrderNumber}",
+            buyerEmail, orderNumber);
+
+        var message = new EmailMessage(
+            To: buyerEmail,
+            Subject: $"Payment Failed - Order {orderNumber}",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1>Payment Failed</h1>
+                    <p>We were unable to process your payment for order <strong>{orderNumber}</strong>.</p>
+                    <p>Amount: <strong>{currency} {totalAmount:N2}</strong></p>
+                    <p>Please update your payment method or try again.</p>
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"Payment failed for order {orderNumber}. Amount: {currency} {totalAmount:N2}. Please try again.",
+            TemplateName: "PaymentFailed",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(message, cancellationToken);
     }
 
-    public Task SendRefundProcessedAsync(
+    public async Task SendRefundProcessedAsync(
         Guid orderId,
         string buyerEmail,
         string orderNumber,
@@ -345,16 +542,28 @@ public sealed class NotificationService : INotificationService
         string currency,
         CancellationToken cancellationToken = default)
     {
-        // TODO: Replace logging with real email/notification integration.
-        // Notify buyer when a refund has been processed for their order.
         _logger.LogInformation(
-            "Refund processed notification sent to {BuyerEmail} for order {OrderNumber}. " +
-            "Refund amount: {Currency} {RefundAmount:N2}",
-            buyerEmail,
-            orderNumber,
-            currency,
-            refundAmount);
-        return Task.CompletedTask;
+            "Sending refund processed notification to {BuyerEmail} for order {OrderNumber}",
+            buyerEmail, orderNumber);
+
+        var message = new EmailMessage(
+            To: buyerEmail,
+            Subject: $"Refund Processed - Order {orderNumber}",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1>Refund Processed</h1>
+                    <p>A refund has been processed for your order <strong>{orderNumber}</strong>.</p>
+                    <p>Refund Amount: <strong>{currency} {refundAmount:N2}</strong></p>
+                    <p>The refund will be credited to your original payment method within 5-10 business days.</p>
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"Refund of {currency} {refundAmount:N2} processed for order {orderNumber}.",
+            TemplateName: "RefundProcessed",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(message, cancellationToken);
     }
 
     public Task SendPayoutScheduledNotificationAsync(
@@ -486,28 +695,17 @@ public sealed class NotificationService : INotificationService
         bool canRetry,
         CancellationToken cancellationToken = default)
     {
-        // TODO: Replace logging with real notification integration.
-        // In a production environment, this would notify support agents via email,
-        // internal messaging system, or ticketing system about the failure.
-        // For seller-initiated refunds, the seller would also be notified.
+        // Refund provider errors are logged only (support team notification - no buyer email)
         var retryInfo = canRetry ? "Retry is available." : "Maximum retries exceeded.";
         _logger.LogWarning(
-            "Refund provider error notification. Refund ID: {RefundId}, Order: {OrderNumber}. " +
-            "Amount: {Currency} {RefundAmount:N2}. Error: {ErrorMessage} ({ErrorCode}). " +
-            "Initiated by: {InitiatorType} {InitiatorId}. {RetryInfo}",
-            refundId,
-            orderNumber,
-            currency,
-            refundAmount,
-            errorMessage ?? "Unknown error",
-            errorCode ?? "N/A",
-            initiatorType,
-            initiatorId,
-            retryInfo);
+            "Refund provider error. Refund ID: {RefundId}, Order: {OrderNumber}. " +
+            "Amount: {Currency} {RefundAmount:N2}. Error: {ErrorMessage} ({ErrorCode}). {RetryInfo}",
+            refundId, orderNumber, currency, refundAmount,
+            errorMessage ?? "Unknown error", errorCode ?? "N/A", retryInfo);
         return Task.CompletedTask;
     }
 
-    public Task SendPartialRefundProcessedAsync(
+    public async Task SendPartialRefundProcessedAsync(
         Guid orderId,
         string buyerEmail,
         string orderNumber,
@@ -516,40 +714,63 @@ public sealed class NotificationService : INotificationService
         string currency,
         CancellationToken cancellationToken = default)
     {
-        // TODO: Replace logging with real email/notification integration.
-        // Notify buyer when a partial refund has been processed for their order.
         _logger.LogInformation(
-            "Partial refund processed notification sent to {BuyerEmail} for order {OrderNumber}. " +
-            "Refund amount: {RefundCurrency} {RefundAmount:N2}. Remaining amount: {RemainingCurrency} {RemainingAmount:N2}",
-            buyerEmail,
-            orderNumber,
-            currency,
-            refundAmount,
-            currency,
-            remainingAmount);
-        return Task.CompletedTask;
+            "Sending partial refund notification to {BuyerEmail} for order {OrderNumber}",
+            buyerEmail, orderNumber);
+
+        var message = new EmailMessage(
+            To: buyerEmail,
+            Subject: $"Partial Refund Processed - Order {orderNumber}",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1>Partial Refund Processed</h1>
+                    <p>A partial refund has been processed for your order <strong>{orderNumber}</strong>.</p>
+                    <p>Refund Amount: <strong>{currency} {refundAmount:N2}</strong></p>
+                    <p>Remaining Order Balance: <strong>{currency} {remainingAmount:N2}</strong></p>
+                    <p>The refund will be credited to your original payment method within 5-10 business days.</p>
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"Partial refund of {currency} {refundAmount:N2} processed for order {orderNumber}. Remaining balance: {currency} {remainingAmount:N2}",
+            TemplateName: "PartialRefundProcessed",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(message, cancellationToken);
     }
 
-    public Task SendCaseMessageReceivedAsync(
+    public async Task SendCaseMessageReceivedAsync(
         Guid returnRequestId,
         string caseNumber,
         string recipientEmail,
         string senderName,
         CancellationToken cancellationToken = default)
     {
-        // TODO: Replace logging with real email/notification integration.
-        // Notify the recipient when they receive a new message in a case thread.
         _logger.LogInformation(
-            "Case message notification sent to {RecipientEmail} for case {CaseNumber}. " +
-            "New message from {SenderName}. Case ID: {ReturnRequestId}",
-            recipientEmail,
-            caseNumber,
-            senderName,
-            returnRequestId);
-        return Task.CompletedTask;
+            "Sending case message notification to {RecipientEmail} for case {CaseNumber}",
+            recipientEmail, caseNumber);
+
+        var encodedSenderName = HtmlEncode(senderName);
+        var message = new EmailMessage(
+            To: recipientEmail,
+            Subject: $"New Message - Case {caseNumber}",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1>New Message in Your Case</h1>
+                    <p>You have received a new message from <strong>{encodedSenderName}</strong> regarding case <strong>{caseNumber}</strong>.</p>
+                    <p>Please log in to your account to view and respond to the message.</p>
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"New message from {senderName} in case {caseNumber}. Log in to view and respond.",
+            TemplateName: "CaseMessageReceived",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(message, cancellationToken);
     }
 
-    public Task SendCaseResolvedAsync(
+    public async Task SendCaseResolvedAsync(
         Guid returnRequestId,
         string caseNumber,
         string orderNumber,
@@ -558,23 +779,36 @@ public sealed class NotificationService : INotificationService
         string? resolutionNotes,
         CancellationToken cancellationToken = default)
     {
-        // TODO: Replace logging with real email/notification integration.
-        // Notify the buyer when their case is resolved by the seller.
-        var notesInfo = !string.IsNullOrEmpty(resolutionNotes)
-            ? $" Resolution notes: {resolutionNotes}"
-            : "";
         _logger.LogInformation(
-            "Case resolved notification sent to {BuyerEmail} for case {CaseNumber}. " +
-            "Order: {OrderNumber}. Resolution type: {ResolutionType}.{NotesInfo}",
-            buyerEmail,
-            caseNumber,
-            orderNumber,
-            resolutionType,
-            notesInfo);
-        return Task.CompletedTask;
+            "Sending case resolved notification to {BuyerEmail} for case {CaseNumber}",
+            buyerEmail, caseNumber);
+
+        var notesHtml = !string.IsNullOrEmpty(resolutionNotes)
+            ? $"<p>Notes: {HtmlEncode(resolutionNotes)}</p>"
+            : "";
+
+        var message = new EmailMessage(
+            To: buyerEmail,
+            Subject: $"Case Resolved - {caseNumber}",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1>Your Case Has Been Resolved</h1>
+                    <p>Your case <strong>{caseNumber}</strong> for order <strong>{orderNumber}</strong> has been resolved.</p>
+                    <p>Resolution: <strong>{resolutionType}</strong></p>
+                    {notesHtml}
+                    <p>Thank you for your patience.</p>
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"Case {caseNumber} for order {orderNumber} resolved. Resolution: {resolutionType}",
+            TemplateName: "CaseResolved",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(message, cancellationToken);
     }
 
-    public Task SendCaseEscalatedAsync(
+    public async Task SendCaseEscalatedAsync(
         Guid returnRequestId,
         string caseNumber,
         string orderNumber,
@@ -583,21 +817,52 @@ public sealed class NotificationService : INotificationService
         string escalationReason,
         CancellationToken cancellationToken = default)
     {
-        // TODO: Replace logging with real email/notification integration.
-        // Notify both buyer and seller that the case is now under admin review.
         _logger.LogInformation(
-            "Case escalated notification sent. Case: {CaseNumber}, Order: {OrderNumber}. " +
-            "Reason: {EscalationReason}. Buyer: {BuyerEmail}, Seller: {SellerEmail}. Case ID: {ReturnRequestId}",
-            caseNumber,
-            orderNumber,
-            escalationReason,
-            buyerEmail,
-            sellerEmail,
-            returnRequestId);
-        return Task.CompletedTask;
+            "Sending case escalation notifications for case {CaseNumber}",
+            caseNumber);
+
+        // Send to buyer
+        var buyerMessage = new EmailMessage(
+            To: buyerEmail,
+            Subject: $"Case Escalated for Review - {caseNumber}",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1>Case Under Review</h1>
+                    <p>Your case <strong>{caseNumber}</strong> for order <strong>{orderNumber}</strong> has been escalated for admin review.</p>
+                    <p>Our team will review the case and make a decision. You will be notified of the outcome.</p>
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"Case {caseNumber} for order {orderNumber} has been escalated for admin review.",
+            TemplateName: "CaseEscalatedBuyer",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(buyerMessage, cancellationToken);
+
+        // Send to seller
+        var encodedEscalationReason = HtmlEncode(escalationReason);
+        var sellerMessage = new EmailMessage(
+            To: sellerEmail,
+            Subject: $"Case Escalated for Review - {caseNumber}",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1>Case Under Admin Review</h1>
+                    <p>Case <strong>{caseNumber}</strong> for order <strong>{orderNumber}</strong> has been escalated for admin review.</p>
+                    <p>Reason: {encodedEscalationReason}</p>
+                    <p>Our team will review the case and make a decision.</p>
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"Case {caseNumber} for order {orderNumber} has been escalated. Reason: {escalationReason}",
+            TemplateName: "CaseEscalatedSeller",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(sellerMessage, cancellationToken);
     }
 
-    public Task SendAdminDecisionRecordedAsync(
+    public async Task SendAdminDecisionRecordedAsync(
         Guid returnRequestId,
         string caseNumber,
         string orderNumber,
@@ -607,25 +872,56 @@ public sealed class NotificationService : INotificationService
         string? decisionNotes,
         CancellationToken cancellationToken = default)
     {
-        // TODO: Replace logging with real email/notification integration.
-        // Notify both buyer and seller of the admin's decision.
-        var notesInfo = !string.IsNullOrEmpty(decisionNotes)
-            ? $" Decision notes: {decisionNotes}"
-            : "";
         _logger.LogInformation(
-            "Admin decision notification sent. Case: {CaseNumber}, Order: {OrderNumber}. " +
-            "Decision: {DecisionType}.{NotesInfo} Buyer: {BuyerEmail}, Seller: {SellerEmail}. Case ID: {ReturnRequestId}",
-            caseNumber,
-            orderNumber,
-            decisionType,
-            notesInfo,
-            buyerEmail,
-            sellerEmail,
-            returnRequestId);
-        return Task.CompletedTask;
+            "Sending admin decision notifications for case {CaseNumber}",
+            caseNumber);
+
+        var notesHtml = !string.IsNullOrEmpty(decisionNotes)
+            ? $"<p>Notes: {HtmlEncode(decisionNotes)}</p>"
+            : "";
+
+        // Send to buyer
+        var buyerMessage = new EmailMessage(
+            To: buyerEmail,
+            Subject: $"Case Decision - {caseNumber}",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1>Case Decision</h1>
+                    <p>A decision has been made regarding case <strong>{caseNumber}</strong> for order <strong>{orderNumber}</strong>.</p>
+                    <p>Decision: <strong>{decisionType}</strong></p>
+                    {notesHtml}
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"Decision made for case {caseNumber}. Decision: {decisionType}",
+            TemplateName: "AdminDecisionBuyer",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(buyerMessage, cancellationToken);
+
+        // Send to seller
+        var sellerMessage = new EmailMessage(
+            To: sellerEmail,
+            Subject: $"Case Decision - {caseNumber}",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1>Case Decision</h1>
+                    <p>A decision has been made regarding case <strong>{caseNumber}</strong> for order <strong>{orderNumber}</strong>.</p>
+                    <p>Decision: <strong>{decisionType}</strong></p>
+                    {notesHtml}
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"Decision made for case {caseNumber}. Decision: {decisionType}",
+            TemplateName: "AdminDecisionSeller",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(sellerMessage, cancellationToken);
     }
 
-    public Task SendSlaBreachNotificationAsync(
+    public async Task SendSlaBreachNotificationAsync(
         Guid returnRequestId,
         string caseNumber,
         string orderNumber,
@@ -634,22 +930,32 @@ public sealed class NotificationService : INotificationService
         DateTime deadline,
         CancellationToken cancellationToken = default)
     {
-        // TODO: Replace logging with real email/notification integration.
-        // Notify the seller that their case has breached SLA.
-        // This notification should be high priority and may trigger additional admin visibility.
         _logger.LogWarning(
-            "SLA breach notification sent to seller {SellerEmail} for case {CaseNumber}. " +
-            "Order: {OrderNumber}. Breach type: {BreachType}. Deadline was: {Deadline:yyyy-MM-dd HH:mm:ss}. Case ID: {ReturnRequestId}",
-            sellerEmail,
-            caseNumber,
-            orderNumber,
-            breachType,
-            deadline,
-            returnRequestId);
-        return Task.CompletedTask;
+            "Sending SLA breach notification to seller {SellerEmail} for case {CaseNumber}",
+            sellerEmail, caseNumber);
+
+        var message = new EmailMessage(
+            To: sellerEmail,
+            Subject: $"[URGENT] SLA Breach - Case {caseNumber}",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1 style='color: #d9534f;'>SLA Breach Alert</h1>
+                    <p>Case <strong>{caseNumber}</strong> for order <strong>{orderNumber}</strong> has breached SLA.</p>
+                    <p>Breach Type: <strong>{breachType}</strong></p>
+                    <p>Deadline: <strong>{deadline:yyyy-MM-dd HH:mm:ss}</strong></p>
+                    <p>Please take immediate action to resolve this case.</p>
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"URGENT: SLA breach for case {caseNumber}. Breach type: {breachType}. Deadline was: {deadline:yyyy-MM-dd HH:mm:ss}",
+            TemplateName: "SlaBreach",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(message, cancellationToken);
     }
 
-    public Task SendSlaWarningNotificationAsync(
+    public async Task SendSlaWarningNotificationAsync(
         Guid returnRequestId,
         string caseNumber,
         string orderNumber,
@@ -659,20 +965,29 @@ public sealed class NotificationService : INotificationService
         int hoursRemaining,
         CancellationToken cancellationToken = default)
     {
-        // TODO: Replace logging with real email/notification integration.
-        // Notify the seller that their case is approaching SLA breach.
-        // This is a soft escalation to encourage timely response.
         _logger.LogInformation(
-            "SLA warning notification sent to seller {SellerEmail} for case {CaseNumber}. " +
-            "Order: {OrderNumber}. Deadline type: {DeadlineType}. Deadline: {Deadline:yyyy-MM-dd HH:mm:ss}. " +
-            "Hours remaining: {HoursRemaining}. Case ID: {ReturnRequestId}",
-            sellerEmail,
-            caseNumber,
-            orderNumber,
-            deadlineType,
-            deadline,
-            hoursRemaining,
-            returnRequestId);
-        return Task.CompletedTask;
+            "Sending SLA warning notification to seller {SellerEmail} for case {CaseNumber}. Hours remaining: {HoursRemaining}",
+            sellerEmail, caseNumber, hoursRemaining);
+
+        var message = new EmailMessage(
+            To: sellerEmail,
+            Subject: $"[Warning] Case {caseNumber} - Action Required",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1 style='color: #f0ad4e;'>SLA Warning</h1>
+                    <p>Case <strong>{caseNumber}</strong> for order <strong>{orderNumber}</strong> is approaching its SLA deadline.</p>
+                    <p>Deadline Type: <strong>{deadlineType}</strong></p>
+                    <p>Deadline: <strong>{deadline:yyyy-MM-dd HH:mm:ss}</strong></p>
+                    <p>Time Remaining: <strong>{hoursRemaining} hours</strong></p>
+                    <p>Please respond to this case promptly to avoid an SLA breach.</p>
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"Warning: Case {caseNumber} deadline approaching. {hoursRemaining} hours remaining. Deadline: {deadline:yyyy-MM-dd HH:mm:ss}",
+            TemplateName: "SlaWarning",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(message, cancellationToken);
     }
 }

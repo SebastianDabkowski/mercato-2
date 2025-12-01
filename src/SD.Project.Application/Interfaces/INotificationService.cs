@@ -31,6 +31,16 @@ public interface INotificationService
     Task SendProductStatusChangedAsync(Guid productId, string previousStatus, string newStatus, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Sends a registration confirmation email to a newly registered buyer.
+    /// This is sent after successful registration to confirm the account was created.
+    /// </summary>
+    /// <param name="userId">The ID of the user.</param>
+    /// <param name="email">The email address to send to.</param>
+    /// <param name="firstName">The user's first name for personalization.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendRegistrationConfirmationAsync(Guid userId, string email, string firstName, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Sends a verification email to a newly registered user with a verification link.
     /// </summary>
     /// <param name="userId">The ID of the user.</param>
