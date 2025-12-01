@@ -1,0 +1,238 @@
+@page "{id:guid}"
+@model SD.Project.Pages.Admin.UserDetailsModel
+@{
+    ViewData["Title"] = Model.UserDetail is not null ? $"User: {Model.UserDetail.FullName}" : "User Details";
+}
+
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-page="/Admin/Dashboard">Admin</a></li>
+            <li class="breadcrumb-item"><a asp-page="/Admin/UserManagement">User Management</a></li>
+            <li class="breadcrumb-item active" aria-current="page">User Details</li>
+        </ol>
+    </nav>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger" role="alert">
+            <i class="bi bi-exclamation-triangle"></i> @Model.ErrorMessage
+        </div>
+        <a asp-page="/Admin/UserManagement" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to User List
+        </a>
+    }
+    else if (Model.UserDetail is not null)
+    {
+        var user = Model.UserDetail;
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h3 mb-1">@user.FullName</h1>
+                <span class="text-muted">@user.Email</span>
+            </div>
+            <div class="d-flex gap-2">
+                <span class="badge @user.RoleBadgeClass fs-6">@user.RoleDisplayName</span>
+                <span class="badge @user.StatusBadgeClass fs-6">@user.StatusDisplayName</span>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Basic Information -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="bi bi-person"></i> Basic Information
+                    </div>
+                    <div class="card-body">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4">User ID</dt>
+                            <dd class="col-sm-8">
+                                <code class="small">@user.Id</code>
+                            </dd>
+
+                            <dt class="col-sm-4">First Name</dt>
+                            <dd class="col-sm-8">@user.FirstName</dd>
+
+                            <dt class="col-sm-4">Last Name</dt>
+                            <dd class="col-sm-8">@user.LastName</dd>
+
+                            <dt class="col-sm-4">Email</dt>
+                            <dd class="col-sm-8">
+                                @user.Email
+                                @if (user.IsEmailVerified)
+                                {
+                                    <span class="badge bg-success ms-1" title="Email verified on @user.EmailVerifiedAt?.ToString("yyyy-MM-dd HH:mm")">
+                                        <i class="bi bi-check-circle"></i> Verified
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning text-dark ms-1">
+                                        <i class="bi bi-exclamation-triangle"></i> Not Verified
+                                    </span>
+                                }
+                            </dd>
+
+                            @if (!string.IsNullOrEmpty(user.PhoneNumber))
+                            {
+                                <dt class="col-sm-4">Phone</dt>
+                                <dd class="col-sm-8">@user.PhoneNumber</dd>
+                            }
+
+                            @if (!string.IsNullOrEmpty(user.CompanyName))
+                            {
+                                <dt class="col-sm-4">Company</dt>
+                                <dd class="col-sm-8">@user.CompanyName</dd>
+                            }
+
+                            <dt class="col-sm-4">Registered</dt>
+                            <dd class="col-sm-8">@user.CreatedAt.ToString("MMMM dd, yyyy 'at' HH:mm") UTC</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Security -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="bi bi-shield-lock"></i> Account Security
+                    </div>
+                    <div class="card-body">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4">Account Status</dt>
+                            <dd class="col-sm-8">
+                                <span class="badge @user.StatusBadgeClass">@user.StatusDisplayName</span>
+                            </dd>
+
+                            <dt class="col-sm-4">Two-Factor Auth</dt>
+                            <dd class="col-sm-8">
+                                @if (user.TwoFactorEnabled)
+                                {
+                                    <span class="badge bg-success">
+                                        <i class="bi bi-check-circle"></i> Enabled
+                                    </span>
+                                    @if (user.TwoFactorEnabledAt.HasValue)
+                                    {
+                                        <br><small class="text-muted">Since @user.TwoFactorEnabledAt.Value.ToString("MMM dd, yyyy")</small>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">
+                                        <i class="bi bi-x-circle"></i> Disabled
+                                    </span>
+                                }
+                            </dd>
+
+                            @if (user.Role == SD.Project.Domain.Entities.UserRole.Seller)
+                            {
+                                <dt class="col-sm-4">KYC Status</dt>
+                                <dd class="col-sm-8">
+                                    <span class="badge @user.KycStatusBadgeClass">@user.KycStatusDisplayName</span>
+                                    @if (user.KycSubmittedAt.HasValue)
+                                    {
+                                        <br><small class="text-muted">Submitted: @user.KycSubmittedAt.Value.ToString("MMM dd, yyyy")</small>
+                                    }
+                                    @if (user.KycReviewedAt.HasValue)
+                                    {
+                                        <br><small class="text-muted">Reviewed: @user.KycReviewedAt.Value.ToString("MMM dd, yyyy")</small>
+                                    }
+                                </dd>
+                            }
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Login Activity -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-clock-history"></i> Recent Login Activity
+            </div>
+            <div class="card-body p-0">
+                @if (user.RecentLoginActivity.Count == 0)
+                {
+                    <div class="text-center py-4">
+                        <i class="bi bi-clock fs-3 text-muted"></i>
+                        <p class="text-muted mb-0">No login activity recorded.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date &amp; Time</th>
+                                    <th>Status</th>
+                                    <th>Type</th>
+                                    <th>IP Address</th>
+                                    <th>Location</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var login in user.RecentLoginActivity)
+                                {
+                                    <tr>
+                                        <td>
+                                            <span title="@login.OccurredAt.ToString("yyyy-MM-dd HH:mm:ss") UTC">
+                                                @login.OccurredAt.ToString("MMM dd, yyyy HH:mm")
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <i class="@login.StatusIcon"></i>
+                                            <span class="@(login.IsSuccess ? "text-success" : "text-danger")">@login.StatusText</span>
+                                        </td>
+                                        <td>@login.EventTypeDisplayName</td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(login.IpAddress))
+                                            {
+                                                <code class="small">@login.IpAddress</code>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">—</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(login.Location))
+                                            {
+                                                @login.Location
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">—</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(login.FailureReason))
+                                            {
+                                                <span class="text-danger" title="@login.FailureReason">
+                                                    <i class="bi bi-info-circle"></i> @login.FailureReason
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">—</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <a asp-page="/Admin/UserManagement" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to User List
+            </a>
+        </div>
+    }
+</div>

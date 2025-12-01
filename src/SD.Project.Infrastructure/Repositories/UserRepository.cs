@@ -63,4 +63,59 @@ public sealed class UserRepository : IUserRepository
     {
         return _context.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task<(IReadOnlyList<User> Users, int TotalCount)> GetFilteredUsersAsync(
+        UserRole? roleFilter,
+        UserStatus? statusFilter,
+        string? searchTerm,
+        int pageNumber,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Users.AsNoTracking().AsQueryable();
+
+        // Apply role filter
+        if (roleFilter.HasValue)
+        {
+            query = query.Where(u => u.Role == roleFilter.Value);
+        }
+
+        // Apply status filter
+        if (statusFilter.HasValue)
+        {
+            query = query.Where(u => u.Status == statusFilter.Value);
+        }
+
+        // Apply search term filter
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var normalizedSearchTerm = searchTerm.Trim().ToLowerInvariant();
+            
+            // Try to parse as GUID for ID search
+            if (Guid.TryParse(searchTerm.Trim(), out var searchGuid))
+            {
+                query = query.Where(u => u.Id == searchGuid);
+            }
+            else
+            {
+                // Search by email, first name, or last name
+                query = query.Where(u =>
+                    EF.Functions.Like(u.FirstName.ToLower(), $"%{normalizedSearchTerm}%") ||
+                    EF.Functions.Like(u.LastName.ToLower(), $"%{normalizedSearchTerm}%") ||
+                    EF.Functions.Like(u.Email.Value.ToLower(), $"%{normalizedSearchTerm}%"));
+            }
+        }
+
+        // Get total count before pagination
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        // Apply ordering and pagination
+        var users = await query
+            .OrderByDescending(u => u.CreatedAt)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (users, totalCount);
+    }
 }
