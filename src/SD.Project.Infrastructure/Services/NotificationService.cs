@@ -44,6 +44,16 @@ public sealed class NotificationService : INotificationService
         return Task.CompletedTask;
     }
 
+    public Task SendRegistrationConfirmationAsync(Guid userId, string email, string firstName, CancellationToken cancellationToken = default)
+    {
+        // TODO: Replace logging with real email sending integration.
+        // This email welcomes the buyer and confirms their registration was successful.
+        _logger.LogInformation(
+            "Registration confirmation email sent to {Email} for user {UserId}. Welcome, {FirstName}!",
+            email, userId, firstName);
+        return Task.CompletedTask;
+    }
+
     public Task SendEmailVerificationAsync(Guid userId, string email, string verificationToken, CancellationToken cancellationToken = default)
     {
         // TODO: Replace logging with real email sending integration.
