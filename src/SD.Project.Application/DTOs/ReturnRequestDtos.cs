@@ -118,3 +118,37 @@ public sealed record ItemEligibilityDto(
     string? IneligibilityReason,
     bool HasOpenCase,
     string? OpenCaseNumber);
+
+/// <summary>
+/// DTO for linked refund information in a return/complaint case.
+/// </summary>
+public sealed record LinkedRefundDto(
+    Guid RefundId,
+    string Status,
+    decimal Amount,
+    string Currency,
+    string? RefundTransactionId,
+    DateTime CreatedAt,
+    DateTime? CompletedAt);
+
+/// <summary>
+/// DTO for detailed buyer case (return/complaint) with all information.
+/// </summary>
+public sealed record BuyerCaseDetailsDto(
+    Guid ReturnRequestId,
+    Guid OrderId,
+    Guid ShipmentId,
+    string CaseNumber,
+    string OrderNumber,
+    string StoreName,
+    string Type,
+    string Status,
+    string Reason,
+    string? Comments,
+    string? SellerResponse,
+    DateTime CreatedAt,
+    DateTime? ApprovedAt,
+    DateTime? RejectedAt,
+    DateTime? CompletedAt,
+    IReadOnlyList<ReturnRequestItemDto> Items,
+    IReadOnlyList<LinkedRefundDto>? LinkedRefunds);

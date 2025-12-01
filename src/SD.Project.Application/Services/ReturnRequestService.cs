@@ -17,6 +17,7 @@ public sealed class ReturnRequestService
     private readonly IOrderRepository _orderRepository;
     private readonly IStoreRepository _storeRepository;
     private readonly IUserRepository _userRepository;
+    private readonly IRefundRepository _refundRepository;
     private readonly INotificationService _notificationService;
 
     /// <summary>
@@ -29,12 +30,14 @@ public sealed class ReturnRequestService
         IOrderRepository orderRepository,
         IStoreRepository storeRepository,
         IUserRepository userRepository,
+        IRefundRepository refundRepository,
         INotificationService notificationService)
     {
         _returnRequestRepository = returnRequestRepository;
         _orderRepository = orderRepository;
         _storeRepository = storeRepository;
         _userRepository = userRepository;
+        _refundRepository = refundRepository;
         _notificationService = notificationService;
     }
 
@@ -702,5 +705,71 @@ public sealed class ReturnRequestService
         }
 
         return new UpdateReturnRequestResultDto(true, null, previousStatus, returnRequest.Status.ToString());
+    }
+
+    /// <summary>
+    /// Gets a specific return request by ID for a buyer, including linked refund information.
+    /// </summary>
+    public async Task<BuyerCaseDetailsDto?> HandleAsync(
+        GetBuyerReturnRequestQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var returnRequest = await _returnRequestRepository.GetByIdWithItemsAsync(query.ReturnRequestId, cancellationToken);
+        if (returnRequest is null || returnRequest.BuyerId != query.BuyerId)
+        {
+            return null;
+        }
+
+        // Get order info
+        var order = await _orderRepository.GetByIdAsync(returnRequest.OrderId, cancellationToken);
+        if (order is null)
+        {
+            return null;
+        }
+
+        // Get store name
+        var store = await _storeRepository.GetByIdAsync(returnRequest.StoreId, cancellationToken);
+        var storeName = store?.Name ?? "Unknown Store";
+
+        // Map items
+        var items = returnRequest.Items.Select(i => new ReturnRequestItemDto(
+            i.Id,
+            i.OrderItemId,
+            i.ProductName,
+            i.Quantity)).ToList();
+
+        // Get linked refunds for this shipment
+        var refunds = await _refundRepository.GetByShipmentIdAsync(returnRequest.ShipmentId, cancellationToken);
+        var linkedRefunds = refunds
+            .Select(r => new LinkedRefundDto(
+                r.Id,
+                r.Status.ToString(),
+                r.Amount,
+                r.Currency,
+                r.RefundTransactionId,
+                r.CreatedAt,
+                r.CompletedAt))
+            .ToList();
+
+        return new BuyerCaseDetailsDto(
+            returnRequest.Id,
+            returnRequest.OrderId,
+            returnRequest.ShipmentId,
+            returnRequest.CaseNumber,
+            order.OrderNumber,
+            storeName,
+            returnRequest.Type.ToString(),
+            returnRequest.Status.ToString(),
+            returnRequest.Reason,
+            returnRequest.Comments,
+            returnRequest.SellerResponse,
+            returnRequest.CreatedAt,
+            returnRequest.ApprovedAt,
+            returnRequest.RejectedAt,
+            returnRequest.CompletedAt,
+            items.AsReadOnly(),
+            linkedRefunds.Count > 0 ? linkedRefunds.AsReadOnly() : null);
     }
 }
