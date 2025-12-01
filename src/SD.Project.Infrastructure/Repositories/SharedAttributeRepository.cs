@@ -38,9 +38,10 @@ public sealed class SharedAttributeRepository : ISharedAttributeRepository
             return false;
         }
 
+        var normalizedName = name.Trim().ToLowerInvariant();
         var query = _context.SharedAttributes
             .AsNoTracking()
-            .Where(a => a.Name.ToLower() == name.ToLower().Trim());
+            .Where(a => a.Name.ToLower() == normalizedName);
 
         if (excludeId.HasValue)
         {

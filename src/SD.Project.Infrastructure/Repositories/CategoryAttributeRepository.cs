@@ -60,9 +60,10 @@ public sealed class CategoryAttributeRepository : ICategoryAttributeRepository
             return false;
         }
 
+        var normalizedName = name.Trim().ToLowerInvariant();
         var query = _context.CategoryAttributes
             .AsNoTracking()
-            .Where(a => a.CategoryId == categoryId && a.Name.ToLower() == name.ToLower().Trim());
+            .Where(a => a.CategoryId == categoryId && a.Name.ToLower() == normalizedName);
 
         if (excludeId.HasValue)
         {
