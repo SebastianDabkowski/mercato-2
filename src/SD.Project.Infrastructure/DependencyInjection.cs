@@ -54,6 +54,7 @@ public static class DependencyInjection
         services.AddScoped<IEscrowRepository, EscrowRepository>();
         services.AddScoped<ICommissionRuleRepository, CommissionRuleRepository>();
         services.AddScoped<IReturnRequestRepository, ReturnRequestRepository>();
+        services.AddScoped<ICaseMessageRepository, CaseMessageRepository>();
         services.AddScoped<IRefundRepository, RefundRepository>();
         services.AddScoped<IPromoCodeRepository, PromoCodeRepository>();
         services.AddScoped<ICommissionInvoiceRepository, CommissionInvoiceRepository>();

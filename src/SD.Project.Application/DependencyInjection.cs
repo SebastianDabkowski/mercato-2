@@ -38,6 +38,7 @@ public static class DependencyInjection
         services.AddScoped<OrderExportService>();
         services.AddScoped<PartialFulfilmentService>();
         services.AddScoped<ReturnRequestService>();
+        services.AddScoped<CaseMessageService>();
         services.AddScoped<PromoCodeService>();
         services.AddScoped<EscrowService>();
         services.AddScoped<RefundService>();
