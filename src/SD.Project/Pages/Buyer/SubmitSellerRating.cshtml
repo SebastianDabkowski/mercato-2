@@ -1,0 +1,191 @@
+@page
+@model SD.Project.Pages.Buyer.SubmitSellerRatingModel
+@{
+    ViewData["Title"] = "Rate Seller";
+}
+
+<div class="container py-4">
+    @if (Model.Order is null)
+    {
+        <div class="text-center py-5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-question-circle text-muted mb-3" viewBox="0 0 16 16">
+                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                <path d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286m1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94"/>
+            </svg>
+            <h4 class="text-muted">Order not found</h4>
+            <p class="text-muted">The order you're looking for doesn't exist or you don't have permission to rate the seller.</p>
+            <a asp-page="/Buyer/Orders" class="btn btn-primary mt-3">Go to Orders</a>
+        </div>
+    }
+    else
+    {
+        <!-- Header -->
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-page="/Buyer/Dashboard">Dashboard</a></li>
+                <li class="breadcrumb-item"><a asp-page="/Buyer/Orders">Orders</a></li>
+                <li class="breadcrumb-item"><a asp-page="/Buyer/OrderDetails" asp-route-orderId="@Model.Order.OrderId">@Model.Order.OrderNumber</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Rate Seller</li>
+            </ol>
+        </nav>
+
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-shop me-2" viewBox="0 0 16 16">
+                                <path d="M2.97 1.35A1 1 0 0 1 3.73 1h8.54a1 1 0 0 1 .76.35l2.609 3.044A1.5 1.5 0 0 1 16 5.37v.255a2.375 2.375 0 0 1-4.25 1.458A2.371 2.371 0 0 1 9.875 8 2.37 2.37 0 0 1 8 7.083 2.37 2.37 0 0 1 6.125 8a2.37 2.37 0 0 1-1.875-.917A2.375 2.375 0 0 1 0 5.625V5.37a1.5 1.5 0 0 1 .361-.976l2.61-3.045zm1.78 4.275a1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0 1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0 1.375 1.375 0 1 0 2.75 0V5.37a.5.5 0 0 0-.12-.325L12.27 2H3.73L1.12 5.045A.5.5 0 0 0 1 5.37v.255a1.375 1.375 0 0 0 2.75 0 .5.5 0 0 1 1 0M1.5 8.5A.5.5 0 0 1 2 9v6h1v-5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v5h6V9a.5.5 0 0 1 1 0v6h.5a.5.5 0 0 1 0 1H.5a.5.5 0 0 1 0-1H1V9a.5.5 0 0 1 .5-.5M4 15h3v-5H4zm5-5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1zm2 0h-1v3h2v-3z"/>
+                            </svg>
+                            Rate Seller
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        @if (TempData["Error"] != null)
+                        {
+                            <div class="alert alert-danger" role="alert">
+                                @TempData["Error"]
+                            </div>
+                        }
+
+                        <!-- Seller Info -->
+                        <div class="bg-light p-3 rounded mb-4">
+                            <div class="d-flex align-items-start">
+                                <div class="flex-grow-1">
+                                    <h5 class="mb-1">@Model.StoreName</h5>
+                                    <p class="text-muted mb-0">
+                                        <small>
+                                            Order @Model.Order.OrderNumber
+                                            &middot; Delivered on @Model.Order.CreatedAt.ToString("MMMM dd, yyyy")
+                                        </small>
+                                    </p>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-success">Delivered</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <form method="post">
+                            <input type="hidden" asp-for="OrderId" />
+
+                            <!-- Rating -->
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Your Rating <span class="text-danger">*</span></label>
+                                <div class="rating-input" id="rating-container">
+                                    @for (int i = 1; i <= 5; i++)
+                                    {
+                                        <input type="radio" class="btn-check" name="Rating" id="rating-@i" value="@i" autocomplete="off" @(Model.Rating == i ? "checked" : "")>
+                                        <label class="btn btn-outline-warning btn-lg me-1" for="rating-@i" title="@i star@(i > 1 ? "s" : "")">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-star-fill" viewBox="0 0 16 16">
+                                                <path d="M3.612 15.443c-.386.198-.824-.149-.746-.592l.83-4.73L.173 6.765c-.329-.314-.158-.888.283-.95l4.898-.696L7.538.792c.197-.39.73-.39.927 0l2.184 4.327 4.898.696c.441.062.612.636.282.95l-3.522 3.356.83 4.73c.078.443-.36.79-.746.592L8 13.187l-4.389 2.256z"/>
+                                            </svg>
+                                        </label>
+                                    }
+                                </div>
+                                <span asp-validation-for="Rating" class="text-danger"></span>
+                                <div class="form-text mt-2" id="rating-description">
+                                    <span class="text-muted">Click to rate</span>
+                                </div>
+                            </div>
+
+                            <!-- Comment -->
+                            <div class="mb-4">
+                                <label asp-for="Comment" class="form-label fw-bold">Your Feedback</label>
+                                <textarea asp-for="Comment" class="form-control" rows="5" placeholder="Share your experience with this seller. How was the service, communication, and delivery?"></textarea>
+                                <span asp-validation-for="Comment" class="text-danger"></span>
+                                <div class="form-text">
+                                    Optional. Help other buyers by sharing your experience with this seller.
+                                </div>
+                            </div>
+
+                            <!-- Info Notice -->
+                            <div class="alert alert-info mb-4">
+                                <div class="d-flex">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-info-circle me-2 flex-shrink-0" viewBox="0 0 16 16">
+                                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                                        <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
+                                    </svg>
+                                    <div>
+                                        <strong>Seller Rating Guidelines</strong>
+                                        <ul class="mb-0 mt-1">
+                                            <li>Rate your overall experience with the seller</li>
+                                            <li>Consider service quality, communication, and delivery</li>
+                                            <li>Your rating contributes to the seller's reputation score</li>
+                                            <li>Only one rating per order is allowed</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Buttons -->
+                            <div class="d-flex justify-content-between">
+                                <a asp-page="/Buyer/OrderDetails" asp-route-orderId="@Model.Order.OrderId" class="btn btn-outline-secondary">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left me-2" viewBox="0 0 16 16">
+                                        <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/>
+                                    </svg>
+                                    Cancel
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-send me-2" viewBox="0 0 16 16">
+                                        <path d="M15.854.146a.5.5 0 0 1 .11.54l-5.819 14.547a.75.75 0 0 1-1.329.124l-3.178-4.995L.643 7.184a.75.75 0 0 1 .124-1.33L15.314.037a.5.5 0 0 1 .54.11ZM6.636 10.07l2.761 4.338L14.13 2.576zm6.787-8.201L1.591 6.602l4.339 2.76z"/>
+                                    </svg>
+                                    Submit Rating
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <div class="card sticky-top" style="top: 1rem;">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Order Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <small class="text-muted">Order Number</small>
+                            <p class="mb-0 fw-bold">@Model.Order.OrderNumber</p>
+                        </div>
+                        <div class="mb-3">
+                            <small class="text-muted">Order Date</small>
+                            <p class="mb-0">@Model.Order.CreatedAt.ToString("MMMM dd, yyyy")</p>
+                        </div>
+                        <div class="mb-3">
+                            <small class="text-muted">Status</small>
+                            <p class="mb-0">
+                                <span class="badge bg-success">@Model.Order.Status</span>
+                            </p>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between">
+                            <span class="fw-bold">Order Total</span>
+                            <span class="fw-bold text-primary">@Model.Order.Currency @Model.Order.TotalAmount.ToString("N2")</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        // Update rating description based on selection
+        document.querySelectorAll('input[name="Rating"]').forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                var descriptions = {
+                    1: 'Poor - Not satisfied at all',
+                    2: 'Fair - Below expectations',
+                    3: 'Good - Met expectations',
+                    4: 'Very Good - Exceeded expectations',
+                    5: 'Excellent - Highly recommend'
+                };
+                var description = descriptions[this.value] || 'Click to rate';
+                document.getElementById('rating-description').innerHTML = '<span class="text-success fw-bold">' + description + '</span>';
+            });
+        });
+    </script>
+}

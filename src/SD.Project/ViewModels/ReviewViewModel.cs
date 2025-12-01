@@ -45,3 +45,11 @@ public sealed record ReviewEligibilityViewModel(
     bool IsEligible,
     string? IneligibilityReason,
     bool HasExistingReview);
+
+/// <summary>
+/// View model for seller rating eligibility info displayed on order details.
+/// </summary>
+public sealed record SellerRatingEligibilityViewModel(
+    bool IsEligible,
+    string? IneligibilityReason,
+    bool HasExistingRating);

@@ -62,6 +62,7 @@ public class AppDbContext : DbContext
     public DbSet<ShippingLabel> ShippingLabels => Set<ShippingLabel>();
     public DbSet<SlaConfiguration> SlaConfigurations => Set<SlaConfiguration>();
     public DbSet<Review> Reviews => Set<Review>();
+    public DbSet<SellerRating> SellerRatings => Set<SellerRating>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
