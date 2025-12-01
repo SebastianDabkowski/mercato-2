@@ -16,7 +16,14 @@
                 <select id="dateRange" name="dateRange" class="form-select" onchange="toggleCustomDateInputs()">
                     @foreach (var preset in Model.DateRangePresets)
                     {
-                        <option value="@preset.Value" selected="@preset.IsSelected">@preset.Name</option>
+                        if (preset.IsSelected)
+                        {
+                            <option value="@preset.Value" selected>@preset.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@preset.Value">@preset.Name</option>
+                        }
                     }
                 </select>
             </div>

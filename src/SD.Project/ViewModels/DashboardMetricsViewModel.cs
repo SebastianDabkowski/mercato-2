@@ -32,6 +32,11 @@ public sealed class DashboardMetricsViewModel
             {
                 return $"{FromDate:MMM dd, yyyy}";
             }
+            // Include year for both dates when they span different years
+            if (FromDate.Year != ToDate.Year)
+            {
+                return $"{FromDate:MMM dd, yyyy} - {ToDate:MMM dd, yyyy}";
+            }
             return $"{FromDate:MMM dd} - {ToDate:MMM dd, yyyy}";
         }
     }

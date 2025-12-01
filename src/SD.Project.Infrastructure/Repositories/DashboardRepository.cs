@@ -25,7 +25,7 @@ public sealed class DashboardRepository : IDashboardRepository
     {
         return await _context.Orders
             .AsNoTracking()
-            .Where(o => o.CreatedAt >= fromDate && o.CreatedAt <= toDate)
+            .Where(o => IsWithinDateRange(o.CreatedAt, fromDate, toDate))
             .Where(o => o.Status != OrderStatus.Cancelled && o.Status != OrderStatus.PaymentFailed)
             .SumAsync(o => o.TotalAmount, cancellationToken);
     }
@@ -37,7 +37,7 @@ public sealed class DashboardRepository : IDashboardRepository
     {
         return await _context.Orders
             .AsNoTracking()
-            .Where(o => o.CreatedAt >= fromDate && o.CreatedAt <= toDate)
+            .Where(o => IsWithinDateRange(o.CreatedAt, fromDate, toDate))
             .CountAsync(cancellationToken);
     }
 
@@ -62,7 +62,7 @@ public sealed class DashboardRepository : IDashboardRepository
                 item => item.OrderId,
                 order => order.Id,
                 (item, order) => new { item.StoreId, order.CreatedAt })
-            .Where(x => x.CreatedAt >= fromDate && x.CreatedAt <= toDate)
+            .Where(x => IsWithinDateRange(x.CreatedAt, fromDate, toDate))
             .Select(x => x.StoreId)
             .Distinct()
             .ToListAsync(cancellationToken);
@@ -92,7 +92,15 @@ public sealed class DashboardRepository : IDashboardRepository
     {
         return await _context.Users
             .AsNoTracking()
-            .Where(u => u.CreatedAt >= fromDate && u.CreatedAt <= toDate)
+            .Where(u => IsWithinDateRange(u.CreatedAt, fromDate, toDate))
             .CountAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Checks if a timestamp is within the specified date range (inclusive).
+    /// </summary>
+    private static bool IsWithinDateRange(DateTime timestamp, DateTime fromDate, DateTime toDate)
+    {
+        return timestamp >= fromDate && timestamp <= toDate;
     }
 }

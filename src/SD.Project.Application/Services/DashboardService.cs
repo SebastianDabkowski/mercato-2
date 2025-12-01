@@ -28,7 +28,7 @@ public sealed class DashboardService
 
         // Ensure dates are in UTC and ToDate includes the entire day
         var fromDate = query.FromDate.Date;
-        var toDate = query.ToDate.Date.AddDays(1).AddTicks(-1);
+        var toDate = query.ToDate.Date.AddDays(1).AddSeconds(-1);
 
         var gmv = await _dashboardRepository.GetGmvAsync(fromDate, toDate, cancellationToken);
         var orderCount = await _dashboardRepository.GetOrderCountAsync(fromDate, toDate, cancellationToken);
