@@ -23,25 +23,10 @@ public sealed class UserAnalyticsViewModel
     /// <summary>
     /// Gets the period display label.
     /// </summary>
-    public string PeriodLabel
-    {
-        get
-        {
-            if (FromDate.Date == ToDate.Date)
-            {
-                return $"{FromDate:MMM dd, yyyy}";
-            }
-            // Include year for both dates when they span different years
-            if (FromDate.Year != ToDate.Year)
-            {
-                return $"{FromDate:MMM dd, yyyy} - {ToDate:MMM dd, yyyy}";
-            }
-            return $"{FromDate:MMM dd} - {ToDate:MMM dd, yyyy}";
-        }
-    }
+    public string PeriodLabel => ViewModelHelpers.FormatPeriodLabel(FromDate, ToDate);
 
     /// <summary>
     /// Gets the last refresh time in a human-readable format.
     /// </summary>
-    public string RefreshTimeDisplay => $"Last updated: {RefreshedAt:HH:mm:ss} UTC";
+    public string RefreshTimeDisplay => ViewModelHelpers.FormatRefreshTime(RefreshedAt);
 }
