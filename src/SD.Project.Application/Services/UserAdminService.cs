@@ -220,16 +220,16 @@ public sealed class UserAdminService
     }
 
     /// <summary>
-    /// Unblocks a user account.
+    /// Reactivates (unblocks) a user account.
     /// </summary>
     public async Task<BlockUserResultDto> HandleAsync(
-        UnblockUserCommand command,
+        ReactivateUserCommand command,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(command);
 
         _logger.LogInformation(
-            "Admin unblocking user: UserId={UserId}, AdminId={AdminId}",
+            "Admin reactivating user: UserId={UserId}, AdminId={AdminId}",
             command.UserId,
             command.AdminId);
 
@@ -241,7 +241,7 @@ public sealed class UserAdminService
             return BlockUserResultDto.Failed("Admin user not found.");
         }
 
-        // Get user to unblock
+        // Get user to reactivate
         var user = await _userRepository.GetByIdAsync(command.UserId, cancellationToken);
         if (user is null)
         {
@@ -256,11 +256,11 @@ public sealed class UserAdminService
             return BlockUserResultDto.Failed("User is not blocked.");
         }
 
-        // Update the block info record
+        // Update the block info record with reactivation details
         var blockInfo = await _userBlockInfoRepository.GetActiveByUserIdAsync(command.UserId, cancellationToken);
         if (blockInfo is not null)
         {
-            blockInfo.Unblock(command.AdminId);
+            blockInfo.Unblock(command.AdminId, command.Notes);
         }
 
         // Unblock the user
@@ -270,8 +270,54 @@ public sealed class UserAdminService
         // All repositories share the same DbContext, so SaveChangesAsync commits all pending changes
         await _userRepository.SaveChangesAsync(cancellationToken);
 
-        _logger.LogInformation("User unblocked successfully: UserId={UserId}", command.UserId);
+        _logger.LogInformation("User reactivated successfully: UserId={UserId}", command.UserId);
 
         return BlockUserResultDto.Success();
+    }
+
+    /// <summary>
+    /// Gets the full block/reactivate history for a user.
+    /// </summary>
+    public async Task<IReadOnlyList<UserBlockHistoryItemDto>> HandleAsync(
+        GetUserBlockHistoryQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        _logger.LogInformation("Admin viewing block history: UserId={UserId}", query.UserId);
+
+        var blockHistory = await _userBlockInfoRepository.GetAllByUserIdAsync(query.UserId, cancellationToken);
+
+        var historyDtos = new List<UserBlockHistoryItemDto>();
+
+        foreach (var record in blockHistory)
+        {
+            // Get admin who blocked
+            var blockedByAdmin = await _internalUserRepository.GetByIdAsync(record.BlockedByAdminId, cancellationToken);
+            var blockedByName = blockedByAdmin?.Email.Value ?? "Unknown";
+
+            // Get admin who reactivated (if applicable)
+            string? reactivatedByName = null;
+            if (record.UnblockedByAdminId.HasValue)
+            {
+                var reactivatedByAdmin = await _internalUserRepository.GetByIdAsync(record.UnblockedByAdminId.Value, cancellationToken);
+                reactivatedByName = reactivatedByAdmin?.Email.Value ?? "Unknown";
+            }
+
+            historyDtos.Add(new UserBlockHistoryItemDto(
+                record.Id,
+                record.BlockedByAdminId,
+                blockedByName,
+                record.BlockedAt,
+                record.Reason,
+                record.Notes,
+                record.IsActive,
+                record.UnblockedByAdminId,
+                reactivatedByName,
+                record.UnblockedAt,
+                record.ReactivationNotes));
+        }
+
+        return historyDtos;
     }
 }

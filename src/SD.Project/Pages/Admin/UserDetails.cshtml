@@ -13,16 +13,28 @@
         </ol>
     </nav>
 
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle"></i> @Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
     @if (!string.IsNullOrEmpty(Model.ErrorMessage))
     {
         <div class="alert alert-danger" role="alert">
             <i class="bi bi-exclamation-triangle"></i> @Model.ErrorMessage
         </div>
-        <a asp-page="/Admin/UserManagement" class="btn btn-secondary">
-            <i class="bi bi-arrow-left"></i> Back to User List
-        </a>
+        @if (Model.UserDetail is null)
+        {
+            <a asp-page="/Admin/UserManagement" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to User List
+            </a>
+        }
     }
-    else if (Model.UserDetail is not null)
+    
+    @if (Model.UserDetail is not null)
     {
         var user = Model.UserDetail;
 
@@ -214,6 +226,118 @@
                                                 <span class="text-danger" title="@login.FailureReason">
                                                     <i class="bi bi-info-circle"></i> @login.FailureReason
                                                 </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">—</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Reactivate Blocked Account -->
+        @if (user.Status == SD.Project.Domain.Entities.UserStatus.Blocked)
+        {
+            <div class="card mb-4 border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <i class="bi bi-unlock"></i> Reactivate Account
+                </div>
+                <div class="card-body">
+                    <p class="mb-3">This account is currently blocked. You can reactivate it to restore the user's access to the platform.</p>
+                    <form method="post" asp-page-handler="Reactivate">
+                        <input type="hidden" asp-for="Id" />
+                        <div class="mb-3">
+                            <label for="ReactivationNotes" class="form-label">Reason for Reactivation (optional)</label>
+                            <textarea class="form-control" id="ReactivationNotes" asp-for="ReactivationNotes" rows="3" placeholder="Explain why this account is being reactivated..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-success" onclick="return confirm('Are you sure you want to reactivate this user account?');">
+                            <i class="bi bi-check-circle"></i> Reactivate Account
+                        </button>
+                    </form>
+                </div>
+            </div>
+        }
+
+        <!-- Block/Reactivate History -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-journal-text"></i> Account Block History
+            </div>
+            <div class="card-body p-0">
+                @if (Model.BlockHistory.Count == 0)
+                {
+                    <div class="text-center py-4">
+                        <i class="bi bi-check-circle fs-3 text-success"></i>
+                        <p class="text-muted mb-0">This account has never been blocked.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Blocked</th>
+                                    <th>By Admin</th>
+                                    <th>Reason</th>
+                                    <th>Status</th>
+                                    <th>Reactivated</th>
+                                    <th>By Admin</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var history in Model.BlockHistory)
+                                {
+                                    <tr>
+                                        <td>
+                                            <span title="@history.BlockedAt.ToString("yyyy-MM-dd HH:mm:ss") UTC">
+                                                @history.BlockedAt.ToString("MMM dd, yyyy HH:mm")
+                                            </span>
+                                        </td>
+                                        <td>@history.BlockedByAdminName</td>
+                                        <td>
+                                            @history.ReasonDisplayName
+                                            @if (!string.IsNullOrEmpty(history.BlockNotes))
+                                            {
+                                                <br><small class="text-muted">@history.BlockNotes</small>
+                                            }
+                                        </td>
+                                        <td>
+                                            <span class="badge @history.StatusBadgeClass">@history.StatusText</span>
+                                        </td>
+                                        <td>
+                                            @if (history.ReactivatedAt.HasValue)
+                                            {
+                                                <span title="@history.ReactivatedAt.Value.ToString("yyyy-MM-dd HH:mm:ss") UTC">
+                                                    @history.ReactivatedAt.Value.ToString("MMM dd, yyyy HH:mm")
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">—</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(history.ReactivatedByAdminName))
+                                            {
+                                                @history.ReactivatedByAdminName
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">—</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(history.ReactivationNotes))
+                                            {
+                                                @history.ReactivationNotes
                                             }
                                             else
                                             {

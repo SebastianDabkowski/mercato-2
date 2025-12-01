@@ -60,7 +60,23 @@ public sealed record UserBlockInfoDto(
     string? Notes);
 
 /// <summary>
-/// Result of a block or unblock operation.
+/// Historical record of a block/reactivate event for a user account.
+/// </summary>
+public sealed record UserBlockHistoryItemDto(
+    Guid Id,
+    Guid BlockedByAdminId,
+    string BlockedByAdminName,
+    DateTime BlockedAt,
+    BlockReason Reason,
+    string? BlockNotes,
+    bool IsActive,
+    Guid? ReactivatedByAdminId,
+    string? ReactivatedByAdminName,
+    DateTime? ReactivatedAt,
+    string? ReactivationNotes);
+
+/// <summary>
+/// Result of a block or reactivate operation.
 /// </summary>
 public sealed record BlockUserResultDto(
     bool IsSuccess,

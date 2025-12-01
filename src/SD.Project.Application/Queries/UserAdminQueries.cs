@@ -16,3 +16,8 @@ public sealed record GetUsersForAdminQuery(
 /// Query to get detailed information about a specific user.
 /// </summary>
 public sealed record GetUserDetailQuery(Guid UserId);
+
+/// <summary>
+/// Query to get the full block/reactivate history for a user.
+/// </summary>
+public sealed record GetUserBlockHistoryQuery(Guid UserId);
