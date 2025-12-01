@@ -45,3 +45,11 @@ public record ReviewEligibilityDto(
     bool IsEligible,
     string? IneligibilityReason = null,
     bool HasExistingReview = false);
+
+/// <summary>
+/// Result of reporting a review.
+/// </summary>
+public record ReportReviewResultDto(
+    bool Success,
+    string? ErrorMessage = null,
+    Guid? ReportId = null);
