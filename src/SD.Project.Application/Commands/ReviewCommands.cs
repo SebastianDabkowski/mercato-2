@@ -1,3 +1,5 @@
+using SD.Project.Domain.Entities;
+
 namespace SD.Project.Application.Commands;
 
 /// <summary>
@@ -10,3 +12,12 @@ public record SubmitReviewCommand(
     Guid ProductId,
     int Rating,
     string? Comment);
+
+/// <summary>
+/// Command to report a review for admin review.
+/// </summary>
+public record ReportReviewCommand(
+    Guid ReviewId,
+    Guid ReporterId,
+    ReviewReportReason Reason,
+    string? Details = null);

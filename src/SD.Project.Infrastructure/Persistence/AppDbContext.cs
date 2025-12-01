@@ -62,6 +62,7 @@ public class AppDbContext : DbContext
     public DbSet<ShippingLabel> ShippingLabels => Set<ShippingLabel>();
     public DbSet<SlaConfiguration> SlaConfigurations => Set<SlaConfiguration>();
     public DbSet<Review> Reviews => Set<Review>();
+    public DbSet<ReviewReport> ReviewReports => Set<ReviewReport>();
     public DbSet<ReviewModerationAuditLog> ReviewModerationAuditLogs => Set<ReviewModerationAuditLog>();
     public DbSet<SellerRating> SellerRatings => Set<SellerRating>();
 

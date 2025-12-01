@@ -13,6 +13,7 @@ namespace SD.Project.Application.Services;
 public sealed class ReviewService
 {
     private readonly IReviewRepository _reviewRepository;
+    private readonly IReviewReportRepository _reviewReportRepository;
     private readonly IOrderRepository _orderRepository;
     private readonly IUserRepository _userRepository;
 
@@ -28,14 +29,17 @@ public sealed class ReviewService
 
     public ReviewService(
         IReviewRepository reviewRepository,
+        IReviewReportRepository reviewReportRepository,
         IOrderRepository orderRepository,
         IUserRepository userRepository)
     {
         ArgumentNullException.ThrowIfNull(reviewRepository);
+        ArgumentNullException.ThrowIfNull(reviewReportRepository);
         ArgumentNullException.ThrowIfNull(orderRepository);
         ArgumentNullException.ThrowIfNull(userRepository);
 
         _reviewRepository = reviewRepository;
+        _reviewReportRepository = reviewReportRepository;
         _orderRepository = orderRepository;
         _userRepository = userRepository;
     }
@@ -247,6 +251,54 @@ public sealed class ReviewService
             query.StoreId, cancellationToken);
 
         return new StoreRatingDto(query.StoreId, averageRating, reviewCount);
+    }
+
+    /// <summary>
+    /// Reports a review for admin moderation.
+    /// Prevents duplicate reports by the same user.
+    /// </summary>
+    public async Task<ReportReviewResultDto> HandleAsync(
+        ReportReviewCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+
+        // Check if the review exists and is visible
+        var review = await _reviewRepository.GetByIdAsync(command.ReviewId, cancellationToken);
+        if (review is null)
+        {
+            return new ReportReviewResultDto(false, "Review not found.");
+        }
+
+        if (!review.IsVisible)
+        {
+            return new ReportReviewResultDto(false, "Review is not visible and cannot be reported.");
+        }
+
+        // Check if the user has already reported this review
+        var existingReport = await _reviewReportRepository.GetByReviewAndReporterAsync(
+            command.ReviewId, command.ReporterId, cancellationToken);
+        if (existingReport is not null)
+        {
+            return new ReportReviewResultDto(false, "You have already reported this review.");
+        }
+
+        // Create and save the report
+        var report = new ReviewReport(
+            command.ReviewId,
+            command.ReporterId,
+            command.Reason,
+            command.Details);
+
+        await _reviewReportRepository.AddAsync(report, cancellationToken);
+
+        // Update the review's report count
+        review.Report();
+        _reviewRepository.Update(review);
+
+        await _reviewReportRepository.SaveChangesAsync(cancellationToken);
+
+        return new ReportReviewResultDto(true, ReportId: report.Id);
     }
 
     private async Task<IReadOnlyList<ReviewDto>> MapReviewsToDtosAsync(
