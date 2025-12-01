@@ -81,6 +81,31 @@ public class Review
     /// </summary>
     public DateTime? ModeratedAt { get; private set; }
 
+    /// <summary>
+    /// Indicates whether the review has been flagged for moderation.
+    /// </summary>
+    public bool IsFlagged { get; private set; }
+
+    /// <summary>
+    /// Reason why the review was flagged.
+    /// </summary>
+    public string? FlagReason { get; private set; }
+
+    /// <summary>
+    /// Timestamp when the review was flagged.
+    /// </summary>
+    public DateTime? FlaggedAt { get; private set; }
+
+    /// <summary>
+    /// Number of times this review has been reported by users.
+    /// </summary>
+    public int ReportCount { get; private set; }
+
+    /// <summary>
+    /// ID of the moderator who last moderated this review.
+    /// </summary>
+    public Guid? ModeratedByUserId { get; private set; }
+
     private Review()
     {
         // EF Core constructor
@@ -202,4 +227,102 @@ public class Review
     /// Checks if the review is publicly visible.
     /// </summary>
     public bool IsVisible => ModerationStatus == ReviewModerationStatus.Approved;
+
+    /// <summary>
+    /// Flags the review for moderation.
+    /// </summary>
+    public void Flag(string reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            throw new ArgumentException("Flag reason is required.", nameof(reason));
+        }
+
+        IsFlagged = true;
+        FlagReason = reason.Trim();
+        FlaggedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Clears the flag on the review.
+    /// </summary>
+    public void ClearFlag()
+    {
+        IsFlagged = false;
+        FlagReason = null;
+        FlaggedAt = null;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Increments the report count when a user reports this review.
+    /// </summary>
+    public void Report()
+    {
+        ReportCount++;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Approves the review with moderator tracking.
+    /// </summary>
+    public void ApproveByModerator(Guid moderatorId)
+    {
+        if (moderatorId == Guid.Empty)
+        {
+            throw new ArgumentException("Moderator ID is required.", nameof(moderatorId));
+        }
+
+        ModerationStatus = ReviewModerationStatus.Approved;
+        ModeratedAt = DateTime.UtcNow;
+        ModeratedByUserId = moderatorId;
+        UpdatedAt = DateTime.UtcNow;
+        
+        // Clear flag if it was set
+        if (IsFlagged)
+        {
+            ClearFlag();
+        }
+    }
+
+    /// <summary>
+    /// Rejects the review with moderator tracking.
+    /// </summary>
+    public void RejectByModerator(Guid moderatorId, string reason)
+    {
+        if (moderatorId == Guid.Empty)
+        {
+            throw new ArgumentException("Moderator ID is required.", nameof(moderatorId));
+        }
+
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            throw new ArgumentException("Rejection reason is required.", nameof(reason));
+        }
+
+        ModerationStatus = ReviewModerationStatus.Rejected;
+        RejectionReason = reason.Trim();
+        ModeratedAt = DateTime.UtcNow;
+        ModeratedByUserId = moderatorId;
+        UpdatedAt = DateTime.UtcNow;
+        
+        // Clear flag if it was set
+        if (IsFlagged)
+        {
+            ClearFlag();
+        }
+    }
+
+    /// <summary>
+    /// Resets the moderation status to pending (for re-review).
+    /// </summary>
+    public void ResetToPending()
+    {
+        ModerationStatus = ReviewModerationStatus.Pending;
+        ModeratedAt = null;
+        ModeratedByUserId = null;
+        RejectionReason = null;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

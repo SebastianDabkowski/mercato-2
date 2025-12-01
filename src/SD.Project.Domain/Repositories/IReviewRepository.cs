@@ -3,6 +3,16 @@ using SD.Project.Domain.Entities;
 namespace SD.Project.Domain.Repositories;
 
 /// <summary>
+/// Statistics for review moderation.
+/// </summary>
+public record ReviewModerationStats(
+    int PendingCount,
+    int FlaggedCount,
+    int ReportedCount,
+    int ApprovedTodayCount,
+    int RejectedTodayCount);
+
+/// <summary>
 /// Contract for review persistence operations.
 /// </summary>
 public interface IReviewRepository
@@ -68,6 +78,43 @@ public interface IReviewRepository
     Task<IReadOnlyList<Review>> GetPendingReviewsAsync(
         int skip,
         int take,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets paginated reviews for moderation with filtering options.
+    /// </summary>
+    Task<(IReadOnlyList<Review> Items, int TotalCount)> GetForModerationPagedAsync(
+        ReviewModerationStatus? status,
+        bool? isFlagged,
+        string? searchTerm,
+        Guid? storeId,
+        DateTime? fromDate,
+        DateTime? toDate,
+        int pageNumber,
+        int pageSize,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets flagged reviews for moderation.
+    /// </summary>
+    Task<IReadOnlyList<Review>> GetFlaggedReviewsAsync(
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets reviews with high report count for moderation.
+    /// </summary>
+    Task<IReadOnlyList<Review>> GetReportedReviewsAsync(
+        int minReportCount,
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets moderation statistics.
+    /// </summary>
+    Task<ReviewModerationStats> GetModerationStatsAsync(
         CancellationToken cancellationToken = default);
 
     /// <summary>

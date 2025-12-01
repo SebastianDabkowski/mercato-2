@@ -24,6 +24,20 @@ public sealed class InternalUserRepository : IInternalUserRepository
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<InternalUser>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default)
+    {
+        var idList = ids.ToList();
+        if (idList.Count == 0)
+        {
+            return Array.Empty<InternalUser>();
+        }
+
+        return await _context.InternalUsers
+            .AsNoTracking()
+            .Where(x => idList.Contains(x.Id))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<InternalUser?> GetByStoreAndUserIdAsync(Guid storeId, Guid userId, CancellationToken cancellationToken = default)
     {
         return await _context.InternalUsers

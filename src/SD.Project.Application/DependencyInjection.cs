@@ -49,6 +49,7 @@ public static class DependencyInjection
         services.AddScoped<ShippingProviderIntegrationService>();
         services.AddScoped<ShippingLabelService>();
         services.AddScoped<ReviewService>();
+        services.AddScoped<ReviewModerationService>();
         services.AddScoped<SellerRatingService>();
         services.AddScoped<IAuthorizationService, AuthorizationService>();
 
