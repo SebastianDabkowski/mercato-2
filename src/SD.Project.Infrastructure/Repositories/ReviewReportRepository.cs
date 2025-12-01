@@ -35,12 +35,11 @@ public sealed class ReviewReportRepository : IReviewReportRepository
         Guid reviewId,
         CancellationToken cancellationToken = default)
     {
-        var results = await _context.ReviewReports
+        return await _context.ReviewReports
             .AsNoTracking()
             .Where(r => r.ReviewId == reviewId)
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync(cancellationToken);
-        return results.AsReadOnly();
     }
 
     public async Task AddAsync(ReviewReport report, CancellationToken cancellationToken = default)

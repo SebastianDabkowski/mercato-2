@@ -75,7 +75,8 @@ public class ReviewReport
         ReviewId = reviewId;
         ReporterId = reporterId;
         Reason = reason;
-        Details = details?.Trim();
+        var trimmedDetails = details?.Trim();
+        Details = string.IsNullOrEmpty(trimmedDetails) ? null : trimmedDetails;
         CreatedAt = DateTime.UtcNow;
     }
 }
