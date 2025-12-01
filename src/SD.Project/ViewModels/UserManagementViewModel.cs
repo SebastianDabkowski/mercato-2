@@ -3,6 +3,62 @@ using SD.Project.Domain.Entities;
 namespace SD.Project.ViewModels;
 
 /// <summary>
+/// Extension methods for user role and status display formatting.
+/// </summary>
+public static class UserDisplayExtensions
+{
+    public static string ToDisplayName(this UserRole role) => role switch
+    {
+        UserRole.Buyer => "Buyer",
+        UserRole.Seller => "Seller",
+        UserRole.Admin => "Admin",
+        _ => role.ToString()
+    };
+
+    public static string ToBadgeClass(this UserRole role) => role switch
+    {
+        UserRole.Admin => "bg-primary",
+        UserRole.Seller => "bg-info",
+        UserRole.Buyer => "bg-secondary",
+        _ => "bg-secondary"
+    };
+
+    public static string ToDisplayName(this UserStatus status) => status switch
+    {
+        UserStatus.Unverified => "Pending Verification",
+        UserStatus.Verified => "Active",
+        UserStatus.Suspended => "Blocked",
+        _ => status.ToString()
+    };
+
+    public static string ToBadgeClass(this UserStatus status) => status switch
+    {
+        UserStatus.Unverified => "bg-warning text-dark",
+        UserStatus.Verified => "bg-success",
+        UserStatus.Suspended => "bg-danger",
+        _ => "bg-secondary"
+    };
+
+    public static string ToDisplayName(this KycStatus status) => status switch
+    {
+        KycStatus.NotStarted => "Not Started",
+        KycStatus.Pending => "Pending Review",
+        KycStatus.Approved => "Approved",
+        KycStatus.Rejected => "Rejected",
+        _ => status.ToString()
+    };
+
+    public static string ToBadgeClass(this KycStatus status) => status switch
+    {
+        KycStatus.NotStarted => "bg-secondary",
+        KycStatus.Pending => "bg-warning text-dark",
+        KycStatus.Approved => "bg-success",
+        KycStatus.Rejected => "bg-danger",
+        _ => "bg-secondary"
+    };
+}
+
+/// <summary>
 /// View model for a user in the admin user list.
 /// </summary>
 public sealed class AdminUserViewModel
@@ -17,38 +73,10 @@ public sealed class AdminUserViewModel
     public bool IsEmailVerified { get; init; }
 
     public string FullName => $"{FirstName} {LastName}";
-
-    public string RoleDisplayName => Role switch
-    {
-        UserRole.Buyer => "Buyer",
-        UserRole.Seller => "Seller",
-        UserRole.Admin => "Admin",
-        _ => Role.ToString()
-    };
-
-    public string StatusDisplayName => Status switch
-    {
-        UserStatus.Unverified => "Pending Verification",
-        UserStatus.Verified => "Active",
-        UserStatus.Suspended => "Blocked",
-        _ => Status.ToString()
-    };
-
-    public string StatusBadgeClass => Status switch
-    {
-        UserStatus.Unverified => "bg-warning text-dark",
-        UserStatus.Verified => "bg-success",
-        UserStatus.Suspended => "bg-danger",
-        _ => "bg-secondary"
-    };
-
-    public string RoleBadgeClass => Role switch
-    {
-        UserRole.Admin => "bg-primary",
-        UserRole.Seller => "bg-info",
-        UserRole.Buyer => "bg-secondary",
-        _ => "bg-secondary"
-    };
+    public string RoleDisplayName => Role.ToDisplayName();
+    public string StatusDisplayName => Status.ToDisplayName();
+    public string StatusBadgeClass => Status.ToBadgeClass();
+    public string RoleBadgeClass => Role.ToBadgeClass();
 }
 
 /// <summary>
@@ -75,56 +103,12 @@ public sealed class AdminUserDetailViewModel
     public IReadOnlyList<LoginEventViewModel> RecentLoginActivity { get; init; } = Array.Empty<LoginEventViewModel>();
 
     public string FullName => $"{FirstName} {LastName}";
-
-    public string RoleDisplayName => Role switch
-    {
-        UserRole.Buyer => "Buyer",
-        UserRole.Seller => "Seller",
-        UserRole.Admin => "Admin",
-        _ => Role.ToString()
-    };
-
-    public string StatusDisplayName => Status switch
-    {
-        UserStatus.Unverified => "Pending Verification",
-        UserStatus.Verified => "Active",
-        UserStatus.Suspended => "Blocked",
-        _ => Status.ToString()
-    };
-
-    public string StatusBadgeClass => Status switch
-    {
-        UserStatus.Unverified => "bg-warning text-dark",
-        UserStatus.Verified => "bg-success",
-        UserStatus.Suspended => "bg-danger",
-        _ => "bg-secondary"
-    };
-
-    public string RoleBadgeClass => Role switch
-    {
-        UserRole.Admin => "bg-primary",
-        UserRole.Seller => "bg-info",
-        UserRole.Buyer => "bg-secondary",
-        _ => "bg-secondary"
-    };
-
-    public string KycStatusDisplayName => KycStatus switch
-    {
-        KycStatus.NotStarted => "Not Started",
-        KycStatus.Pending => "Pending Review",
-        KycStatus.Approved => "Approved",
-        KycStatus.Rejected => "Rejected",
-        _ => KycStatus.ToString()
-    };
-
-    public string KycStatusBadgeClass => KycStatus switch
-    {
-        KycStatus.NotStarted => "bg-secondary",
-        KycStatus.Pending => "bg-warning text-dark",
-        KycStatus.Approved => "bg-success",
-        KycStatus.Rejected => "bg-danger",
-        _ => "bg-secondary"
-    };
+    public string RoleDisplayName => Role.ToDisplayName();
+    public string StatusDisplayName => Status.ToDisplayName();
+    public string StatusBadgeClass => Status.ToBadgeClass();
+    public string RoleBadgeClass => Role.ToBadgeClass();
+    public string KycStatusDisplayName => KycStatus.ToDisplayName();
+    public string KycStatusBadgeClass => KycStatus.ToBadgeClass();
 }
 
 /// <summary>
