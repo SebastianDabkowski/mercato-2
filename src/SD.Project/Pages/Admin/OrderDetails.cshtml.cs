@@ -11,7 +11,7 @@ namespace SD.Project.Pages.Admin;
 /// <summary>
 /// Admin page for viewing order details with full shipping status history.
 /// </summary>
-[RequireRole(UserRole.Admin)]
+[RequireRole(UserRole.Admin, UserRole.Support)]
 public class OrderDetailsModel : PageModel
 {
     private readonly ILogger<OrderDetailsModel> _logger;

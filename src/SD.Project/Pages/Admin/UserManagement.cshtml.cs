@@ -66,7 +66,9 @@ public class UserManagementModel : PageModel
             new("All Roles", ""),
             new("Buyer", nameof(UserRole.Buyer)),
             new("Seller", nameof(UserRole.Seller)),
-            new("Admin", nameof(UserRole.Admin))
+            new("Admin", nameof(UserRole.Admin)),
+            new("Support", nameof(UserRole.Support)),
+            new("Compliance", nameof(UserRole.Compliance))
         };
 
         StatusOptions = new List<SelectListItem>

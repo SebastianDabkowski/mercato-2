@@ -29,6 +29,52 @@ public interface IAuthorizationService
     /// Checks whether a user with the given role can access admin features.
     /// </summary>
     bool CanAccessAdminFeatures(UserRole userRole);
+
+    /// <summary>
+    /// Checks whether a user with the given role has a specific permission.
+    /// </summary>
+    /// <param name="userRole">The role of the user.</param>
+    /// <param name="permission">The permission to check.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>True if the user has the permission, false otherwise.</returns>
+    Task<bool> HasPermissionAsync(
+        UserRole userRole,
+        Permission permission,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Checks whether a user with the given role has any of the specified permissions.
+    /// </summary>
+    /// <param name="userRole">The role of the user.</param>
+    /// <param name="permissions">The permissions to check.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>True if the user has any of the permissions, false otherwise.</returns>
+    Task<bool> HasAnyPermissionAsync(
+        UserRole userRole,
+        IEnumerable<Permission> permissions,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all permissions for a specific role.
+    /// </summary>
+    /// <param name="userRole">The role to get permissions for.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>A collection of permissions for the role.</returns>
+    Task<IReadOnlyCollection<Permission>> GetPermissionsForRoleAsync(
+        UserRole userRole,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Authorizes access based on a required permission.
+    /// </summary>
+    /// <param name="userRole">The role of the user attempting access.</param>
+    /// <param name="permission">The required permission.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>An authorization result indicating success or failure with a message.</returns>
+    Task<AuthorizationResult> AuthorizePermissionAsync(
+        UserRole userRole,
+        Permission permission,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>

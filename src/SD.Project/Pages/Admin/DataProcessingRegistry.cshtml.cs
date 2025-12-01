@@ -15,7 +15,7 @@ namespace SD.Project.Pages.Admin;
 /// <summary>
 /// Page model for managing the GDPR data processing activities registry.
 /// </summary>
-[RequireRole(UserRole.Admin)]
+[RequireRole(UserRole.Admin, UserRole.Compliance)]
 public class DataProcessingRegistryModel : PageModel
 {
     private readonly ILogger<DataProcessingRegistryModel> _logger;
