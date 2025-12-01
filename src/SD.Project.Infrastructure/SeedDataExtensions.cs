@@ -99,6 +99,9 @@ public static class SeedDataExtensions
             await userRepo.SaveChangesAsync();
         }
 
+        // Create additional test users for admin user management testing
+        await SeedAdditionalUsersForTestingAsync(userRepo, passwordHasher);
+
         // Create an active store
         var existingStore = await storeRepo.GetBySlugAsync("demo-store");
         Store? demoStore = existingStore;
@@ -738,5 +741,63 @@ public static class SeedDataExtensions
             
             await notificationRepo.SaveChangesAsync();
         }
+    }
+
+    /// <summary>
+    /// Creates additional test users with different statuses for testing admin user management.
+    /// </summary>
+    private static async Task SeedAdditionalUsersForTestingAsync(
+        IUserRepository userRepo,
+        IPasswordHasher passwordHasher)
+    {
+        var testUsers = new[]
+        {
+            // Additional buyers with various statuses
+            (Id: Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-000000000001"), Email: "john.smith@example.com", FirstName: "John", LastName: "Smith", Role: UserRole.Buyer, Verified: true, Suspended: false),
+            (Id: Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-000000000002"), Email: "jane.doe@example.com", FirstName: "Jane", LastName: "Doe", Role: UserRole.Buyer, Verified: true, Suspended: false),
+            (Id: Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-000000000003"), Email: "mike.wilson@example.com", FirstName: "Mike", LastName: "Wilson", Role: UserRole.Buyer, Verified: false, Suspended: false),
+            (Id: Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-000000000004"), Email: "sarah.johnson@example.com", FirstName: "Sarah", LastName: "Johnson", Role: UserRole.Buyer, Verified: true, Suspended: true),
+
+            // Additional sellers with various statuses
+            (Id: Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-000000000001"), Email: "tech.store@example.com", FirstName: "Tech", LastName: "Store", Role: UserRole.Seller, Verified: true, Suspended: false),
+            (Id: Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-000000000002"), Email: "fashion.boutique@example.com", FirstName: "Fashion", LastName: "Boutique", Role: UserRole.Seller, Verified: true, Suspended: false),
+            (Id: Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-000000000003"), Email: "new.seller@example.com", FirstName: "New", LastName: "Seller", Role: UserRole.Seller, Verified: false, Suspended: false),
+            (Id: Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-000000000004"), Email: "blocked.seller@example.com", FirstName: "Blocked", LastName: "Seller", Role: UserRole.Seller, Verified: true, Suspended: true),
+
+            // Additional admin for testing
+            (Id: Guid.Parse("cccccccc-cccc-cccc-cccc-000000000001"), Email: "support.admin@demo.com", FirstName: "Support", LastName: "Admin", Role: UserRole.Admin, Verified: true, Suspended: false),
+        };
+
+        foreach (var testUser in testUsers)
+        {
+            var existingUser = await userRepo.GetByIdAsync(testUser.Id);
+            if (existingUser is null)
+            {
+                var email = Email.Create(testUser.Email);
+                var passwordHash = passwordHasher.HashPassword("Test123!");
+                var user = new User(
+                    testUser.Id,
+                    email,
+                    passwordHash,
+                    testUser.Role,
+                    testUser.FirstName,
+                    testUser.LastName,
+                    acceptedTerms: true);
+
+                if (testUser.Verified)
+                {
+                    user.VerifyEmail();
+                }
+
+                if (testUser.Suspended)
+                {
+                    user.Suspend();
+                }
+
+                await userRepo.AddAsync(user);
+            }
+        }
+
+        await userRepo.SaveChangesAsync();
     }
 }
