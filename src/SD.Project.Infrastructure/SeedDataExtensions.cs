@@ -573,8 +573,9 @@ public static class SeedDataExtensions
                         (Rating: 4, Comment: (string?)null, DaysAgo: 45)
                     };
 
-                    var dummyOrderId = Guid.NewGuid();
-                    var dummyShipmentId = Guid.NewGuid();
+                    // Use fixed GUIDs for test data consistency
+                    var dummyOrderId = Guid.Parse("55555555-5555-5555-5555-555555555555");
+                    var dummyShipmentId = Guid.Parse("66666666-6666-6666-6666-666666666666");
 
                     for (int i = 0; i < reviewData.Length; i++)
                     {
