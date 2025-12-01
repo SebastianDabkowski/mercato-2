@@ -99,6 +99,7 @@ public sealed class ReturnRequestRepository : IReturnRequestRepository
         DateTime? toDate,
         int skip,
         int take,
+        ReturnRequestType? type = null,
         CancellationToken cancellationToken = default)
     {
         var query = _context.ReturnRequests
@@ -107,6 +108,11 @@ public sealed class ReturnRequestRepository : IReturnRequestRepository
         if (status.HasValue)
         {
             query = query.Where(r => r.Status == status.Value);
+        }
+
+        if (type.HasValue)
+        {
+            query = query.Where(r => r.Type == type.Value);
         }
 
         if (fromDate.HasValue)
