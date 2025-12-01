@@ -178,7 +178,14 @@
                                         <span class="text-warning">@ReviewModerationStatusHelper.GetRatingStars(review.Rating)</span>
                                     </td>
                                     <td class="text-truncate" style="max-width: 200px;" title="@review.Comment">
-                                        @(review.Comment ?? "<em>No comment</em>")
+                                        @if (!string.IsNullOrEmpty(review.Comment))
+                                        {
+                                            @review.Comment
+                                        }
+                                        else
+                                        {
+                                            <em class="text-muted">No comment</em>
+                                        }
                                         @if (review.IsFlagged)
                                         {
                                             <br><small class="text-danger"><i class="bi bi-flag-fill"></i> @review.FlagReason</small>

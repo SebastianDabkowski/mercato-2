@@ -110,6 +110,7 @@ public static class ReviewModerationStatusHelper
     /// </summary>
     public static string GetRatingStars(int rating)
     {
-        return new string('★', rating) + new string('☆', 5 - rating);
+        var clampedRating = Math.Clamp(rating, 0, 5);
+        return new string('★', clampedRating) + new string('☆', 5 - clampedRating);
     }
 }
