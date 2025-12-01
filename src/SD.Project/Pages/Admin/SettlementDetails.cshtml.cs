@@ -4,6 +4,7 @@ using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using SD.Project.Application.Commands;
+using SD.Project.Application.Interfaces;
 using SD.Project.Application.Queries;
 using SD.Project.Application.Services;
 using SD.Project.Domain.Entities;
@@ -17,6 +18,8 @@ namespace SD.Project.Pages.Admin
     {
         private readonly ILogger<SettlementDetailsModel> _logger;
         private readonly SettlementService _settlementService;
+        private readonly IAuditLoggingService _auditLoggingService;
+        private readonly IAuthorizationService _authorizationService;
 
         public SettlementDetailsViewModel? Settlement { get; private set; }
         public string? SuccessMessage { get; private set; }
@@ -30,10 +33,14 @@ namespace SD.Project.Pages.Admin
 
         public SettlementDetailsModel(
             ILogger<SettlementDetailsModel> logger,
-            SettlementService settlementService)
+            SettlementService settlementService,
+            IAuditLoggingService auditLoggingService,
+            IAuthorizationService authorizationService)
         {
             _logger = logger;
             _settlementService = settlementService;
+            _auditLoggingService = auditLoggingService;
+            _authorizationService = authorizationService;
         }
 
         public async Task<IActionResult> OnGetAsync(Guid id, string? success = null, string? error = null)
@@ -55,6 +62,9 @@ namespace SD.Project.Pages.Admin
                 GetUserId(),
                 id,
                 Settlement.SettlementNumber);
+
+            // Log sensitive data access for audit compliance
+            await LogSensitiveAccessAsync(id, Settlement.SellerId, SensitiveAccessAction.View);
 
             return Page();
         }
@@ -193,6 +203,9 @@ namespace SD.Project.Pages.Admin
                 GetUserId(),
                 id);
 
+            // Log sensitive data export for audit compliance
+            await LogSensitiveAccessAsync(id, settlement.SellerId, SensitiveAccessAction.Export);
+
             var fileName = $"settlement-{settlement.SettlementNumber}.csv";
             var bytes = Encoding.UTF8.GetBytes(csv.ToString());
             return File(bytes, "text/csv", fileName);
@@ -256,6 +269,46 @@ namespace SD.Project.Pages.Admin
         private string GetUserId()
         {
             return User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+        }
+
+        private Guid GetUserIdGuid()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            return Guid.TryParse(userIdClaim, out var userId) ? userId : Guid.Empty;
+        }
+
+        private UserRole GetUserRole()
+        {
+            var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value;
+            // For admin pages, if role claim is missing or invalid, default to the most restrictive role
+            // This ensures audit logging will still capture the access attempt correctly
+            if (string.IsNullOrEmpty(roleClaim) || !Enum.TryParse<UserRole>(roleClaim, out var role))
+            {
+                _logger.LogWarning("Invalid or missing role claim for user {UserId}", GetUserId());
+                return UserRole.Buyer; // Most restrictive - will still be logged but won't have elevated access
+            }
+            return role;
+        }
+
+        private async Task LogSensitiveAccessAsync(Guid settlementId, Guid sellerId, SensitiveAccessAction action)
+        {
+            var userId = GetUserIdGuid();
+            var userRole = GetUserRole();
+
+            // Check if audit logging is required for this user role accessing settlement details
+            if (_authorizationService.RequiresAuditLogging(userRole, SensitiveResourceType.SettlementDetails))
+            {
+                await _auditLoggingService.LogSensitiveAccessAsync(
+                    userId,
+                    userRole,
+                    SensitiveResourceType.SettlementDetails,
+                    settlementId,
+                    action,
+                    sellerId, // Resource owner is the seller
+                    null,
+                    HttpContext.Connection.RemoteIpAddress?.ToString(),
+                    Request.Headers.UserAgent.ToString());
+            }
         }
 
         public class AddAdjustmentInput

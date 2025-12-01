@@ -75,6 +75,62 @@ public interface IAuthorizationService
         UserRole userRole,
         Permission permission,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Checks if a seller can access a specific store's resources (multi-tenant isolation).
+    /// </summary>
+    /// <param name="userId">The user attempting access.</param>
+    /// <param name="storeId">The store being accessed.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Authorization result with success or failure message.</returns>
+    Task<AuthorizationResult> AuthorizeStoreAccessAsync(
+        Guid userId,
+        Guid storeId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Checks if a buyer can access a specific order (owner verification).
+    /// </summary>
+    /// <param name="userId">The user attempting access.</param>
+    /// <param name="orderId">The order being accessed.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Authorization result with success or failure message.</returns>
+    Task<AuthorizationResult> AuthorizeBuyerOrderAccessAsync(
+        Guid userId,
+        Guid orderId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Checks if a seller can access a specific order's shipment (store ownership verification).
+    /// </summary>
+    /// <param name="userId">The seller user attempting access.</param>
+    /// <param name="shipmentId">The shipment being accessed.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Authorization result with success or failure message.</returns>
+    Task<AuthorizationResult> AuthorizeSellerShipmentAccessAsync(
+        Guid userId,
+        Guid shipmentId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Checks if a seller can access a specific product (store ownership verification).
+    /// </summary>
+    /// <param name="userId">The seller user attempting access.</param>
+    /// <param name="productId">The product being accessed.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Authorization result with success or failure message.</returns>
+    Task<AuthorizationResult> AuthorizeProductAccessAsync(
+        Guid userId,
+        Guid productId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Determines if access to a resource requires audit logging based on the accessor's role.
+    /// </summary>
+    /// <param name="userRole">The role of the user accessing the resource.</param>
+    /// <param name="resourceType">The type of resource being accessed.</param>
+    /// <returns>True if audit logging is required, false otherwise.</returns>
+    bool RequiresAuditLogging(UserRole userRole, SensitiveResourceType resourceType);
 }
 
 /// <summary>
