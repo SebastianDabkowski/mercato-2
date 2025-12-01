@@ -1,5 +1,11 @@
 # Mercato 2 – Copilot Instructions
 
+## Technology Stack
+- .NET SDK 9.0
+- ASP.NET Core Razor Pages
+- Entity Framework Core (InMemory provider for local dev)
+- C# 13
+
 ## Architecture Snapshot
 - Clean layers: `src/SD.Project` (UI Razor Pages host) ➜ `SD.Project.Application` ➜ `SD.Project.Domain`; infrastructure types live in `SD.Project.Infrastructure` but are only referenced by the UI host (see `architecture.md`).
 - Always route new use cases through `ProductService` or a sibling application service registered in `SD.Project.Application/DependencyInjection.cs`; Razor Pages should keep only orchestration/mapping logic.
@@ -31,3 +37,15 @@
 - New features should add domain behavior first, then expose it via repositories/services, finally surface it through Razor Pages.
 - Register every new service in the corresponding `DependencyInjection` helper; missing registrations are the most common runtime issue because the host only calls these extension methods.
 - When persisting data, wrap writes in repository calls and finish with `SaveChangesAsync` so the InMemory provider behaves the same as relational providers later.
+
+## Boundaries
+- Never commit secrets, connection strings, or credentials to the repository.
+- Do not modify files in `.github/agents/` as they contain private agent instructions.
+- Keep EF Core references confined to the Infrastructure layer.
+- Avoid adding new NuGet packages without explicit justification.
+
+## Acceptance Criteria
+- All new code must build without errors or warnings.
+- New services must be registered in the appropriate `DependencyInjection.cs`.
+- Follow existing code style and naming conventions.
+- Razor Pages should remain thin with logic delegated to application services.
