@@ -228,11 +228,6 @@
                             <tbody>
                                 @foreach (var row in Model.Report.Rows)
                                 {
-                                    var statusDisplay = row.OrderStatus switch
-                                    {
-                                        "Paid" => "Confirmed",
-                                        _ => row.OrderStatus
-                                    };
                                     <tr>
                                         <td>
                                             <a asp-page="/Seller/OrderDetail" asp-route-subOrderId="@row.SubOrderId" class="fw-bold text-decoration-none">
@@ -242,7 +237,7 @@
                                         <td>@row.FormattedOrderDate</td>
                                         <td>@row.BuyerName</td>
                                         <td class="text-center">
-                                            <span class="badge @row.OrderStatusBadgeClass">@statusDisplay</span>
+                                            <span class="badge @row.OrderStatusBadgeClass">@row.OrderStatusDisplay</span>
                                         </td>
                                         <td class="text-center">
                                             <span class="badge @row.PaymentStatusBadgeClass">@row.PaymentStatus</span>

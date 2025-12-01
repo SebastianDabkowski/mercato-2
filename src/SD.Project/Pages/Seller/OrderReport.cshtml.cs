@@ -176,14 +176,14 @@ public class OrderReportModel : PageModel
 
         return DateRange switch
         {
-            "last7days" => (today.AddDays(-6), today.AddDays(1)), // Include today
-            "last30days" => (today.AddDays(-29), today.AddDays(1)),
-            "last90days" => (today.AddDays(-89), today.AddDays(1)),
+            "last7days" => (today.AddDays(-6), today),
+            "last30days" => (today.AddDays(-29), today),
+            "last90days" => (today.AddDays(-89), today),
             "custom" => (
                 CustomFromDate?.Date ?? today.AddDays(-29),
-                CustomToDate?.Date.AddDays(1) ?? today.AddDays(1)
+                CustomToDate?.Date ?? today
             ),
-            _ => (today.AddDays(-29), today.AddDays(1))
+            _ => (today.AddDays(-29), today)
         };
     }
 }

@@ -38,6 +38,16 @@ public sealed class SellerOrderReportRowViewModel
     public string FormattedOrderDate => OrderDate.ToString("yyyy-MM-dd HH:mm");
 
     /// <summary>
+    /// Gets the display-friendly order status.
+    /// Maps internal status names to user-friendly labels.
+    /// </summary>
+    public string OrderStatusDisplay => OrderStatus switch
+    {
+        "Paid" => "Confirmed",
+        _ => OrderStatus
+    };
+
+    /// <summary>
     /// Gets the CSS class for order status badge.
     /// </summary>
     public string OrderStatusBadgeClass => OrderStatus switch
