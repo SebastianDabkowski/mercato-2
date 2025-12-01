@@ -94,6 +94,53 @@ public sealed record SellerReturnRequestDetailsViewModel(
     IReadOnlyList<ReturnRequestItemViewModel> RequestItems);
 
 /// <summary>
+/// View model for linked refund information in buyer case details.
+/// </summary>
+public sealed record LinkedRefundViewModel(
+    Guid RefundId,
+    string Status,
+    decimal Amount,
+    string Currency,
+    string? RefundTransactionId,
+    DateTime CreatedAt,
+    DateTime? CompletedAt);
+
+/// <summary>
+/// View model for buyer case (return/complaint) details with refund info.
+/// </summary>
+public sealed record BuyerCaseDetailsViewModel(
+    Guid ReturnRequestId,
+    Guid OrderId,
+    Guid ShipmentId,
+    string CaseNumber,
+    string OrderNumber,
+    string StoreName,
+    string Type,
+    string Status,
+    string Reason,
+    string? Comments,
+    string? SellerResponse,
+    DateTime CreatedAt,
+    DateTime? ApprovedAt,
+    DateTime? RejectedAt,
+    DateTime? CompletedAt,
+    IReadOnlyList<ReturnRequestItemViewModel> Items,
+    IReadOnlyList<LinkedRefundViewModel>? LinkedRefunds);
+
+/// <summary>
+/// View model for buyer case summary (list view).
+/// </summary>
+public sealed record BuyerCaseSummaryViewModel(
+    Guid ReturnRequestId,
+    Guid OrderId,
+    string CaseNumber,
+    string OrderNumber,
+    string StoreName,
+    string Type,
+    string Status,
+    DateTime CreatedAt);
+
+/// <summary>
 /// Helper class for return request status display.
 /// </summary>
 public static class ReturnRequestStatusHelper
