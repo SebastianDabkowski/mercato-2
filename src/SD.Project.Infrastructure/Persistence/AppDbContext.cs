@@ -92,6 +92,8 @@ public class AppDbContext : DbContext
     public DbSet<CriticalActionAuditLog> CriticalActionAuditLogs => Set<CriticalActionAuditLog>();
     public DbSet<SecurityIncident> SecurityIncidents => Set<SecurityIncident>();
     public DbSet<SecurityIncidentStatusHistory> SecurityIncidentStatusHistories => Set<SecurityIncidentStatusHistory>();
+    public DbSet<CategoryAttribute> CategoryAttributes => Set<CategoryAttribute>();
+    public DbSet<SharedAttribute> SharedAttributes => Set<SharedAttribute>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
