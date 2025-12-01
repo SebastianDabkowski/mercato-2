@@ -58,13 +58,25 @@ public sealed class ReturnRequestRepository : IReturnRequestRepository
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync(cancellationToken);
 
-        // Load items for each request
+        if (requests.Count == 0)
+        {
+            return requests.AsReadOnly();
+        }
+
+        // Load all items for all requests in a single query
+        var requestIds = requests.Select(r => r.Id).ToList();
+        var allItems = await _context.ReturnRequestItems
+            .Where(i => requestIds.Contains(i.ReturnRequestId))
+            .ToListAsync(cancellationToken);
+
+        // Group items by request ID and load them
+        var itemsByRequest = allItems.GroupBy(i => i.ReturnRequestId).ToDictionary(g => g.Key, g => g.ToList());
         foreach (var request in requests)
         {
-            var items = await _context.ReturnRequestItems
-                .Where(i => i.ReturnRequestId == request.Id)
-                .ToListAsync(cancellationToken);
-            request.LoadItems(items);
+            if (itemsByRequest.TryGetValue(request.Id, out var items))
+            {
+                request.LoadItems(items);
+            }
         }
 
         return requests.AsReadOnly();
@@ -130,31 +142,38 @@ public sealed class ReturnRequestRepository : IReturnRequestRepository
         // An "open" request is one that is not Rejected or Completed
         var openStatuses = new[] { ReturnRequestStatus.Requested, ReturnRequestStatus.Approved };
 
-        return await _context.ReturnRequestItems
-            .AnyAsync(i => i.OrderItemId == orderItemId &&
-                          _context.ReturnRequests.Any(r =>
-                              r.Id == i.ReturnRequestId &&
-                              openStatuses.Contains(r.Status)),
-                cancellationToken);
+        // Use a join-based query for better performance
+        var query = from item in _context.ReturnRequestItems
+                    join request in _context.ReturnRequests on item.ReturnRequestId equals request.Id
+                    where item.OrderItemId == orderItemId && openStatuses.Contains(request.Status)
+                    select item;
+
+        return await query.AnyAsync(cancellationToken);
     }
 
     public async Task<ReturnRequest?> GetOpenRequestForOrderItemAsync(Guid orderItemId, CancellationToken cancellationToken = default)
     {
         var openStatuses = new[] { ReturnRequestStatus.Requested, ReturnRequestStatus.Approved };
 
-        var requestItem = await _context.ReturnRequestItems
-            .FirstOrDefaultAsync(i => i.OrderItemId == orderItemId &&
-                                     _context.ReturnRequests.Any(r =>
-                                         r.Id == i.ReturnRequestId &&
-                                         openStatuses.Contains(r.Status)),
-                cancellationToken);
+        // Use a join-based query for better performance
+        var query = from item in _context.ReturnRequestItems
+                    join request in _context.ReturnRequests on item.ReturnRequestId equals request.Id
+                    where item.OrderItemId == orderItemId && openStatuses.Contains(request.Status)
+                    select request;
 
-        if (requestItem is null)
+        var openRequest = await query.FirstOrDefaultAsync(cancellationToken);
+        if (openRequest is null)
         {
             return null;
         }
 
-        return await GetByIdWithItemsAsync(requestItem.ReturnRequestId, cancellationToken);
+        // Load items for the request
+        var items = await _context.ReturnRequestItems
+            .Where(i => i.ReturnRequestId == openRequest.Id)
+            .ToListAsync(cancellationToken);
+        openRequest.LoadItems(items);
+
+        return openRequest;
     }
 
     public async Task AddAsync(ReturnRequest returnRequest, CancellationToken cancellationToken = default)
