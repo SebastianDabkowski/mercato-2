@@ -1,0 +1,149 @@
+using Microsoft.EntityFrameworkCore;
+using SD.Project.Domain.Entities;
+using SD.Project.Domain.Repositories;
+using SD.Project.Infrastructure.Persistence;
+
+namespace SD.Project.Infrastructure.Repositories;
+
+/// <summary>
+/// EF Core backed repository for reviews.
+/// </summary>
+public sealed class ReviewRepository : IReviewRepository
+{
+    private readonly AppDbContext _context;
+
+    public ReviewRepository(AppDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<Review?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await _context.Reviews.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+    }
+
+    public async Task<Review?> GetByOrderShipmentProductAsync(
+        Guid orderId,
+        Guid shipmentId,
+        Guid productId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.Reviews
+            .FirstOrDefaultAsync(r => 
+                r.OrderId == orderId && 
+                r.ShipmentId == shipmentId && 
+                r.ProductId == productId, 
+                cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Review>> GetByProductIdAsync(
+        Guid productId,
+        CancellationToken cancellationToken = default)
+    {
+        var results = await _context.Reviews
+            .AsNoTracking()
+            .Where(r => r.ProductId == productId && r.ModerationStatus == ReviewModerationStatus.Approved)
+            .OrderByDescending(r => r.CreatedAt)
+            .ToListAsync(cancellationToken);
+        return results.AsReadOnly();
+    }
+
+    public async Task<IReadOnlyList<Review>> GetByStoreIdAsync(
+        Guid storeId,
+        CancellationToken cancellationToken = default)
+    {
+        var results = await _context.Reviews
+            .AsNoTracking()
+            .Where(r => r.StoreId == storeId && r.ModerationStatus == ReviewModerationStatus.Approved)
+            .OrderByDescending(r => r.CreatedAt)
+            .ToListAsync(cancellationToken);
+        return results.AsReadOnly();
+    }
+
+    public async Task<IReadOnlyList<Review>> GetByBuyerIdAsync(
+        Guid buyerId,
+        CancellationToken cancellationToken = default)
+    {
+        var results = await _context.Reviews
+            .AsNoTracking()
+            .Where(r => r.BuyerId == buyerId)
+            .OrderByDescending(r => r.CreatedAt)
+            .ToListAsync(cancellationToken);
+        return results.AsReadOnly();
+    }
+
+    public async Task<int> GetReviewCountByBuyerInWindowAsync(
+        Guid buyerId,
+        DateTime windowStart,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.Reviews
+            .CountAsync(r => r.BuyerId == buyerId && r.CreatedAt >= windowStart, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Review>> GetPendingReviewsAsync(
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default)
+    {
+        var results = await _context.Reviews
+            .AsNoTracking()
+            .Where(r => r.ModerationStatus == ReviewModerationStatus.Pending)
+            .OrderBy(r => r.CreatedAt)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+        return results.AsReadOnly();
+    }
+
+    public async Task<(double AverageRating, int ReviewCount)> GetProductRatingAsync(
+        Guid productId,
+        CancellationToken cancellationToken = default)
+    {
+        var reviews = await _context.Reviews
+            .AsNoTracking()
+            .Where(r => r.ProductId == productId && r.ModerationStatus == ReviewModerationStatus.Approved)
+            .Select(r => r.Rating)
+            .ToListAsync(cancellationToken);
+
+        if (reviews.Count == 0)
+        {
+            return (0, 0);
+        }
+
+        return (reviews.Average(), reviews.Count);
+    }
+
+    public async Task<(double AverageRating, int ReviewCount)> GetStoreRatingAsync(
+        Guid storeId,
+        CancellationToken cancellationToken = default)
+    {
+        var reviews = await _context.Reviews
+            .AsNoTracking()
+            .Where(r => r.StoreId == storeId && r.ModerationStatus == ReviewModerationStatus.Approved)
+            .Select(r => r.Rating)
+            .ToListAsync(cancellationToken);
+
+        if (reviews.Count == 0)
+        {
+            return (0, 0);
+        }
+
+        return (reviews.Average(), reviews.Count);
+    }
+
+    public async Task AddAsync(Review review, CancellationToken cancellationToken = default)
+    {
+        await _context.Reviews.AddAsync(review, cancellationToken);
+    }
+
+    public void Update(Review review)
+    {
+        _context.Reviews.Update(review);
+    }
+
+    public Task SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        return _context.SaveChangesAsync(cancellationToken);
+    }
+}

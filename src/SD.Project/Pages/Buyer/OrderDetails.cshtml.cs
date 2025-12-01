@@ -15,6 +15,7 @@ public class OrderDetailsModel : PageModel
     private readonly ILogger<OrderDetailsModel> _logger;
     private readonly OrderService _orderService;
     private readonly ReturnRequestService _returnRequestService;
+    private readonly ReviewService _reviewService;
 
     public OrderDetailsViewModel? Order { get; private set; }
     
@@ -28,14 +29,21 @@ public class OrderDetailsModel : PageModel
     /// </summary>
     public Dictionary<Guid, BuyerReturnRequestViewModel> ExistingReturnRequests { get; private set; } = new();
 
+    /// <summary>
+    /// Dictionary of (shipmentId, productId) to review eligibility status.
+    /// </summary>
+    public Dictionary<(Guid ShipmentId, Guid ProductId), ReviewEligibilityViewModel> ReviewEligibility { get; private set; } = new();
+
     public OrderDetailsModel(
         ILogger<OrderDetailsModel> logger,
         OrderService orderService,
-        ReturnRequestService returnRequestService)
+        ReturnRequestService returnRequestService,
+        ReviewService reviewService)
     {
         _logger = logger;
         _orderService = orderService;
         _returnRequestService = returnRequestService;
+        _reviewService = reviewService;
     }
 
     public async Task<IActionResult> OnGetAsync(Guid orderId, CancellationToken cancellationToken = default)
@@ -156,6 +164,20 @@ public class OrderDetailsModel : PageModel
                     existingReturn.RejectedAt,
                     existingReturn.CompletedAt,
                     items.AsReadOnly());
+            }
+
+            // Check review eligibility for each product in this sub-order
+            var subOrderDto = orderDetails.SellerSubOrders.First(s => s.SubOrderId == subOrder.SubOrderId);
+            foreach (var item in subOrderDto.Items)
+            {
+                var reviewEligibility = await _reviewService.HandleAsync(
+                    new CheckReviewEligibilityQuery(buyerId.Value, orderId, subOrder.SubOrderId, item.ProductId),
+                    cancellationToken);
+
+                ReviewEligibility[(subOrder.SubOrderId, item.ProductId)] = new ReviewEligibilityViewModel(
+                    reviewEligibility.IsEligible,
+                    reviewEligibility.IneligibilityReason,
+                    reviewEligibility.HasExistingReview);
             }
         }
 
