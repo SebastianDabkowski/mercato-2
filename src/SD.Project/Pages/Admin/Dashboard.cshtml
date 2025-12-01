@@ -90,9 +90,9 @@
                 <h2 class="card-title text-success mb-3">@Model.Metrics.OrderCount.ToString("N0")</h2>
                 <p class="card-text small text-muted">Orders placed in period</p>
             </div>
-            <a href="@Url.Page("/Admin/OrderDetails", new { dateRange = Model.DateRange })" 
+            <a href="@Url.Page("/Admin/OrderRevenueReport", new { dateRange = Model.DateRange })" 
                class="card-footer text-center text-decoration-none">
-                View Order Details →
+                View Order & Revenue Report →
             </a>
         </div>
     </div>
@@ -185,9 +185,9 @@
     <div class="col-md-4">
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">User Management</h5>
-                <p class="card-text">Manage platform users and roles.</p>
-                <a href="#" class="btn btn-primary">Manage Users</a>
+                <h5 class="card-title">Order & Revenue Reports</h5>
+                <p class="card-text">Analyse marketplace performance with CSV export.</p>
+                <a asp-page="/Admin/OrderRevenueReport" class="btn btn-primary">View Reports</a>
             </div>
         </div>
     </div>

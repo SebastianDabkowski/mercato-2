@@ -1,0 +1,278 @@
+@page
+@model SD.Project.Pages.Admin.OrderRevenueReportModel
+@{
+    ViewData["Title"] = "Order & Revenue Report";
+}
+
+<h1>Order &amp; Revenue Report</h1>
+<p class="text-muted">Analyse marketplace performance with order and revenue data.</p>
+
+<!-- Filter Section -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Filters</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <!-- Date Range -->
+            <div class="col-md-2">
+                <label for="dateRange" class="form-label">Date Range</label>
+                <select id="dateRange" name="dateRange" class="form-select" onchange="toggleCustomDateInputs()">
+                    @foreach (var preset in Model.DateRangePresets)
+                    {
+                        if (preset.IsSelected)
+                        {
+                            <option value="@preset.Value" selected>@preset.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@preset.Value">@preset.Name</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-md-2 custom-date-input" style="display: @(Model.DateRange == "custom" ? "block" : "none")">
+                <label for="customFromDate" class="form-label">From</label>
+                <input type="date" id="customFromDate" name="customFromDate" class="form-control"
+                       value="@(Model.CustomFromDate?.ToString("yyyy-MM-dd"))" />
+            </div>
+            <div class="col-md-2 custom-date-input" style="display: @(Model.DateRange == "custom" ? "block" : "none")">
+                <label for="customToDate" class="form-label">To</label>
+                <input type="date" id="customToDate" name="customToDate" class="form-control"
+                       value="@(Model.CustomToDate?.ToString("yyyy-MM-dd"))" />
+            </div>
+
+            <!-- Seller Filter -->
+            <div class="col-md-2">
+                <label for="sellerId" class="form-label">Seller</label>
+                <select id="sellerId" name="sellerId" class="form-select">
+                    <option value="">All Sellers</option>
+                    @foreach (var seller in Model.SellerOptions)
+                    {
+                        if (seller.IsSelected)
+                        {
+                            <option value="@seller.Id" selected>@seller.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@seller.Id">@seller.Name</option>
+                        }
+                    }
+                </select>
+            </div>
+
+            <!-- Order Status Filter -->
+            <div class="col-md-2">
+                <label for="orderStatus" class="form-label">Order Status</label>
+                <select id="orderStatus" name="orderStatus" class="form-select">
+                    <option value="">All Statuses</option>
+                    @foreach (var status in Model.OrderStatusOptions)
+                    {
+                        if (status == Model.OrderStatus)
+                        {
+                            <option value="@status" selected>@status</option>
+                        }
+                        else
+                        {
+                            <option value="@status">@status</option>
+                        }
+                    }
+                </select>
+            </div>
+
+            <!-- Payment Status Filter -->
+            <div class="col-md-2">
+                <label for="paymentStatus" class="form-label">Payment Status</label>
+                <select id="paymentStatus" name="paymentStatus" class="form-select">
+                    <option value="">All Statuses</option>
+                    @foreach (var status in Model.PaymentStatusOptions)
+                    {
+                        if (status == Model.PaymentStatus)
+                        {
+                            <option value="@status" selected>@status</option>
+                        }
+                        else
+                        {
+                            <option value="@status">@status</option>
+                        }
+                    }
+                </select>
+            </div>
+
+            <!-- Buttons -->
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary">Apply</button>
+                <a href="@Url.Page("/Admin/OrderRevenueReport")" class="btn btn-outline-secondary ms-2">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Error Message -->
+@if (TempData["ErrorMessage"] is not null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card border-primary">
+            <div class="card-body text-center">
+                <h6 class="card-subtitle mb-2 text-muted">Total Order Value</h6>
+                <h3 class="card-title text-primary">@Model.Report.FormattedTotalOrderValue</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-success">
+            <div class="card-body text-center">
+                <h6 class="card-subtitle mb-2 text-muted">Total Commission</h6>
+                <h3 class="card-title text-success">@Model.Report.FormattedTotalCommission</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-info">
+            <div class="card-body text-center">
+                <h6 class="card-subtitle mb-2 text-muted">Total Payout Amount</h6>
+                <h3 class="card-title text-info">@Model.Report.FormattedTotalPayoutAmount</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export Section -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <span class="text-muted">@Model.Report.TotalCount orders found</span>
+    <div>
+        @if (Model.Report.ExceedsExportThreshold)
+        {
+            <span class="text-warning me-2">
+                <i class="bi bi-exclamation-triangle"></i> Large export - may take longer
+            </span>
+        }
+        <a href="@Url.Page("/Admin/OrderRevenueReport", "ExportCsv", new { 
+            dateRange = Model.DateRange, 
+            customFromDate = Model.CustomFromDate?.ToString("yyyy-MM-dd"), 
+            customToDate = Model.CustomToDate?.ToString("yyyy-MM-dd"),
+            sellerId = Model.SellerId,
+            orderStatus = Model.OrderStatus,
+            paymentStatus = Model.PaymentStatus
+        })" class="btn btn-success">
+            <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
+        </a>
+    </div>
+</div>
+
+<!-- Data Table -->
+<div class="card">
+    <div class="card-body">
+        @if (Model.Report.Rows.Count == 0)
+        {
+            <div class="alert alert-info" role="alert">
+                <i class="bi bi-info-circle"></i> No orders found matching the current filters.
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Date</th>
+                            <th>Buyer</th>
+                            <th>Seller</th>
+                            <th>Order Status</th>
+                            <th>Payment Status</th>
+                            <th class="text-end">Order Value</th>
+                            <th class="text-end">Commission</th>
+                            <th class="text-end">Payout</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in Model.Report.Rows)
+                        {
+                            <tr>
+                                <td>
+                                    <a href="@Url.Page("/Admin/OrderDetails", new { orderId = row.OrderId })">
+                                        @row.OrderNumber
+                                    </a>
+                                </td>
+                                <td>@row.FormattedOrderDate</td>
+                                <td>@row.BuyerName</td>
+                                <td>@row.SellerName</td>
+                                <td><span class="badge @row.OrderStatusBadgeClass">@row.OrderStatus</span></td>
+                                <td><span class="badge @row.PaymentStatusBadgeClass">@row.PaymentStatus</span></td>
+                                <td class="text-end">@row.FormattedOrderValue</td>
+                                <td class="text-end">@row.FormattedCommission</td>
+                                <td class="text-end">@row.FormattedPayoutAmount</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            @if (Model.Report.TotalPages > 1)
+            {
+                <nav aria-label="Report pagination">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item @(Model.Report.HasPreviousPage ? "" : "disabled")">
+                            <a class="page-link" href="@Url.Page("/Admin/OrderRevenueReport", new { 
+                                pageNumber = Model.PageNumber - 1,
+                                dateRange = Model.DateRange,
+                                customFromDate = Model.CustomFromDate?.ToString("yyyy-MM-dd"),
+                                customToDate = Model.CustomToDate?.ToString("yyyy-MM-dd"),
+                                sellerId = Model.SellerId,
+                                orderStatus = Model.OrderStatus,
+                                paymentStatus = Model.PaymentStatus
+                            })">Previous</a>
+                        </li>
+                        @for (int i = 1; i <= Model.Report.TotalPages && i <= 10; i++)
+                        {
+                            <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                                <a class="page-link" href="@Url.Page("/Admin/OrderRevenueReport", new { 
+                                    pageNumber = i,
+                                    dateRange = Model.DateRange,
+                                    customFromDate = Model.CustomFromDate?.ToString("yyyy-MM-dd"),
+                                    customToDate = Model.CustomToDate?.ToString("yyyy-MM-dd"),
+                                    sellerId = Model.SellerId,
+                                    orderStatus = Model.OrderStatus,
+                                    paymentStatus = Model.PaymentStatus
+                                })">@i</a>
+                            </li>
+                        }
+                        <li class="page-item @(Model.Report.HasNextPage ? "" : "disabled")">
+                            <a class="page-link" href="@Url.Page("/Admin/OrderRevenueReport", new { 
+                                pageNumber = Model.PageNumber + 1,
+                                dateRange = Model.DateRange,
+                                customFromDate = Model.CustomFromDate?.ToString("yyyy-MM-dd"),
+                                customToDate = Model.CustomToDate?.ToString("yyyy-MM-dd"),
+                                sellerId = Model.SellerId,
+                                orderStatus = Model.OrderStatus,
+                                paymentStatus = Model.PaymentStatus
+                            })">Next</a>
+                        </li>
+                    </ul>
+                </nav>
+            }
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function toggleCustomDateInputs() {
+            var dateRange = document.getElementById('dateRange').value;
+            var customInputs = document.querySelectorAll('.custom-date-input');
+            customInputs.forEach(function(input) {
+                input.style.display = dateRange === 'custom' ? 'block' : 'none';
+            });
+        }
+    </script>
+}
