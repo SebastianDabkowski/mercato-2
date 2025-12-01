@@ -1,0 +1,499 @@
+@page
+@model SD.Project.Pages.Admin.ReviewModerationModel
+@using SD.Project.ViewModels
+@{
+    ViewData["Title"] = "Review Moderation";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Review Moderation</h1>
+        <span class="badge bg-primary fs-6">@Model.TotalCount reviews</span>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Stats Cards -->
+    @if (Model.Stats != null)
+    {
+        <div class="row mb-4">
+            <div class="col-md-2">
+                <div class="card text-bg-warning">
+                    <div class="card-body text-center">
+                        <h3 class="card-title mb-0">@Model.Stats.PendingCount</h3>
+                        <small>Pending</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card text-bg-danger">
+                    <div class="card-body text-center">
+                        <h3 class="card-title mb-0">@Model.Stats.FlaggedCount</h3>
+                        <small>Flagged</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card text-bg-info">
+                    <div class="card-body text-center">
+                        <h3 class="card-title mb-0">@Model.Stats.ReportedCount</h3>
+                        <small>Reported</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-bg-success">
+                    <div class="card-body text-center">
+                        <h3 class="card-title mb-0">@Model.Stats.ApprovedTodayCount</h3>
+                        <small>Approved Today</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-bg-secondary">
+                    <div class="card-body text-center">
+                        <h3 class="card-title mb-0">@Model.Stats.RejectedTodayCount</h3>
+                        <small>Rejected Today</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="SearchTerm" class="form-label">Search</label>
+                    <input type="text" class="form-control" id="SearchTerm" name="SearchTerm" 
+                           value="@Model.SearchTerm" placeholder="Search in comments...">
+                </div>
+                <div class="col-md-2">
+                    <label for="Status" class="form-label">Status</label>
+                    <select class="form-select" id="Status" name="Status">
+                        @foreach (var option in Model.StatusOptions)
+                        {
+                            <option value="@option.Value" selected="@(option.Value == Model.Status)">@option.Text</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label d-block">Flagged Only</label>
+                    <div class="form-check form-switch mt-2">
+                        <input class="form-check-input" type="checkbox" id="FlaggedOnly" name="FlaggedOnly" 
+                               value="true" @(Model.FlaggedOnly == "true" ? "checked" : "")>
+                        <label class="form-check-label" for="FlaggedOnly">Show flagged</label>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <label for="FromDate" class="form-label">From Date</label>
+                    <input type="date" class="form-control" id="FromDate" name="FromDate" 
+                           value="@Model.FromDate?.ToString("yyyy-MM-dd")">
+                </div>
+                <div class="col-md-2">
+                    <label for="ToDate" class="form-label">To Date</label>
+                    <input type="date" class="form-control" id="ToDate" name="ToDate" 
+                           value="@Model.ToDate?.ToString("yyyy-MM-dd")">
+                </div>
+                <div class="col-md-1 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Filter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Batch Actions -->
+    <div class="card mb-3" id="batchActionsCard" style="display: none;">
+        <div class="card-body d-flex gap-2 align-items-center">
+            <span id="selectedCount" class="badge bg-primary">0 selected</span>
+            <button type="button" class="btn btn-success btn-sm" onclick="batchApprove()">
+                <i class="bi bi-check-lg"></i> Approve Selected
+            </button>
+            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#batchRejectModal">
+                <i class="bi bi-x-lg"></i> Reject Selected
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="clearSelection()">
+                Clear Selection
+            </button>
+        </div>
+    </div>
+
+    <!-- Reviews Table -->
+    <div class="card">
+        <div class="card-body p-0">
+            @if (Model.Reviews.Count == 0)
+            {
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox fs-1 text-muted"></i>
+                    <p class="text-muted mt-2">No reviews found matching your criteria.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 30px;">
+                                    <input type="checkbox" class="form-check-input" id="selectAll" onchange="toggleSelectAll(this)">
+                                </th>
+                                <th>Product / Store</th>
+                                <th>Buyer</th>
+                                <th>Rating</th>
+                                <th>Comment</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var review in Model.Reviews)
+                            {
+                                <tr class="@(review.IsFlagged ? "table-warning" : "")">
+                                    <td>
+                                        <input type="checkbox" class="form-check-input review-checkbox" 
+                                               value="@review.ReviewId" onchange="updateBatchActions()">
+                                    </td>
+                                    <td>
+                                        <div class="fw-semibold">@(review.ProductName ?? "Unknown Product")</div>
+                                        <small class="text-muted">@(review.StoreName ?? "Unknown Store")</small>
+                                    </td>
+                                    <td>@(review.BuyerName ?? "Anonymous")</td>
+                                    <td>
+                                        <span class="text-warning">@ReviewModerationStatusHelper.GetRatingStars(review.Rating)</span>
+                                    </td>
+                                    <td class="text-truncate" style="max-width: 200px;" title="@review.Comment">
+                                        @if (!string.IsNullOrEmpty(review.Comment))
+                                        {
+                                            @review.Comment
+                                        }
+                                        else
+                                        {
+                                            <em class="text-muted">No comment</em>
+                                        }
+                                        @if (review.IsFlagged)
+                                        {
+                                            <br><small class="text-danger"><i class="bi bi-flag-fill"></i> @review.FlagReason</small>
+                                        }
+                                        @if (review.ReportCount > 0)
+                                        {
+                                            <br><small class="text-warning"><i class="bi bi-exclamation-triangle"></i> @review.ReportCount report(s)</small>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="badge @ReviewModerationStatusHelper.GetStatusBadgeClass(review.ModerationStatus)">
+                                            @ReviewModerationStatusHelper.GetStatusDisplayName(review.ModerationStatus)
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span title="@review.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")">
+                                            @review.CreatedAt.ToString("MMM dd, yyyy")
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a asp-page="/Admin/ReviewModerationDetails" asp-route-id="@review.ReviewId" 
+                                               class="btn btn-outline-primary" title="View Details">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            @if (review.ModerationStatus == "Pending")
+                                            {
+                                                <button type="button" class="btn btn-outline-success" 
+                                                        onclick="approveReview('@review.ReviewId')" title="Approve">
+                                                    <i class="bi bi-check-lg"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-outline-danger" 
+                                                        data-bs-toggle="modal" data-bs-target="#rejectModal"
+                                                        data-review-id="@review.ReviewId"
+                                                        title="Reject">
+                                                    <i class="bi bi-x-lg"></i>
+                                                </button>
+                                            }
+                                            @if (!review.IsFlagged)
+                                            {
+                                                <button type="button" class="btn btn-outline-warning" 
+                                                        data-bs-toggle="modal" data-bs-target="#flagModal"
+                                                        data-review-id="@review.ReviewId"
+                                                        title="Flag">
+                                                    <i class="bi bi-flag"></i>
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button type="button" class="btn btn-outline-secondary" 
+                                                        onclick="clearFlag('@review.ReviewId')" title="Clear Flag">
+                                                    <i class="bi bi-flag-fill"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    @if (Model.TotalPages > 1)
+    {
+        <nav aria-label="Reviews pagination" class="mt-4">
+            <ul class="pagination justify-content-center">
+                <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                    <a class="page-link" asp-page="/Admin/ReviewModeration" 
+                       asp-route-Page="@(Model.CurrentPage - 1)"
+                       asp-route-Status="@Model.Status"
+                       asp-route-FlaggedOnly="@Model.FlaggedOnly"
+                       asp-route-SearchTerm="@Model.SearchTerm"
+                       asp-route-FromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
+                       asp-route-ToDate="@Model.ToDate?.ToString("yyyy-MM-dd")">Previous</a>
+                </li>
+                @for (int i = Math.Max(1, Model.CurrentPage - 2); i <= Math.Min(Model.TotalPages, Model.CurrentPage + 2); i++)
+                {
+                    <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                        <a class="page-link" asp-page="/Admin/ReviewModeration"
+                           asp-route-Page="@i"
+                           asp-route-Status="@Model.Status"
+                           asp-route-FlaggedOnly="@Model.FlaggedOnly"
+                           asp-route-SearchTerm="@Model.SearchTerm"
+                           asp-route-FromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
+                           asp-route-ToDate="@Model.ToDate?.ToString("yyyy-MM-dd")">@i</a>
+                    </li>
+                }
+                <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                    <a class="page-link" asp-page="/Admin/ReviewModeration"
+                       asp-route-Page="@(Model.CurrentPage + 1)"
+                       asp-route-Status="@Model.Status"
+                       asp-route-FlaggedOnly="@Model.FlaggedOnly"
+                       asp-route-SearchTerm="@Model.SearchTerm"
+                       asp-route-FromDate="@Model.FromDate?.ToString("yyyy-MM-dd")"
+                       asp-route-ToDate="@Model.ToDate?.ToString("yyyy-MM-dd")">Next</a>
+                </li>
+            </ul>
+        </nav>
+    }
+</div>
+
+<!-- Approve Form (hidden) -->
+<form id="approveForm" method="post" asp-page-handler="Approve">
+    <input type="hidden" id="approveReviewId" name="reviewId" />
+</form>
+
+<!-- Clear Flag Form (hidden) -->
+<form id="clearFlagForm" method="post" asp-page-handler="ClearFlag">
+    <input type="hidden" id="clearFlagReviewId" name="reviewId" />
+</form>
+
+<!-- Batch Approve Form (hidden) -->
+<form id="batchApproveForm" method="post" asp-page-handler="BatchApprove">
+    <input type="hidden" id="batchApproveReviewIds" name="reviewIds" />
+</form>
+
+<!-- Reject Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Reject">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="rejectModalLabel">Reject Review</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="rejectReviewId" name="reviewId" />
+                    <div class="mb-3">
+                        <label for="rejectReason" class="form-label">Rejection Reason <span class="text-danger">*</span></label>
+                        <select class="form-select" id="rejectReason" name="reason" required>
+                            <option value="">Select reason...</option>
+                            <option value="Inappropriate content">Inappropriate content</option>
+                            <option value="Spam or fake review">Spam or fake review</option>
+                            <option value="Violates community guidelines">Violates community guidelines</option>
+                            <option value="Off-topic or irrelevant">Off-topic or irrelevant</option>
+                            <option value="Fraudulent review">Fraudulent review</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Reject Review</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Flag Modal -->
+<div class="modal fade" id="flagModal" tabindex="-1" aria-labelledby="flagModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Flag">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="flagModalLabel">Flag Review</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="flagReviewId" name="reviewId" />
+                    <p class="text-muted">Flagging a review marks it for priority review.</p>
+                    <div class="mb-3">
+                        <label for="flagReason" class="form-label">Flag Reason <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="flagReason" name="reason" 
+                               required placeholder="Enter reason for flagging...">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">Flag Review</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Batch Reject Modal -->
+<div class="modal fade" id="batchRejectModal" tabindex="-1" aria-labelledby="batchRejectModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="BatchReject">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="batchRejectModalLabel">Reject Selected Reviews</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="batchRejectReviewIds" name="reviewIds" />
+                    <p>You are about to reject <strong id="batchRejectCount">0</strong> review(s).</p>
+                    <div class="mb-3">
+                        <label for="batchRejectReason" class="form-label">Rejection Reason <span class="text-danger">*</span></label>
+                        <select class="form-select" id="batchRejectReason" name="reason" required>
+                            <option value="">Select reason...</option>
+                            <option value="Inappropriate content">Inappropriate content</option>
+                            <option value="Spam or fake review">Spam or fake review</option>
+                            <option value="Violates community guidelines">Violates community guidelines</option>
+                            <option value="Off-topic or irrelevant">Off-topic or irrelevant</option>
+                            <option value="Fraudulent review">Fraudulent review</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Reject Selected</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function approveReview(reviewId) {
+            if (confirm('Are you sure you want to approve this review?')) {
+                document.getElementById('approveReviewId').value = reviewId;
+                document.getElementById('approveForm').submit();
+            }
+        }
+
+        function clearFlag(reviewId) {
+            if (confirm('Are you sure you want to clear the flag on this review?')) {
+                document.getElementById('clearFlagReviewId').value = reviewId;
+                document.getElementById('clearFlagForm').submit();
+            }
+        }
+
+        function toggleSelectAll(checkbox) {
+            var checkboxes = document.querySelectorAll('.review-checkbox');
+            checkboxes.forEach(function(cb) {
+                cb.checked = checkbox.checked;
+            });
+            updateBatchActions();
+        }
+
+        function getSelectedReviewIds() {
+            var checkboxes = document.querySelectorAll('.review-checkbox:checked');
+            return Array.from(checkboxes).map(function(cb) {
+                return cb.value;
+            });
+        }
+
+        function updateBatchActions() {
+            var ids = getSelectedReviewIds();
+            var batchCard = document.getElementById('batchActionsCard');
+            var countBadge = document.getElementById('selectedCount');
+
+            if (ids.length > 0) {
+                batchCard.style.display = 'block';
+                countBadge.textContent = ids.length + ' selected';
+            } else {
+                batchCard.style.display = 'none';
+            }
+        }
+
+        function clearSelection() {
+            var checkboxes = document.querySelectorAll('.review-checkbox');
+            checkboxes.forEach(function(cb) {
+                cb.checked = false;
+            });
+            document.getElementById('selectAll').checked = false;
+            updateBatchActions();
+        }
+
+        function batchApprove() {
+            var ids = getSelectedReviewIds();
+            if (ids.length === 0) {
+                alert('No reviews selected.');
+                return;
+            }
+
+            if (confirm('Are you sure you want to approve ' + ids.length + ' review(s)?')) {
+                document.getElementById('batchApproveReviewIds').value = ids.join(',');
+                document.getElementById('batchApproveForm').submit();
+            }
+        }
+
+        // Modal event handlers
+        document.addEventListener('DOMContentLoaded', function() {
+            var rejectModal = document.getElementById('rejectModal');
+            if (rejectModal) {
+                rejectModal.addEventListener('show.bs.modal', function(event) {
+                    var button = event.relatedTarget;
+                    var reviewId = button.getAttribute('data-review-id');
+                    document.getElementById('rejectReviewId').value = reviewId;
+                });
+            }
+
+            var flagModal = document.getElementById('flagModal');
+            if (flagModal) {
+                flagModal.addEventListener('show.bs.modal', function(event) {
+                    var button = event.relatedTarget;
+                    var reviewId = button.getAttribute('data-review-id');
+                    document.getElementById('flagReviewId').value = reviewId;
+                });
+            }
+
+            var batchRejectModal = document.getElementById('batchRejectModal');
+            if (batchRejectModal) {
+                batchRejectModal.addEventListener('show.bs.modal', function(event) {
+                    var ids = getSelectedReviewIds();
+                    document.getElementById('batchRejectReviewIds').value = ids.join(',');
+                    document.getElementById('batchRejectCount').textContent = ids.length;
+                });
+            }
+        });
+    </script>
+}

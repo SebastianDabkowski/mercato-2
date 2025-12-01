@@ -14,6 +14,11 @@ public interface IInternalUserRepository
     Task<InternalUser?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets multiple internal users by their IDs.
+    /// </summary>
+    Task<IReadOnlyList<InternalUser>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets an internal user by store ID and user ID.
     /// </summary>
     Task<InternalUser?> GetByStoreAndUserIdAsync(Guid storeId, Guid userId, CancellationToken cancellationToken = default);

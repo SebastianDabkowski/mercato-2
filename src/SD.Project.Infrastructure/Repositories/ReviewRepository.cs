@@ -125,6 +125,127 @@ public sealed class ReviewRepository : IReviewRepository
         return results.AsReadOnly();
     }
 
+    public async Task<(IReadOnlyList<Review> Items, int TotalCount)> GetForModerationPagedAsync(
+        ReviewModerationStatus? status,
+        bool? isFlagged,
+        string? searchTerm,
+        Guid? storeId,
+        DateTime? fromDate,
+        DateTime? toDate,
+        int pageNumber,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Reviews.AsNoTracking();
+
+        if (status.HasValue)
+        {
+            query = query.Where(r => r.ModerationStatus == status.Value);
+        }
+
+        if (isFlagged.HasValue)
+        {
+            query = query.Where(r => r.IsFlagged == isFlagged.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var term = searchTerm.Trim().ToLowerInvariant();
+            query = query.Where(r => r.Comment != null && r.Comment.ToLower().Contains(term));
+        }
+
+        if (storeId.HasValue)
+        {
+            query = query.Where(r => r.StoreId == storeId.Value);
+        }
+
+        if (fromDate.HasValue)
+        {
+            query = query.Where(r => r.CreatedAt >= fromDate.Value);
+        }
+
+        if (toDate.HasValue)
+        {
+            query = query.Where(r => r.CreatedAt <= toDate.Value);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        // Sort by priority: flagged first, then pending, then by date
+        var items = await query
+            .OrderByDescending(r => r.IsFlagged)
+            .ThenBy(r => r.ModerationStatus == ReviewModerationStatus.Pending ? 0 : 1)
+            .ThenByDescending(r => r.CreatedAt)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (items.AsReadOnly(), totalCount);
+    }
+
+    public async Task<IReadOnlyList<Review>> GetFlaggedReviewsAsync(
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default)
+    {
+        var results = await _context.Reviews
+            .AsNoTracking()
+            .Where(r => r.IsFlagged)
+            .OrderByDescending(r => r.FlaggedAt)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+        return results.AsReadOnly();
+    }
+
+    public async Task<IReadOnlyList<Review>> GetReportedReviewsAsync(
+        int minReportCount,
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default)
+    {
+        var results = await _context.Reviews
+            .AsNoTracking()
+            .Where(r => r.ReportCount >= minReportCount)
+            .OrderByDescending(r => r.ReportCount)
+            .ThenByDescending(r => r.CreatedAt)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+        return results.AsReadOnly();
+    }
+
+    public async Task<ReviewModerationStats> GetModerationStatsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var today = DateTime.UtcNow.Date;
+        var tomorrow = today.AddDays(1);
+
+        var pendingCount = await _context.Reviews
+            .CountAsync(r => r.ModerationStatus == ReviewModerationStatus.Pending, cancellationToken);
+
+        var flaggedCount = await _context.Reviews
+            .CountAsync(r => r.IsFlagged, cancellationToken);
+
+        var reportedCount = await _context.Reviews
+            .CountAsync(r => r.ReportCount > 0, cancellationToken);
+
+        var approvedTodayCount = await _context.Reviews
+            .CountAsync(r => r.ModerationStatus == ReviewModerationStatus.Approved 
+                && r.ModeratedAt >= today && r.ModeratedAt < tomorrow, cancellationToken);
+
+        var rejectedTodayCount = await _context.Reviews
+            .CountAsync(r => r.ModerationStatus == ReviewModerationStatus.Rejected 
+                && r.ModeratedAt >= today && r.ModeratedAt < tomorrow, cancellationToken);
+
+        return new ReviewModerationStats(
+            pendingCount,
+            flaggedCount,
+            reportedCount,
+            approvedTodayCount,
+            rejectedTodayCount);
+    }
+
     public async Task<(double AverageRating, int ReviewCount)> GetProductRatingAsync(
         Guid productId,
         CancellationToken cancellationToken = default)
