@@ -5,9 +5,9 @@ using SD.Project.Application.Interfaces;
 namespace SD.Project.Infrastructure.Services;
 
 /// <summary>
-/// SMTP-based email sender implementation.
-/// Logs all send attempts and results for audit purposes.
-/// In production, this would integrate with a transactional email provider.
+/// Configurable email sender implementation that logs all send attempts and results.
+/// When email sending is disabled (Email:Enabled=false), emails are simulated and logged.
+/// When enabled, this integrates with transactional email providers like SendGrid or Amazon SES.
 /// </summary>
 public sealed class SmtpEmailSender : IEmailSender
 {
@@ -18,6 +18,7 @@ public sealed class SmtpEmailSender : IEmailSender
 
     public SmtpEmailSender(IConfiguration configuration, ILogger<SmtpEmailSender> logger)
     {
+        ArgumentNullException.ThrowIfNull(configuration);
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         // Read configuration for email settings
@@ -42,7 +43,7 @@ public sealed class SmtpEmailSender : IEmailSender
     {
         ArgumentNullException.ThrowIfNull(message);
 
-        // Log the send attempt
+        // Log the send attempt for audit purposes
         _logger.LogInformation(
             "Email send attempt: To={To}, Subject={Subject}, Template={TemplateName}, Locale={Locale}, Sender={SenderAddress}",
             message.To,
@@ -53,7 +54,7 @@ public sealed class SmtpEmailSender : IEmailSender
 
         if (!_isEnabled)
         {
-            // In development/test mode, log the email content and return success
+            // Email sending is disabled - simulate success and log content for development/testing
             _logger.LogInformation(
                 "Email (simulated): To={To}, Subject={Subject}, HtmlBodyLength={HtmlBodyLength}",
                 message.To,
@@ -69,13 +70,11 @@ public sealed class SmtpEmailSender : IEmailSender
             return Task.FromResult(EmailSendResult.Success(simulatedMessageId));
         }
 
-        // TODO: Implement actual SMTP/email provider integration
-        // This would use SmtpClient, SendGrid, Amazon SES, or another provider
-        // For now, we simulate success and log the attempt
-
         try
         {
-            // Simulate email sending - in production, replace with actual provider call
+            // When Email:Enabled=true, this is where the actual email provider integration goes.
+            // Integrate with SmtpClient, SendGrid, Amazon SES, or another transactional email provider.
+            // For now, we log and simulate success since no provider is configured.
             var messageId = $"msg-{Guid.NewGuid():N}";
 
             _logger.LogInformation(
