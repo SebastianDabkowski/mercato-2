@@ -82,6 +82,7 @@ public interface IOrderRepository
         DateTime? fromDate,
         DateTime? toDate,
         string? buyerSearch,
+        bool? withoutTracking,
         int skip,
         int take,
         CancellationToken cancellationToken = default);
@@ -95,6 +96,7 @@ public interface IOrderRepository
         DateTime? fromDate,
         DateTime? toDate,
         string? buyerSearch,
+        bool? withoutTracking,
         CancellationToken cancellationToken = default);
 
     /// <summary>

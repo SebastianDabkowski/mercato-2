@@ -435,6 +435,7 @@ public sealed class OrderService
             query.FromDate,
             query.ToDate,
             query.BuyerSearch,
+            query.WithoutTracking,
             skip,
             pageSize,
             cancellationToken);
