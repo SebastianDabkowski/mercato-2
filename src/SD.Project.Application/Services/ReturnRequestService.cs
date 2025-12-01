@@ -20,7 +20,7 @@ public sealed class ReturnRequestService
     private readonly IRefundRepository _refundRepository;
     private readonly INotificationService _notificationService;
     private readonly RefundService _refundService;
-    private readonly SlaService? _slaService;
+    private readonly SlaService _slaService;
 
     /// <summary>
     /// Number of days after delivery that a return can be initiated.
@@ -35,7 +35,7 @@ public sealed class ReturnRequestService
         IRefundRepository refundRepository,
         INotificationService notificationService,
         RefundService refundService,
-        SlaService? slaService = null)
+        SlaService slaService)
     {
         _returnRequestRepository = returnRequestRepository;
         _orderRepository = orderRepository;
@@ -278,11 +278,8 @@ public sealed class ReturnRequestService
             returnRequest.AddItem(item.OrderItemId, item.ProductName, item.Quantity);
         }
 
-        // Apply SLA deadlines if SLA tracking is enabled
-        if (_slaService is not null)
-        {
-            await _slaService.ApplySlaDeadlinesAsync(returnRequest, cancellationToken);
-        }
+        // Apply SLA deadlines based on configuration
+        await _slaService.ApplySlaDeadlinesAsync(returnRequest, cancellationToken);
 
         await _returnRequestRepository.AddAsync(returnRequest, cancellationToken);
         await _returnRequestRepository.SaveChangesAsync(cancellationToken);

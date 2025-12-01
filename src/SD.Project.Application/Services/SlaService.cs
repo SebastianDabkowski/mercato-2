@@ -13,6 +13,12 @@ namespace SD.Project.Application.Services;
 /// </summary>
 public sealed class SlaService
 {
+    /// <summary>
+    /// System user ID used for automatic SLA breach escalations.
+    /// This is a well-known GUID that represents the automated system.
+    /// </summary>
+    public static readonly Guid SystemUserId = new("00000000-0000-0000-0000-000000000001");
+
     private readonly ISlaConfigurationRepository _slaConfigurationRepository;
     private readonly IReturnRequestRepository _returnRequestRepository;
     private readonly IStoreRepository _storeRepository;
@@ -314,7 +320,7 @@ public sealed class SlaService
                 // Auto-escalate due to SLA breach if not already escalated
                 if (request.CanEscalate())
                 {
-                    request.Escalate(Guid.Empty, EscalationReason.SLABreach, $"Automatic escalation due to {breachType} SLA breach.");
+                    request.Escalate(SystemUserId, EscalationReason.SLABreach, $"Automatic escalation due to {breachType} SLA breach.");
                     await _returnRequestRepository.UpdateAsync(request, cancellationToken);
                 }
             }
