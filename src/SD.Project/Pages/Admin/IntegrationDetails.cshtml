@@ -1,0 +1,278 @@
+@page "{id:guid?}"
+@model SD.Project.Pages.Admin.IntegrationDetailsModel
+@using SD.Project.Domain.Entities
+@{
+    ViewData["Title"] = Model.IsEditMode ? $"Edit Integration - {Model.CurrentIntegration?.Name}" : "Add Integration";
+}
+
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-page="Dashboard">Admin</a></li>
+            <li class="breadcrumb-item"><a asp-page="Integrations">Integrations</a></li>
+            <li class="breadcrumb-item active" aria-current="page">@(Model.IsEditMode ? "Edit" : "Add")</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        @if (Model.IsEditMode)
+                        {
+                            <span>Edit Integration</span>
+                        }
+                        else
+                        {
+                            <span>Add New Integration</span>
+                        }
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            @Model.SuccessMessage
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            @Model.ErrorMessage
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    @if (Model.TestConnectionResult is not null)
+                    {
+                        <div class="alert @(Model.TestConnectionSuccess == true ? "alert-success" : "alert-danger") alert-dismissible fade show" role="alert">
+                            <strong>Connection Test:</strong> @Model.TestConnectionResult
+                            @if (Model.TestConnectionResponseTime.HasValue)
+                            {
+                                <span class="ms-2"><i class="bi bi-clock me-1"></i>@Model.TestConnectionResponseTime ms</span>
+                            }
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <form method="post" asp-page-handler="Save">
+                        <div class="mb-3">
+                            <label asp-for="Form.Name" class="form-label">Integration Name <span class="text-danger">*</span></label>
+                            <input asp-for="Form.Name" class="form-control" placeholder="e.g., Stripe Production" />
+                            <span asp-validation-for="Form.Name" class="text-danger"></span>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Form.Type" class="form-label">Type <span class="text-danger">*</span></label>
+                                <select asp-for="Form.Type" class="form-select">
+                                    @foreach (IntegrationType type in Enum.GetValues<IntegrationType>())
+                                    {
+                                        <option value="@type">@GetTypeDisplayName(type)</option>
+                                    }
+                                </select>
+                                <span asp-validation-for="Form.Type" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Form.Environment" class="form-label">Environment <span class="text-danger">*</span></label>
+                                <select asp-for="Form.Environment" class="form-select">
+                                    @foreach (IntegrationEnvironment env in Enum.GetValues<IntegrationEnvironment>())
+                                    {
+                                        <option value="@env">@env</option>
+                                    }
+                                </select>
+                                <span asp-validation-for="Form.Environment" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Form.Endpoint" class="form-label">API Endpoint</label>
+                            <input asp-for="Form.Endpoint" class="form-control" placeholder="https://api.example.com/v1" />
+                            <span asp-validation-for="Form.Endpoint" class="text-danger"></span>
+                            <div class="form-text">The base URL for API requests to this integration.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Form.ApiKey" class="form-label">API Key</label>
+                            @if (Model.IsEditMode && Model.CurrentIntegration?.HasApiKey == true)
+                            {
+                                <div class="input-group">
+                                    <input asp-for="Form.ApiKey" type="password" class="form-control" placeholder="Leave blank to keep existing key" />
+                                    <span class="input-group-text">
+                                        <i class="bi bi-key text-muted"></i>
+                                    </span>
+                                </div>
+                                <div class="form-text">
+                                    Current key: <code>@Model.CurrentIntegration.MaskedApiKey</code>
+                                    <span class="text-muted">| Leave blank to keep existing key, or enter a new value to replace it.</span>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="input-group">
+                                    <input asp-for="Form.ApiKey" type="password" class="form-control" placeholder="Enter API key" />
+                                    <span class="input-group-text">
+                                        <i class="bi bi-key text-muted"></i>
+                                    </span>
+                                </div>
+                                <div class="form-text">The API key will be encrypted and stored securely. Full values are never displayed after saving.</div>
+                            }
+                            <span asp-validation-for="Form.ApiKey" class="text-danger"></span>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Form.MerchantId" class="form-label">Merchant ID</label>
+                                <input asp-for="Form.MerchantId" class="form-control" placeholder="e.g., acct_1234567890" />
+                                <span asp-validation-for="Form.MerchantId" class="text-danger"></span>
+                                <div class="form-text">Account or merchant identifier for this provider.</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Form.CallbackUrl" class="form-label">Callback URL</label>
+                                <input asp-for="Form.CallbackUrl" class="form-control" placeholder="https://yourdomain.com/webhooks/..." />
+                                <span asp-validation-for="Form.CallbackUrl" class="text-danger"></span>
+                                <div class="form-text">URL where the provider will send webhook notifications.</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Form.Description" class="form-label">Description</label>
+                            <textarea asp-for="Form.Description" class="form-control" rows="3" placeholder="Optional notes about this integration..."></textarea>
+                            <span asp-validation-for="Form.Description" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a asp-page="Integrations" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-1"></i> Back to List
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-lg me-1"></i> @(Model.IsEditMode ? "Save Changes" : "Create Integration")
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar with status and actions -->
+        @if (Model.IsEditMode && Model.CurrentIntegration is not null)
+        {
+            <div class="col-lg-4">
+                <!-- Status Card -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">Status</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <span class="@Model.CurrentIntegration.StatusCssClass fs-6">@Model.CurrentIntegration.StatusDisplayName</span>
+                            <span class="@Model.CurrentIntegration.EnvironmentCssClass ms-2">@Model.CurrentIntegration.EnvironmentDisplayName</span>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            @if (Model.CurrentIntegration.CanBeEnabled)
+                            {
+                                <form method="post" asp-page-handler="ToggleStatus">
+                                    <input type="hidden" name="enable" value="true" />
+                                    <button type="submit" class="btn btn-success w-100">
+                                        <i class="bi bi-play-fill me-1"></i> Enable Integration
+                                    </button>
+                                </form>
+                            }
+                            @if (Model.CurrentIntegration.CanBeDisabled)
+                            {
+                                <form method="post" asp-page-handler="ToggleStatus">
+                                    <input type="hidden" name="enable" value="false" />
+                                    <button type="submit" class="btn btn-warning w-100">
+                                        <i class="bi bi-pause-fill me-1"></i> Disable Integration
+                                    </button>
+                                </form>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Health Check Card -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">Health Check</h6>
+                    </div>
+                    <div class="card-body">
+                        @if (Model.CurrentIntegration.LastHealthCheckAt.HasValue)
+                        {
+                            <div class="mb-3">
+                                <div class="d-flex align-items-center mb-2">
+                                    @if (Model.CurrentIntegration.LastHealthCheckSuccess == true)
+                                    {
+                                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                        <span class="text-success">Healthy</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-x-circle-fill text-danger me-2"></i>
+                                        <span class="text-danger">Unhealthy</span>
+                                    }
+                                </div>
+                                <small class="text-muted d-block">Last checked: @Model.CurrentIntegration.LastHealthCheckAt.Value.ToString("g")</small>
+                                @if (!string.IsNullOrEmpty(Model.CurrentIntegration.LastHealthCheckMessage))
+                                {
+                                    <small class="text-muted d-block mt-1">@Model.CurrentIntegration.LastHealthCheckMessage</small>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="text-muted mb-3">No health check performed yet.</p>
+                        }
+
+                        <form method="post" asp-page-handler="TestConnection">
+                            <button type="submit" class="btn btn-outline-primary w-100" @(string.IsNullOrEmpty(Model.CurrentIntegration.Endpoint) ? "disabled" : "")>
+                                <i class="bi bi-lightning me-1"></i> Test Connection
+                            </button>
+                        </form>
+                        @if (string.IsNullOrEmpty(Model.CurrentIntegration.Endpoint))
+                        {
+                            <small class="text-muted d-block mt-2">Configure an endpoint to test the connection.</small>
+                        }
+                    </div>
+                </div>
+
+                <!-- Info Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">Information</h6>
+                    </div>
+                    <div class="card-body">
+                        <dl class="mb-0">
+                            <dt class="text-muted">Created</dt>
+                            <dd>@Model.CurrentIntegration.CreatedAt.ToString("g")</dd>
+                            <dt class="text-muted">Last Updated</dt>
+                            <dd class="mb-0">@Model.CurrentIntegration.UpdatedAt.ToString("g")</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+
+@functions {
+    string GetTypeDisplayName(IntegrationType type) => type switch
+    {
+        IntegrationType.Payment => "Payment Gateway",
+        IntegrationType.Shipping => "Shipping Provider",
+        IntegrationType.Erp => "ERP System",
+        IntegrationType.Ecommerce => "E-commerce Connector",
+        IntegrationType.Other => "Other",
+        _ => type.ToString()
+    };
+}

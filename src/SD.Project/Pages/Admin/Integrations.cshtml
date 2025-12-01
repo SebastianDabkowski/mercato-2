@@ -1,0 +1,283 @@
+@page
+@model SD.Project.Pages.Admin.IntegrationsModel
+@using SD.Project.Domain.Entities
+@{
+    ViewData["Title"] = "Integrations Management";
+}
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">Integrations</h1>
+            <p class="text-muted mb-0">Configure and monitor external integrations</p>
+        </div>
+        <a asp-page="IntegrationDetails" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i> Add Integration
+        </a>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">Search</label>
+                    <input type="text" name="SearchTerm" value="@Model.SearchTerm" class="form-control" placeholder="Search integrations...">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Type</label>
+                    <select name="TypeFilter" class="form-select">
+                        <option value="">All Types</option>
+                        @foreach (IntegrationType type in Enum.GetValues<IntegrationType>())
+                        {
+                            <option value="@type" selected="@(Model.TypeFilter == type)">@GetTypeDisplayName(type)</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Status</label>
+                    <select name="StatusFilter" class="form-select">
+                        <option value="">All Statuses</option>
+                        @foreach (IntegrationStatus status in Enum.GetValues<IntegrationStatus>())
+                        {
+                            <option value="@status" selected="@(Model.StatusFilter == status)">@GetStatusDisplayName(status)</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Environment</label>
+                    <select name="EnvironmentFilter" class="form-select">
+                        <option value="">All Environments</option>
+                        @foreach (IntegrationEnvironment env in Enum.GetValues<IntegrationEnvironment>())
+                        {
+                            <option value="@env" selected="@(Model.EnvironmentFilter == env)">@env</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-outline-primary me-2">
+                        <i class="bi bi-search me-1"></i> Filter
+                    </button>
+                    <a asp-page="Integrations" class="btn btn-outline-secondary">Clear</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Integrations List -->
+    <div class="card">
+        <div class="card-body p-0">
+            @if (Model.Integrations.Count == 0)
+            {
+                <div class="text-center py-5">
+                    <i class="bi bi-plug text-muted" style="font-size: 3rem;"></i>
+                    <h5 class="mt-3">No integrations found</h5>
+                    <p class="text-muted">Get started by adding your first integration.</p>
+                    <a asp-page="IntegrationDetails" class="btn btn-primary">Add Integration</a>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Environment</th>
+                                <th>Status</th>
+                                <th>Last Health Check</th>
+                                <th>Updated</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var integration in Model.Integrations)
+                            {
+                                <tr>
+                                    <td>
+                                        <a asp-page="IntegrationDetails" asp-route-id="@integration.Id" class="text-decoration-none fw-medium">
+                                            @integration.Name
+                                        </a>
+                                        @if (!string.IsNullOrEmpty(integration.Description))
+                                        {
+                                            <br><small class="text-muted">@(integration.Description.Length > 50 ? integration.Description[..50] + "..." : integration.Description)</small>
+                                        }
+                                    </td>
+                                    <td>@integration.TypeDisplayName</td>
+                                    <td><span class="@integration.EnvironmentCssClass">@integration.EnvironmentDisplayName</span></td>
+                                    <td><span class="@integration.StatusCssClass">@integration.StatusDisplayName</span></td>
+                                    <td>
+                                        @if (integration.LastHealthCheckAt.HasValue)
+                                        {
+                                            <span class="@integration.HealthCheckIconClass">
+                                                <i class="bi @(integration.LastHealthCheckSuccess == true ? "bi-check-circle-fill" : "bi-x-circle-fill")"></i>
+                                            </span>
+                                            <small class="text-muted">@integration.LastHealthCheckAt.Value.ToString("g")</small>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Never tested</span>
+                                        }
+                                    </td>
+                                    <td><small class="text-muted">@integration.UpdatedAt.ToString("g")</small></td>
+                                    <td class="text-end">
+                                        <div class="btn-group btn-group-sm">
+                                            <form method="post" asp-page-handler="TestConnection" class="d-inline">
+                                                <input type="hidden" name="id" value="@integration.Id" />
+                                                <button type="submit" class="btn btn-outline-info" title="Test Connection">
+                                                    <i class="bi bi-lightning"></i>
+                                                </button>
+                                            </form>
+                                            @if (integration.CanBeEnabled)
+                                            {
+                                                <form method="post" asp-page-handler="ToggleStatus" class="d-inline">
+                                                    <input type="hidden" name="id" value="@integration.Id" />
+                                                    <input type="hidden" name="enable" value="true" />
+                                                    <button type="submit" class="btn btn-outline-success" title="Enable">
+                                                        <i class="bi bi-play-fill"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                            @if (integration.CanBeDisabled)
+                                            {
+                                                <form method="post" asp-page-handler="ToggleStatus" class="d-inline">
+                                                    <input type="hidden" name="id" value="@integration.Id" />
+                                                    <input type="hidden" name="enable" value="false" />
+                                                    <button type="submit" class="btn btn-outline-warning" title="Disable">
+                                                        <i class="bi bi-pause-fill"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                            <a asp-page="IntegrationDetails" asp-route-id="@integration.Id" class="btn btn-outline-primary" title="Edit">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-outline-danger" title="Delete" 
+                                                    data-bs-toggle="modal" data-bs-target="#deleteModal" 
+                                                    data-integration-id="@integration.Id" 
+                                                    data-integration-name="@integration.Name">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                @if (Model.TotalPages > 1)
+                {
+                    <nav class="d-flex justify-content-between align-items-center p-3 border-top">
+                        <span class="text-muted">
+                            Showing @((Model.PageNumber - 1) * Model.PageSize + 1) to @Math.Min(Model.PageNumber * Model.PageSize, Model.TotalCount) of @Model.TotalCount integrations
+                        </span>
+                        <ul class="pagination mb-0">
+                            <li class="page-item @(Model.PageNumber == 1 ? "disabled" : "")">
+                                <a class="page-link" asp-page="Integrations" 
+                                   asp-route-PageNumber="@(Model.PageNumber - 1)"
+                                   asp-route-TypeFilter="@Model.TypeFilter"
+                                   asp-route-StatusFilter="@Model.StatusFilter"
+                                   asp-route-EnvironmentFilter="@Model.EnvironmentFilter"
+                                   asp-route-SearchTerm="@Model.SearchTerm">Previous</a>
+                            </li>
+                            @for (int i = 1; i <= Model.TotalPages; i++)
+                            {
+                                <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                                    <a class="page-link" asp-page="Integrations" 
+                                       asp-route-PageNumber="@i"
+                                       asp-route-TypeFilter="@Model.TypeFilter"
+                                       asp-route-StatusFilter="@Model.StatusFilter"
+                                       asp-route-EnvironmentFilter="@Model.EnvironmentFilter"
+                                       asp-route-SearchTerm="@Model.SearchTerm">@i</a>
+                                </li>
+                            }
+                            <li class="page-item @(Model.PageNumber == Model.TotalPages ? "disabled" : "")">
+                                <a class="page-link" asp-page="Integrations" 
+                                   asp-route-PageNumber="@(Model.PageNumber + 1)"
+                                   asp-route-TypeFilter="@Model.TypeFilter"
+                                   asp-route-StatusFilter="@Model.StatusFilter"
+                                   asp-route-EnvironmentFilter="@Model.EnvironmentFilter"
+                                   asp-route-SearchTerm="@Model.SearchTerm">Next</a>
+                            </li>
+                        </ul>
+                    </nav>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Delete Integration</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong id="deleteIntegrationName"></strong>?</p>
+                <p class="text-danger mb-0"><i class="bi bi-exclamation-triangle me-1"></i> This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="post" asp-page-handler="Delete" id="deleteForm">
+                    <input type="hidden" name="id" id="deleteIntegrationId" />
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('deleteModal').addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            var integrationId = button.getAttribute('data-integration-id');
+            var integrationName = button.getAttribute('data-integration-name');
+            
+            document.getElementById('deleteIntegrationId').value = integrationId;
+            document.getElementById('deleteIntegrationName').textContent = integrationName;
+        });
+    </script>
+}
+
+@functions {
+    string GetTypeDisplayName(IntegrationType type) => type switch
+    {
+        IntegrationType.Payment => "Payment Gateway",
+        IntegrationType.Shipping => "Shipping Provider",
+        IntegrationType.Erp => "ERP System",
+        IntegrationType.Ecommerce => "E-commerce Connector",
+        IntegrationType.Other => "Other",
+        _ => type.ToString()
+    };
+
+    string GetStatusDisplayName(IntegrationStatus status) => status switch
+    {
+        IntegrationStatus.Active => "Active",
+        IntegrationStatus.Disabled => "Disabled",
+        IntegrationStatus.Unhealthy => "Unhealthy",
+        IntegrationStatus.Pending => "Pending Setup",
+        _ => status.ToString()
+    };
+}
