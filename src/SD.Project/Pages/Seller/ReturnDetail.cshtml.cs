@@ -283,7 +283,7 @@ public class ReturnDetailModel : PageModel
                     m.Content,
                     m.SentAt,
                     m.IsRead,
-                    m.SenderRole == "Seller"))
+                    m.SenderId == userId))
                 .ToList()
                 .AsReadOnly();
 

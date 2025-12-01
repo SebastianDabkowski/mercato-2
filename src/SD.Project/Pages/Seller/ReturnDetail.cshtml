@@ -307,7 +307,7 @@
                                                 <strong class="small">@message.SenderName</strong>
                                                 @if (!message.IsCurrentUser)
                                                 {
-                                                    <span class="badge @(message.SenderRole == "Admin" ? "bg-danger" : "bg-info") ms-2 small">@message.SenderRole</span>
+                                                    <span class="badge @SD.Project.ViewModels.ReturnRequestStatusHelper.GetSenderRoleBadgeClass(message.SenderRole) ms-2 small">@message.SenderRole</span>
                                                 }
                                             </div>
                                             <p class="mb-1" style="white-space: pre-wrap;">@message.Content</p>

@@ -209,4 +209,15 @@ public static class ReturnRequestStatusHelper
         "Complaint" => "Product Issue",
         _ => type
     };
+
+    /// <summary>
+    /// Gets the Bootstrap CSS class for a message sender role badge.
+    /// </summary>
+    public static string GetSenderRoleBadgeClass(string senderRole) => senderRole switch
+    {
+        "Admin" => "bg-danger",
+        "Buyer" => "bg-info",
+        "Seller" => "bg-secondary",
+        _ => "bg-secondary"
+    };
 }
