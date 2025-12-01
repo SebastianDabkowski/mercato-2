@@ -67,6 +67,7 @@ public class UserDetailsModel : PageModel
         if (Id == Guid.Empty)
         {
             ErrorMessage = "Invalid user ID.";
+            await LoadUserDetailsAsync();
             return Page();
         }
 
@@ -84,17 +85,16 @@ public class UserDetailsModel : PageModel
         if (!result.IsSuccess)
         {
             ErrorMessage = result.ErrorMessage;
-            await LoadUserDetailsAsync();
-            return Page();
+        }
+        else
+        {
+            SuccessMessage = "User account has been successfully reactivated.";
+            _logger.LogInformation("Admin {AdminId} reactivated user {UserId}",
+                adminId,
+                Id);
         }
 
-        SuccessMessage = "User account has been successfully reactivated.";
         await LoadUserDetailsAsync();
-
-        _logger.LogInformation("Admin {AdminId} reactivated user {UserId}",
-            adminId,
-            Id);
-
         return Page();
     }
 

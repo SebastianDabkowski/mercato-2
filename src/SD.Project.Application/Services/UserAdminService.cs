@@ -288,23 +288,32 @@ public sealed class UserAdminService
 
         var blockHistory = await _userBlockInfoRepository.GetAllByUserIdAsync(query.UserId, cancellationToken);
 
-        var historyDtos = new List<UserBlockHistoryItemDto>();
-
-        foreach (var record in blockHistory)
+        if (blockHistory.Count == 0)
         {
-            // Get admin who blocked
-            var blockedByAdmin = await _internalUserRepository.GetByIdAsync(record.BlockedByAdminId, cancellationToken);
-            var blockedByName = blockedByAdmin?.Email.Value ?? "Unknown";
+            return Array.Empty<UserBlockHistoryItemDto>();
+        }
 
-            // Get admin who reactivated (if applicable)
+        // Collect all unique admin IDs for batch loading
+        var adminIds = blockHistory
+            .SelectMany(r => new[] { r.BlockedByAdminId, r.UnblockedByAdminId ?? Guid.Empty })
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        var admins = await _internalUserRepository.GetByIdsAsync(adminIds, cancellationToken);
+        var adminLookup = admins.ToDictionary(a => a.Id, a => a.Email.Value);
+
+        var historyDtos = blockHistory.Select(record =>
+        {
+            var blockedByName = adminLookup.GetValueOrDefault(record.BlockedByAdminId, "Unknown");
+
             string? reactivatedByName = null;
             if (record.UnblockedByAdminId.HasValue)
             {
-                var reactivatedByAdmin = await _internalUserRepository.GetByIdAsync(record.UnblockedByAdminId.Value, cancellationToken);
-                reactivatedByName = reactivatedByAdmin?.Email.Value ?? "Unknown";
+                reactivatedByName = adminLookup.GetValueOrDefault(record.UnblockedByAdminId.Value, "Unknown");
             }
 
-            historyDtos.Add(new UserBlockHistoryItemDto(
+            return new UserBlockHistoryItemDto(
                 record.Id,
                 record.BlockedByAdminId,
                 blockedByName,
@@ -315,8 +324,8 @@ public sealed class UserAdminService
                 record.UnblockedByAdminId,
                 reactivatedByName,
                 record.UnblockedAt,
-                record.ReactivationNotes));
-        }
+                record.ReactivationNotes);
+        }).ToList();
 
         return historyDtos;
     }
