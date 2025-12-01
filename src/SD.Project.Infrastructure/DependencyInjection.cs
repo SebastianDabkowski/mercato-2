@@ -91,6 +91,7 @@ public static class DependencyInjection
         services.AddScoped<IUserConsentRepository, UserConsentRepository>();
         services.AddScoped<IUserDataExportRepository, UserDataExportRepository>();
         services.AddScoped<IAccountDeletionRequestRepository, AccountDeletionRequestRepository>();
+        services.AddScoped<ISecurityIncidentRepository, SecurityIncidentRepository>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IPushNotificationService, PushNotificationService>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
@@ -104,6 +105,15 @@ public static class DependencyInjection
         services.AddScoped<ISecurityAlertService, SecurityAlertService>();
         services.AddScoped<IImageStorageService, LocalImageStorageService>();
         services.AddSingleton<ILoginRateLimiter, LoginRateLimiter>();
+
+        // Security incident alerting configuration
+        // Configure in appsettings.json under "SecurityIncidentAlerts" section
+        var securityAlertSection = configuration.GetSection(SecurityIncidentAlertOptions.SectionName);
+        services.Configure<SecurityIncidentAlertOptions>(options =>
+        {
+            securityAlertSection.Bind(options);
+        });
+        services.AddScoped<ISecurityIncidentAlertOptions, SecurityIncidentAlertOptionsAdapter>();
 
         // Analytics configuration and service
         services.Configure<AnalyticsOptions>(options =>
