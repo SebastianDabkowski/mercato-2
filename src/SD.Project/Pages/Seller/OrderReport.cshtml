@@ -1,0 +1,350 @@
+@page
+@model SD.Project.Pages.Seller.OrderReportModel
+@{
+    ViewData["Title"] = "Order & Revenue Report";
+    var hasFilters = Model.DateRange != "last30days" || !string.IsNullOrEmpty(Model.OrderStatus);
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1">Order &amp; Revenue Report</h1>
+            @if (!string.IsNullOrEmpty(Model.StoreName))
+            {
+                <p class="text-muted mb-0">Financial report for @Model.StoreName</p>
+            }
+        </div>
+        <a asp-page="/Seller/Dashboard" class="btn btn-outline-secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left me-2" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/>
+            </svg>
+            Back to Dashboard
+        </a>
+    </div>
+
+    @if (!Model.StoreId.HasValue)
+    {
+        <div class="alert alert-warning">
+            <h5 class="alert-heading">Store Not Found</h5>
+            <p class="mb-0">You need to complete seller onboarding to view reports.</p>
+            <a asp-page="/Seller/Onboarding" class="btn btn-primary mt-3">Complete Onboarding</a>
+        </div>
+    }
+    else
+    {
+        <!-- Error Message -->
+        @if (TempData["ErrorMessage"] is not null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <!-- Filter Section -->
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h6 class="mb-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-funnel me-2" viewBox="0 0 16 16">
+                        <path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5zm1 .5v1.308l4.372 4.858A.5.5 0 0 1 7 8.5v5.306l2-.666V8.5a.5.5 0 0 1 .128-.334L13.5 3.308V2z"/>
+                    </svg>
+                    Filters
+                </h6>
+            </div>
+            <div class="card-body">
+                <form method="get" class="row g-3 align-items-end">
+                    <!-- Date Range -->
+                    <div class="col-md-2">
+                        <label for="dateRange" class="form-label">Date Range</label>
+                        <select id="dateRange" name="dateRange" class="form-select" onchange="toggleCustomDateInputs()">
+                            @foreach (var preset in Model.DateRangePresets)
+                            {
+                                if (preset.IsSelected)
+                                {
+                                    <option value="@preset.Value" selected>@preset.Name</option>
+                                }
+                                else
+                                {
+                                    <option value="@preset.Value">@preset.Name</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2 custom-date-input" style="display: @(Model.DateRange == "custom" ? "block" : "none")">
+                        <label for="customFromDate" class="form-label">From</label>
+                        <input type="date" id="customFromDate" name="customFromDate" class="form-control"
+                               value="@(Model.CustomFromDate?.ToString("yyyy-MM-dd"))" />
+                    </div>
+                    <div class="col-md-2 custom-date-input" style="display: @(Model.DateRange == "custom" ? "block" : "none")">
+                        <label for="customToDate" class="form-label">To</label>
+                        <input type="date" id="customToDate" name="customToDate" class="form-control"
+                               value="@(Model.CustomToDate?.ToString("yyyy-MM-dd"))" />
+                    </div>
+
+                    <!-- Order Status Filter -->
+                    <div class="col-md-2">
+                        <label for="orderStatus" class="form-label">Order Status</label>
+                        <select id="orderStatus" name="orderStatus" class="form-select">
+                            <option value="">All Statuses</option>
+                            @foreach (var status in Model.OrderStatusOptions)
+                            {
+                                var displayName = status == "Paid" ? "Confirmed (Paid)" : status;
+                                if (status == Model.OrderStatus)
+                                {
+                                    <option value="@status" selected>@displayName</option>
+                                }
+                                else
+                                {
+                                    <option value="@status">@displayName</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="col-md-auto d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search me-1" viewBox="0 0 16 16">
+                                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
+                            </svg>
+                            Apply
+                        </button>
+                        <a href="@Url.Page("/Seller/OrderReport")" class="btn btn-outline-secondary">Reset</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card border-primary">
+                    <div class="card-body text-center">
+                        <h6 class="card-subtitle mb-2 text-muted">Total Order Value</h6>
+                        <h3 class="card-title text-primary mb-0">@Model.Report.FormattedTotalOrderValue</h3>
+                        <small class="text-muted">Gross sales for the period</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-warning">
+                    <div class="card-body text-center">
+                        <h6 class="card-subtitle mb-2 text-muted">Commission Charged</h6>
+                        <h3 class="card-title text-warning mb-0">@Model.Report.FormattedTotalCommission</h3>
+                        <small class="text-muted">Platform commission</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-success">
+                    <div class="card-body text-center">
+                        <h6 class="card-subtitle mb-2 text-muted">Net Amount to Seller</h6>
+                        <h3 class="card-title text-success mb-0">@Model.Report.FormattedTotalNetAmount</h3>
+                        <small class="text-muted">Your payout amount</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Section -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <span class="text-muted">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-list-ul me-1" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m-3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2m0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2m0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2"/>
+                </svg>
+                @Model.Report.TotalCount orders found
+                @if (hasFilters)
+                {
+                    <span class="badge bg-info ms-2">Filtered</span>
+                }
+            </span>
+            <div>
+                @if (Model.Report.ExceedsExportThreshold)
+                {
+                    <span class="text-warning me-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-exclamation-triangle" viewBox="0 0 16 16">
+                            <path d="M7.938 2.016A.13.13 0 0 1 8.002 2a.13.13 0 0 1 .063.016.15.15 0 0 1 .054.057l6.857 11.667c.036.06.035.124.002.183a.2.2 0 0 1-.054.06.1.1 0 0 1-.066.017H1.146a.1.1 0 0 1-.066-.017.2.2 0 0 1-.054-.06.18.18 0 0 1 .002-.183L7.884 2.073a.15.15 0 0 1 .054-.057m1.044-.45a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767z"/>
+                            <path d="M7.002 12a1 1 0 1 1 2 0 1 1 0 0 1-2 0M7.1 5.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0z"/>
+                        </svg>
+                        Large export - may take longer
+                    </span>
+                }
+                <a href="@Url.Page("/Seller/OrderReport", "ExportCsv", new { 
+                    dateRange = Model.DateRange, 
+                    customFromDate = Model.CustomFromDate?.ToString("yyyy-MM-dd"), 
+                    customToDate = Model.CustomToDate?.ToString("yyyy-MM-dd"),
+                    orderStatus = Model.OrderStatus
+                })" class="btn btn-success">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download me-2" viewBox="0 0 16 16">
+                        <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>
+                        <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/>
+                    </svg>
+                    Export CSV
+                </a>
+            </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="card">
+            <div class="card-body p-0">
+                @if (Model.Report.Rows.Count == 0)
+                {
+                    <div class="text-center py-5">
+                        @if (hasFilters)
+                        {
+                            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-search text-muted mb-3" viewBox="0 0 16 16">
+                                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
+                            </svg>
+                            <h4 class="text-muted">No orders match your filters</h4>
+                            <p class="text-muted mb-3">Try adjusting your date range or status filter.</p>
+                            <a href="@Url.Page("/Seller/OrderReport")" class="btn btn-outline-primary">Clear Filters</a>
+                        }
+                        else
+                        {
+                            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-graph-up-arrow text-muted mb-3" viewBox="0 0 16 16">
+                                <path fill-rule="evenodd" d="M0 0h1v15h15v1H0zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5"/>
+                            </svg>
+                            <h4 class="text-muted">No order data yet</h4>
+                            <p class="text-muted">When you receive orders, your sales data will appear here.</p>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Order #</th>
+                                    <th>Date</th>
+                                    <th>Customer</th>
+                                    <th class="text-center">Order Status</th>
+                                    <th class="text-center">Payment</th>
+                                    <th class="text-end">Order Value</th>
+                                    <th class="text-end">Commission</th>
+                                    <th class="text-end">Net Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in Model.Report.Rows)
+                                {
+                                    var statusDisplay = row.OrderStatus switch
+                                    {
+                                        "Paid" => "Confirmed",
+                                        _ => row.OrderStatus
+                                    };
+                                    <tr>
+                                        <td>
+                                            <a asp-page="/Seller/OrderDetail" asp-route-subOrderId="@row.SubOrderId" class="fw-bold text-decoration-none">
+                                                @row.OrderNumber
+                                            </a>
+                                        </td>
+                                        <td>@row.FormattedOrderDate</td>
+                                        <td>@row.BuyerName</td>
+                                        <td class="text-center">
+                                            <span class="badge @row.OrderStatusBadgeClass">@statusDisplay</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge @row.PaymentStatusBadgeClass">@row.PaymentStatus</span>
+                                        </td>
+                                        <td class="text-end">@row.FormattedOrderValue</td>
+                                        <td class="text-end text-warning">@row.FormattedCommission</td>
+                                        <td class="text-end fw-bold text-success">@row.FormattedNetAmount</td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr class="fw-bold">
+                                    <td colspan="5" class="text-end">Page Totals:</td>
+                                    <td class="text-end">@Model.Report.FormattedTotalOrderValue</td>
+                                    <td class="text-end text-warning">@Model.Report.FormattedTotalCommission</td>
+                                    <td class="text-end text-success">@Model.Report.FormattedTotalNetAmount</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    @if (Model.Report.TotalPages > 1)
+                    {
+                        <div class="card-footer bg-light">
+                            <nav aria-label="Report pagination">
+                                <ul class="pagination justify-content-center mb-0">
+                                    <li class="page-item @(Model.Report.HasPreviousPage ? "" : "disabled")">
+                                        <a class="page-link" href="@Url.Page("/Seller/OrderReport", new { 
+                                            pageNumber = Model.PageNumber - 1,
+                                            dateRange = Model.DateRange,
+                                            customFromDate = Model.CustomFromDate?.ToString("yyyy-MM-dd"),
+                                            customToDate = Model.CustomToDate?.ToString("yyyy-MM-dd"),
+                                            orderStatus = Model.OrderStatus
+                                        })">Previous</a>
+                                    </li>
+                                    @for (int i = Math.Max(1, Model.PageNumber - 2); i <= Math.Min(Model.Report.TotalPages, Model.PageNumber + 2); i++)
+                                    {
+                                        <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                                            <a class="page-link" href="@Url.Page("/Seller/OrderReport", new { 
+                                                pageNumber = i,
+                                                dateRange = Model.DateRange,
+                                                customFromDate = Model.CustomFromDate?.ToString("yyyy-MM-dd"),
+                                                customToDate = Model.CustomToDate?.ToString("yyyy-MM-dd"),
+                                                orderStatus = Model.OrderStatus
+                                            })">@i</a>
+                                        </li>
+                                    }
+                                    <li class="page-item @(Model.Report.HasNextPage ? "" : "disabled")">
+                                        <a class="page-link" href="@Url.Page("/Seller/OrderReport", new { 
+                                            pageNumber = Model.PageNumber + 1,
+                                            dateRange = Model.DateRange,
+                                            customFromDate = Model.CustomFromDate?.ToString("yyyy-MM-dd"),
+                                            customToDate = Model.CustomToDate?.ToString("yyyy-MM-dd"),
+                                            orderStatus = Model.OrderStatus
+                                        })">Next</a>
+                                    </li>
+                                </ul>
+                            </nav>
+                            <p class="text-muted text-center mt-2 mb-0 small">
+                                Page @Model.PageNumber of @Model.Report.TotalPages (@Model.Report.TotalCount total orders)
+                            </p>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
+        <!-- Help Text -->
+        <div class="mt-4">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h6 class="card-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-info-circle me-2" viewBox="0 0 16 16">
+                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                            <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
+                        </svg>
+                        About this report
+                    </h6>
+                    <p class="card-text mb-2">
+                        <strong>Order Value:</strong> The total amount charged for your items including shipping.
+                    </p>
+                    <p class="card-text mb-2">
+                        <strong>Commission:</strong> The platform fee deducted from your sales (calculated on item subtotal).
+                    </p>
+                    <p class="card-text mb-0">
+                        <strong>Net Amount:</strong> Your payout after commission deduction. This is the amount you'll receive in your settlements.
+                    </p>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        function toggleCustomDateInputs() {
+            var dateRange = document.getElementById('dateRange').value;
+            var customInputs = document.querySelectorAll('.custom-date-input');
+            customInputs.forEach(function(input) {
+                input.style.display = dateRange === 'custom' ? 'block' : 'none';
+            });
+        }
+    </script>
+}
