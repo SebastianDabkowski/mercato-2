@@ -24,6 +24,11 @@ public sealed class NotificationService : INotificationService
     /// </summary>
     private static string HtmlEncode(string? value) => WebUtility.HtmlEncode(value ?? string.Empty);
 
+    /// <summary>
+    /// HTML-encodes a URL for safe use in href attributes.
+    /// </summary>
+    private static string HtmlEncodeUrl(string? url) => WebUtility.HtmlEncode(url ?? string.Empty);
+
     public Task SendProductCreatedAsync(Guid productId, CancellationToken cancellationToken = default)
     {
         // Product notifications are logged only (no email recipients specified)
@@ -86,6 +91,7 @@ public sealed class NotificationService : INotificationService
             "Sending verification email to {Email} for user {UserId}",
             email, userId);
 
+        var encodedLink = HtmlEncodeUrl(verificationLink);
         var message = new EmailMessage(
             To: email,
             Subject: "Verify Your Email Address - Mercato Marketplace",
@@ -94,7 +100,7 @@ public sealed class NotificationService : INotificationService
                 <body>
                     <h1>Verify Your Email Address</h1>
                     <p>Please click the link below to verify your email address:</p>
-                    <p><a href='{verificationLink}'>Verify Email</a></p>
+                    <p><a href='{encodedLink}'>Verify Email</a></p>
                     <p>If you didn't create an account with us, please ignore this email.</p>
                     <p>Best regards,<br/>The Mercato Team</p>
                 </body>
@@ -113,6 +119,7 @@ public sealed class NotificationService : INotificationService
             "Sending password reset email to {Email} for user {UserId}",
             email, userId);
 
+        var encodedLink = HtmlEncodeUrl(resetLink);
         var message = new EmailMessage(
             To: email,
             Subject: "Reset Your Password - Mercato Marketplace",
@@ -121,7 +128,7 @@ public sealed class NotificationService : INotificationService
                 <body>
                     <h1>Reset Your Password</h1>
                     <p>You requested to reset your password. Click the link below to create a new password:</p>
-                    <p><a href='{resetLink}'>Reset Password</a></p>
+                    <p><a href='{encodedLink}'>Reset Password</a></p>
                     <p>This link will expire in 24 hours.</p>
                     <p>If you didn't request this, please ignore this email.</p>
                     <p>Best regards,<br/>The Mercato Team</p>
@@ -143,6 +150,7 @@ public sealed class NotificationService : INotificationService
 
         var encodedStoreName = HtmlEncode(storeName);
         var encodedRole = HtmlEncode(role);
+        var encodedLink = HtmlEncodeUrl(invitationLink);
         var message = new EmailMessage(
             To: email,
             Subject: $"You're Invited to Join {storeName} on Mercato Marketplace",
@@ -151,7 +159,7 @@ public sealed class NotificationService : INotificationService
                 <body>
                     <h1>You're Invited!</h1>
                     <p>You have been invited to join <strong>{encodedStoreName}</strong> on Mercato Marketplace as a <strong>{encodedRole}</strong>.</p>
-                    <p><a href='{invitationLink}'>Accept Invitation</a></p>
+                    <p><a href='{encodedLink}'>Accept Invitation</a></p>
                     <p>This invitation will expire in 7 days.</p>
                     <p>Best regards,<br/>The Mercato Team</p>
                 </body>
@@ -185,6 +193,7 @@ public sealed class NotificationService : INotificationService
             "Sending order confirmation email to {BuyerEmail} for order {OrderNumber}",
             buyerEmail, orderNumber);
 
+        var encodedLink = HtmlEncodeUrl(confirmationLink);
         var message = new EmailMessage(
             To: buyerEmail,
             Subject: $"Order Confirmation - {orderNumber}",
@@ -194,7 +203,7 @@ public sealed class NotificationService : INotificationService
                     <h1>Thank You for Your Order!</h1>
                     <p>Your order <strong>{orderNumber}</strong> has been confirmed.</p>
                     <p>Total: <strong>{currency} {totalAmount:N2}</strong></p>
-                    <p><a href='{confirmationLink}'>View Order Details</a></p>
+                    <p><a href='{encodedLink}'>View Order Details</a></p>
                     <p>We'll send you another email when your order ships.</p>
                     <p>Best regards,<br/>The Mercato Team</p>
                 </body>
@@ -267,7 +276,7 @@ public sealed class NotificationService : INotificationService
             buyerEmail, orderNumber);
 
         var trackingLinkHtml = !string.IsNullOrEmpty(trackingUrl)
-            ? $"<p><a href='{trackingUrl}'>Track Your Package</a></p>"
+            ? $"<p><a href='{HtmlEncodeUrl(trackingUrl)}'>Track Your Package</a></p>"
             : "";
 
         var message = new EmailMessage(
