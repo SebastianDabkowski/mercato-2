@@ -1,0 +1,179 @@
+@page
+@model SD.Project.Pages.Admin.UserAnalyticsModel
+@{
+    ViewData["Title"] = "User Analytics";
+}
+
+<h1>User Registration & Activity Analytics</h1>
+<p>View aggregated user growth and engagement metrics.</p>
+
+<!-- Privacy Notice -->
+<div class="alert alert-secondary small mb-4" role="alert">
+    <i class="bi bi-shield-lock"></i> <strong>Privacy Notice:</strong> All data shown is aggregated and anonymised. No individual user-level personal data is displayed.
+</div>
+
+<!-- Date Range Filter -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label for="dateRange" class="form-label">Date Range</label>
+                <select id="dateRange" name="dateRange" class="form-select" onchange="toggleCustomDateInputs()">
+                    @foreach (var preset in Model.DateRangePresets)
+                    {
+                        if (preset.IsSelected)
+                        {
+                            <option value="@preset.Value" selected>@preset.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@preset.Value">@preset.Name</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-md-3 custom-date-input" style="display: @(Model.DateRange == "custom" ? "block" : "none")">
+                <label for="customFromDate" class="form-label">From</label>
+                <input type="date" id="customFromDate" name="customFromDate" class="form-control" 
+                       value="@(Model.CustomFromDate?.ToString("yyyy-MM-dd") ?? Model.Analytics.FromDate.ToString("yyyy-MM-dd"))" />
+            </div>
+            <div class="col-md-3 custom-date-input" style="display: @(Model.DateRange == "custom" ? "block" : "none")">
+                <label for="customToDate" class="form-label">To</label>
+                <input type="date" id="customToDate" name="customToDate" class="form-control" 
+                       value="@(Model.CustomToDate?.ToString("yyyy-MM-dd") ?? Model.Analytics.ToDate.ToString("yyyy-MM-dd"))" />
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary">Apply</button>
+                <a href="@Url.Page("/Admin/UserAnalytics")" class="btn btn-outline-secondary ms-2">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Refresh Indicator -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <span class="badge bg-info fs-6">@Model.Analytics.PeriodLabel</span>
+    <span class="text-muted small">
+        <i class="bi bi-clock"></i> @Model.Analytics.RefreshTimeDisplay
+        <button onclick="location.reload()" class="btn btn-link btn-sm p-0 ms-2" title="Refresh analytics">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
+        </button>
+    </span>
+</div>
+
+<!-- No Data Message -->
+@if (!Model.Analytics.HasData)
+{
+    <div class="alert alert-info" role="alert">
+        <i class="bi bi-info-circle"></i> <strong>No data available for the selected period.</strong>
+        All metrics will show zero values. This may happen if:
+        <ul class="mb-0 mt-2">
+            <li>No new users registered during this time</li>
+            <li>No login activity was recorded</li>
+            <li>No orders were placed</li>
+        </ul>
+        Try selecting a different date range or wait for new activity.
+    </div>
+}
+
+<!-- Registration Metrics Section -->
+<h4 class="mt-4 mb-3"><i class="bi bi-person-plus"></i> Registration Metrics</h4>
+<div class="row mb-4">
+    <!-- New Buyers Tile -->
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 border-primary">
+            <div class="card-body text-center">
+                <h6 class="card-subtitle mb-2 text-muted">New Buyer Accounts</h6>
+                <h2 class="card-title text-primary mb-3">@Model.Analytics.NewBuyerCount.ToString("N0")</h2>
+                <p class="card-text small text-muted">Buyer accounts created in period</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Sellers Tile -->
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 border-success">
+            <div class="card-body text-center">
+                <h6 class="card-subtitle mb-2 text-muted">New Seller Accounts</h6>
+                <h2 class="card-title text-success mb-3">@Model.Analytics.NewSellerCount.ToString("N0")</h2>
+                <p class="card-text small text-muted">Seller accounts created in period</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Registrations Tile -->
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 border-secondary">
+            <div class="card-body text-center">
+                <h6 class="card-subtitle mb-2 text-muted">Total New Registrations</h6>
+                <h2 class="card-title text-secondary mb-3">@Model.Analytics.TotalNewRegistrations.ToString("N0")</h2>
+                <p class="card-text small text-muted">All new accounts in period</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Activity Metrics Section -->
+<h4 class="mt-4 mb-3"><i class="bi bi-activity"></i> Activity Metrics</h4>
+<div class="row mb-4">
+    <!-- Active Users Tile -->
+    <div class="col-md-6 mb-3">
+        <div class="card h-100 border-warning">
+            <div class="card-body text-center">
+                <h6 class="card-subtitle mb-2 text-muted">Users Who Logged In</h6>
+                <h2 class="card-title text-warning mb-3">@Model.Analytics.ActiveUserCount.ToString("N0")</h2>
+                <p class="card-text small text-muted">Unique users with at least one login in period</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users with Orders Tile -->
+    <div class="col-md-6 mb-3">
+        <div class="card h-100 border-info">
+            <div class="card-body text-center">
+                <h6 class="card-subtitle mb-2 text-muted">Users Who Placed Orders</h6>
+                <h2 class="card-title text-info mb-3">@Model.Analytics.UsersWithOrdersCount.ToString("N0")</h2>
+                <p class="card-text small text-muted">Unique users with at least one order in period</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Metric Definitions -->
+<div class="card bg-light mt-4">
+    <div class="card-body">
+        <h5 class="card-title"><i class="bi bi-info-circle"></i> Metric Definitions</h5>
+        <dl class="row mb-0">
+            <dt class="col-sm-3">New Buyer Accounts</dt>
+            <dd class="col-sm-9">Users registered with Buyer role during the selected period.</dd>
+            
+            <dt class="col-sm-3">New Seller Accounts</dt>
+            <dd class="col-sm-9">Users registered with Seller role during the selected period.</dd>
+            
+            <dt class="col-sm-3">Users Who Logged In</dt>
+            <dd class="col-sm-9">Count of distinct users who had at least one successful login event during the period.</dd>
+            
+            <dt class="col-sm-3">Users Who Placed Orders</dt>
+            <dd class="col-sm-9">Count of distinct buyers who created at least one order during the period.</dd>
+        </dl>
+    </div>
+</div>
+
+<!-- Navigation -->
+<div class="mt-4">
+    <a asp-page="/Admin/Dashboard" class="btn btn-outline-primary">
+        <i class="bi bi-arrow-left"></i> Back to Dashboard
+    </a>
+</div>
+
+@section Scripts {
+    <script>
+        function toggleCustomDateInputs() {
+            var dateRange = document.getElementById('dateRange').value;
+            var customInputs = document.querySelectorAll('.custom-date-input');
+            customInputs.forEach(function(input) {
+                input.style.display = dateRange === 'custom' ? 'block' : 'none';
+            });
+        }
+    </script>
+}

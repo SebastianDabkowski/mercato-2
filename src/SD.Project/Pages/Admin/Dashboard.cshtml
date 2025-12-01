@@ -133,8 +133,9 @@
                 <h2 class="card-title text-secondary mb-3">@Model.Metrics.NewUserCount.ToString("N0")</h2>
                 <p class="card-text small text-muted">Registered in period</p>
             </div>
-            <a href="#" class="card-footer text-center text-decoration-none">
-                View User Details →
+            <a href="@Url.Page("/Admin/UserAnalytics", new { dateRange = Model.DateRange, customFromDate = Model.CustomFromDate?.ToString("yyyy-MM-dd"), customToDate = Model.CustomToDate?.ToString("yyyy-MM-dd") })" 
+               class="card-footer text-center text-decoration-none">
+                View User Analytics →
             </a>
         </div>
     </div>
@@ -194,9 +195,9 @@
     <div class="col-md-4">
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">Platform Settings</h5>
-                <p class="card-text">Configure platform-wide settings.</p>
-                <a href="#" class="btn btn-primary">Settings</a>
+                <h5 class="card-title">User Analytics</h5>
+                <p class="card-text">View registration and activity metrics.</p>
+                <a asp-page="/Admin/UserAnalytics" class="btn btn-primary">View Analytics</a>
             </div>
         </div>
     </div>
