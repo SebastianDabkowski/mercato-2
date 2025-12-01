@@ -46,8 +46,7 @@ public sealed class CommissionSummaryService
         ArgumentNullException.ThrowIfNull(query);
 
         // Normalize date range to full days
-        var fromDate = query.FromDate.Date;
-        var toDate = query.ToDate.Date.AddDays(1).AddTicks(-1);
+        var (fromDate, toDate) = NormalizeDateRange(query.FromDate, query.ToDate);
 
         // Get all escrow allocations for the period
         var allocations = await _escrowRepository.GetAllocationsByDateRangeAsync(
@@ -80,11 +79,11 @@ public sealed class CommissionSummaryService
                 // Count unique shipments as orders
                 var orderCount = g.Select(a => a.ShipmentId).Distinct().Count();
                 
-                // GMV = Total seller amount + shipping (gross merchandise value)
-                var totalGmv = g.Sum(a => a.TotalAmount - a.RefundedAmount);
+                // GMV = remaining total amount after refunds
+                var totalGmv = g.Sum(a => a.GetRemainingAmount());
                 
-                // Commission = persisted commission amount from historical rates
-                var totalCommission = g.Sum(a => a.CommissionAmount - a.RefundedCommissionAmount);
+                // Commission = remaining commission amount from historical rates after refunds
+                var totalCommission = g.Sum(a => a.GetRemainingCommission());
                 
                 // Net payout = what seller receives (seller amount - commission + shipping - refunds)
                 var totalNetPayout = g.Sum(a => a.GetRemainingSellerPayout());
@@ -134,8 +133,7 @@ public sealed class CommissionSummaryService
         }
 
         // Normalize date range to full days
-        var fromDate = query.FromDate.Date;
-        var toDate = query.ToDate.Date.AddDays(1).AddTicks(-1);
+        var (fromDate, toDate) = NormalizeDateRange(query.FromDate, query.ToDate);
 
         // Get allocations for the store in the period
         var allocations = await _escrowRepository.GetAllocationsByStoreIdAndDateRangeAsync(
@@ -162,8 +160,8 @@ public sealed class CommissionSummaryService
             var (_, order, _) = await _orderRepository.GetShipmentWithOrderAsync(
                 allocation.ShipmentId, cancellationToken);
 
-            var gmvAmount = allocation.TotalAmount - allocation.RefundedAmount;
-            var commissionAmount = allocation.CommissionAmount - allocation.RefundedCommissionAmount;
+            var gmvAmount = allocation.GetRemainingAmount();
+            var commissionAmount = allocation.GetRemainingCommission();
             var netPayout = allocation.GetRemainingSellerPayout();
 
             orderDetails.Add(new CommissionOrderDetailDto(
@@ -274,5 +272,15 @@ public sealed class CommissionSummaryService
         }
 
         return value;
+    }
+
+    /// <summary>
+    /// Normalizes a date range to include full days (from start of day to end of day).
+    /// </summary>
+    private static (DateTime FromDate, DateTime ToDate) NormalizeDateRange(DateTime fromDate, DateTime toDate)
+    {
+        var normalizedFromDate = fromDate.Date;
+        var normalizedToDate = toDate.Date.AddDays(1).AddTicks(-1);
+        return (normalizedFromDate, normalizedToDate);
     }
 }
