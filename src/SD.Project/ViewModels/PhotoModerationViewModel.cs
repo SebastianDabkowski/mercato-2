@@ -57,24 +57,20 @@ public static class PhotoModerationStatusHelper
 {
     public static string GetStatusDisplayName(string status)
     {
-        return status switch
+        if (Enum.TryParse<PhotoModerationStatus>(status, out var parsed))
         {
-            "PendingReview" => "Pending Review",
-            "Approved" => "Approved",
-            "Removed" => "Removed",
-            _ => status
-        };
+            return GetStatusDisplayName(parsed);
+        }
+        return status;
     }
 
     public static string GetStatusBadgeClass(string status)
     {
-        return status switch
+        if (Enum.TryParse<PhotoModerationStatus>(status, out var parsed))
         {
-            "PendingReview" => "bg-warning text-dark",
-            "Approved" => "bg-success",
-            "Removed" => "bg-danger",
-            _ => "bg-secondary"
-        };
+            return GetStatusBadgeClass(parsed);
+        }
+        return "bg-secondary";
     }
 
     public static string GetStatusDisplayName(PhotoModerationStatus status)
