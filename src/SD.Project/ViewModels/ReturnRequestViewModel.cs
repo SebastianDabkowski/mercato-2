@@ -141,6 +141,28 @@ public sealed record BuyerCaseSummaryViewModel(
     DateTime CreatedAt);
 
 /// <summary>
+/// View model for a case message.
+/// </summary>
+public sealed record CaseMessageViewModel(
+    Guid MessageId,
+    Guid SenderId,
+    string SenderRole,
+    string SenderName,
+    string Content,
+    DateTime SentAt,
+    bool IsRead,
+    bool IsCurrentUser);
+
+/// <summary>
+/// View model for a case message thread.
+/// </summary>
+public sealed record CaseMessageThreadViewModel(
+    Guid ReturnRequestId,
+    string CaseNumber,
+    IReadOnlyList<CaseMessageViewModel> Messages,
+    int UnreadCount);
+
+/// <summary>
 /// Helper class for return request status display.
 /// </summary>
 public static class ReturnRequestStatusHelper

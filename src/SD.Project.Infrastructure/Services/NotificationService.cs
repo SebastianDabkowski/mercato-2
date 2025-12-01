@@ -529,4 +529,23 @@ public sealed class NotificationService : INotificationService
             remainingAmount);
         return Task.CompletedTask;
     }
+
+    public Task SendCaseMessageReceivedAsync(
+        Guid returnRequestId,
+        string caseNumber,
+        string recipientEmail,
+        string senderName,
+        CancellationToken cancellationToken = default)
+    {
+        // TODO: Replace logging with real email/notification integration.
+        // Notify the recipient when they receive a new message in a case thread.
+        _logger.LogInformation(
+            "Case message notification sent to {RecipientEmail} for case {CaseNumber}. " +
+            "New message from {SenderName}. Case ID: {ReturnRequestId}",
+            recipientEmail,
+            caseNumber,
+            senderName,
+            returnRequestId);
+        return Task.CompletedTask;
+    }
 }

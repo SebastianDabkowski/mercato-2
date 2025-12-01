@@ -422,4 +422,19 @@ public interface INotificationService
         decimal remainingAmount,
         string currency,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a notification when a new message is received in a case thread.
+    /// </summary>
+    /// <param name="returnRequestId">The ID of the return request (case).</param>
+    /// <param name="caseNumber">The case number for display.</param>
+    /// <param name="recipientEmail">The recipient's email address.</param>
+    /// <param name="senderName">The name of the sender.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendCaseMessageReceivedAsync(
+        Guid returnRequestId,
+        string caseNumber,
+        string recipientEmail,
+        string senderName,
+        CancellationToken cancellationToken = default);
 }
