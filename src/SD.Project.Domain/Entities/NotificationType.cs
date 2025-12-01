@@ -28,5 +28,15 @@ public enum NotificationType
     /// <summary>
     /// System-wide announcements and updates.
     /// </summary>
-    SystemUpdate
+    SystemUpdate,
+
+    /// <summary>
+    /// Notifications for product questions from buyers.
+    /// </summary>
+    ProductQuestion,
+
+    /// <summary>
+    /// Notifications for product question answers from sellers.
+    /// </summary>
+    ProductQuestionAnswer
 }

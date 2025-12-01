@@ -4,6 +4,7 @@ using SD.Project.Application.Commands;
 using SD.Project.Application.DTOs;
 using SD.Project.Application.Queries;
 using SD.Project.Application.Services;
+using SD.Project.Domain.Entities;
 using SD.Project.Domain.Repositories;
 using SD.Project.ViewModels;
 using System.Security.Claims;
@@ -23,6 +24,7 @@ public class ProductModel : PageModel
     private readonly StoreService _storeService;
     private readonly CartService _cartService;
     private readonly ReviewService _reviewService;
+    private readonly ProductQuestionService _questionService;
 
     /// <summary>
     /// The product being viewed.
@@ -81,13 +83,25 @@ public class ProductModel : PageModel
     /// </summary>
     public bool IsSuccess { get; private set; }
 
+    /// <summary>
+    /// List of product questions and answers.
+    /// </summary>
+    public IReadOnlyList<ProductQuestionViewModel> Questions { get; private set; } = [];
+
+    /// <summary>
+    /// Input model for asking a question.
+    /// </summary>
+    [BindProperty]
+    public AskQuestionInputModel QuestionInput { get; set; } = new();
+
     public ProductModel(
         ILogger<ProductModel> logger,
         ProductService productService,
         CategoryService categoryService,
         StoreService storeService,
         CartService cartService,
-        ReviewService reviewService)
+        ReviewService reviewService,
+        ProductQuestionService questionService)
     {
         _logger = logger;
         _productService = productService;
@@ -95,6 +109,7 @@ public class ProductModel : PageModel
         _storeService = storeService;
         _cartService = cartService;
         _reviewService = reviewService;
+        _questionService = questionService;
     }
 
     public async Task<IActionResult> OnGetAsync(
@@ -142,6 +157,9 @@ public class ProductModel : PageModel
 
         // Load reviews and rating
         await LoadReviewsAsync(id.Value, cancellationToken);
+
+        // Load Q&A
+        await LoadQuestionsAsync(id.Value, cancellationToken);
 
         return Page();
     }
@@ -290,5 +308,64 @@ public class ProductModel : PageModel
             dto.HeightCm,
             dto.MainImageUrl,
             dto.MainImageThumbnailUrl);
+    }
+
+    public async Task<IActionResult> OnPostAskQuestionAsync(
+        Guid productId,
+        CancellationToken cancellationToken = default)
+    {
+        // User must be authenticated to ask questions
+        if (User.Identity?.IsAuthenticated != true)
+        {
+            return RedirectToPage("/Login", new { returnUrl = $"/Buyer/Product?id={productId}" });
+        }
+
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(userIdClaim, out var buyerId))
+        {
+            Message = "Please log in to ask a question.";
+            IsSuccess = false;
+            return await OnGetAsync(productId, cancellationToken);
+        }
+
+        var result = await _questionService.HandleAsync(
+            new AskProductQuestionCommand(productId, buyerId, QuestionInput.Question),
+            cancellationToken);
+
+        if (result.IsSuccess)
+        {
+            IsSuccess = true;
+            Message = "Your question has been submitted. The seller will be notified and you'll receive an email when they respond.";
+            QuestionInput = new AskQuestionInputModel(); // Clear the form
+            _logger.LogInformation("Question submitted for product {ProductId} by buyer {BuyerId}", productId, buyerId);
+        }
+        else
+        {
+            IsSuccess = false;
+            Message = result.ErrorMessage;
+            _logger.LogWarning("Failed to submit question for product {ProductId}: {Error}", productId, result.ErrorMessage);
+        }
+
+        return await OnGetAsync(productId, cancellationToken);
+    }
+
+    private async Task LoadQuestionsAsync(Guid productId, CancellationToken cancellationToken)
+    {
+        var questionsDto = await _questionService.HandleAsync(
+            new GetPublicProductQuestionsQuery(productId),
+            cancellationToken);
+
+        Questions = questionsDto.Questions.Select(q => new ProductQuestionViewModel(
+            q.Id,
+            q.ProductId,
+            q.ProductName,
+            q.BuyerDisplayName,
+            q.Question,
+            q.Answer,
+            q.Status,
+            q.AskedAt,
+            q.AnsweredAt)).ToList().AsReadOnly();
+
+        _logger.LogDebug("Loaded {QuestionCount} Q&A items for product {ProductId}", Questions.Count, productId);
     }
 }

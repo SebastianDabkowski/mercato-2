@@ -67,6 +67,8 @@ public class AppDbContext : DbContext
     public DbSet<SellerRating> SellerRatings => Set<SellerRating>();
     public DbSet<SellerReputation> SellerReputations => Set<SellerReputation>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<ProductQuestion> ProductQuestions => Set<ProductQuestion>();
+    public DbSet<OrderMessage> OrderMessages => Set<OrderMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

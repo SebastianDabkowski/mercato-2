@@ -1087,4 +1087,104 @@ public sealed class NotificationService : INotificationService
 
         await _emailSender.SendAsync(message, cancellationToken);
     }
+
+    public async Task SendProductQuestionAskedAsync(
+        Guid questionId,
+        Guid productId,
+        string productName,
+        string sellerEmail,
+        string buyerName,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation(
+            "Sending product question notification to seller {SellerEmail} for product {ProductName}",
+            sellerEmail, productName);
+
+        var encodedProductName = HtmlEncode(productName);
+        var encodedBuyerName = HtmlEncode(buyerName);
+        var message = new EmailMessage(
+            To: sellerEmail,
+            Subject: $"New Question About Your Product - {productName}",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1>New Product Question</h1>
+                    <p>A customer <strong>{encodedBuyerName}</strong> has asked a question about your product <strong>{encodedProductName}</strong>.</p>
+                    <p>Please log in to your seller dashboard to view and answer the question.</p>
+                    <p>Answering questions promptly helps build customer trust and can increase your sales.</p>
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"New question from {buyerName} about {productName}. Log in to your seller dashboard to answer.",
+            TemplateName: "ProductQuestionAsked",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(message, cancellationToken);
+    }
+
+    public async Task SendProductQuestionAnsweredAsync(
+        Guid questionId,
+        Guid productId,
+        string productName,
+        string buyerEmail,
+        string storeName,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation(
+            "Sending product question answered notification to buyer {BuyerEmail} for product {ProductName}",
+            buyerEmail, productName);
+
+        var encodedProductName = HtmlEncode(productName);
+        var encodedStoreName = HtmlEncode(storeName);
+        var productLink = $"/Buyer/Product?id={productId}";
+        var encodedLink = HtmlEncodeUrl(productLink);
+        var message = new EmailMessage(
+            To: buyerEmail,
+            Subject: $"Your Question Was Answered - {productName}",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1>Your Question Has Been Answered</h1>
+                    <p>Great news! <strong>{encodedStoreName}</strong> has answered your question about <strong>{encodedProductName}</strong>.</p>
+                    <p><a href='{encodedLink}'>View the answer on the product page</a></p>
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"{storeName} answered your question about {productName}. View at: {productLink}",
+            TemplateName: "ProductQuestionAnswered",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(message, cancellationToken);
+    }
+
+    public async Task SendOrderMessageReceivedAsync(
+        Guid orderId,
+        string orderNumber,
+        string recipientEmail,
+        string senderName,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation(
+            "Sending order message notification to {RecipientEmail} for order {OrderNumber}",
+            recipientEmail, orderNumber);
+
+        var encodedSenderName = HtmlEncode(senderName);
+        var message = new EmailMessage(
+            To: recipientEmail,
+            Subject: $"New Message - Order {orderNumber}",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1>New Message About Your Order</h1>
+                    <p>You have received a new message from <strong>{encodedSenderName}</strong> regarding order <strong>{orderNumber}</strong>.</p>
+                    <p>Please log in to your account to view and respond to the message.</p>
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"New message from {senderName} about order {orderNumber}. Log in to view and respond.",
+            TemplateName: "OrderMessageReceived",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(message, cancellationToken);
+    }
 }
