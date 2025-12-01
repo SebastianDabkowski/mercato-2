@@ -249,6 +249,11 @@ public sealed class PaymentWebhookService
         var storeIds = order.Shipments.Select(s => s.StoreId).Distinct().ToList();
         var stores = await _storeRepository.GetByIdsAsync(storeIds, cancellationToken);
 
+        // Batch fetch all sellers for the stores
+        var sellerIds = stores.Select(s => s.SellerId).Distinct().ToList();
+        var sellers = await _userRepository.GetByIdsAsync(sellerIds, cancellationToken);
+        var sellerLookup = sellers.ToDictionary(s => s.Id);
+
         foreach (var shipment in order.Shipments)
         {
             var store = stores.FirstOrDefault(s => s.Id == shipment.StoreId);
@@ -257,16 +262,14 @@ public sealed class PaymentWebhookService
                 continue;
             }
 
-            // Get the seller for this store
-            var seller = await _userRepository.GetByIdAsync(store.SellerId, cancellationToken);
-            if (seller?.Email is null)
+            // Get the seller for this store from cached lookup
+            if (!sellerLookup.TryGetValue(store.SellerId, out var seller) || seller.Email is null)
             {
                 continue;
             }
 
             // Count items for this seller
-            var sellerItems = order.Items.Where(i => i.StoreId == shipment.StoreId).ToList();
-            var itemCount = sellerItems.Sum(i => i.Quantity);
+            var itemCount = order.Items.Where(i => i.StoreId == shipment.StoreId).Sum(i => i.Quantity);
 
             await _notificationService.SendNewOrderNotificationToSellerAsync(
                 order.Id,
