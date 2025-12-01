@@ -65,6 +65,7 @@ public class AppDbContext : DbContext
     public DbSet<ReviewReport> ReviewReports => Set<ReviewReport>();
     public DbSet<ReviewModerationAuditLog> ReviewModerationAuditLogs => Set<ReviewModerationAuditLog>();
     public DbSet<SellerRating> SellerRatings => Set<SellerRating>();
+    public DbSet<SellerRatingModerationAuditLog> SellerRatingModerationAuditLogs => Set<SellerRatingModerationAuditLog>();
     public DbSet<SellerReputation> SellerReputations => Set<SellerReputation>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();

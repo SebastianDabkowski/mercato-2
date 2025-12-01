@@ -68,6 +68,7 @@ public static class DependencyInjection
         services.AddScoped<IReviewReportRepository, ReviewReportRepository>();
         services.AddScoped<IReviewModerationAuditLogRepository, ReviewModerationAuditLogRepository>();
         services.AddScoped<ISellerRatingRepository, SellerRatingRepository>();
+        services.AddScoped<ISellerRatingModerationAuditLogRepository, SellerRatingModerationAuditLogRepository>();
         services.AddScoped<ISellerReputationRepository, SellerReputationRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IProductQuestionRepository, ProductQuestionRepository>();

@@ -51,6 +51,7 @@ public static class DependencyInjection
         services.AddScoped<ReviewService>();
         services.AddScoped<ReviewModerationService>();
         services.AddScoped<SellerRatingService>();
+        services.AddScoped<SellerRatingModerationService>();
         services.AddScoped<SellerReputationService>();
         services.AddScoped<NotificationCenterService>();
         services.AddScoped<ProductQuestionService>();
