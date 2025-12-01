@@ -67,6 +67,7 @@ public static class DependencyInjection
         services.AddScoped<AnalyticsQueryService>();
         services.AddScoped<UserAdminService>();
         services.AddScoped<IAuthorizationService, AuthorizationService>();
+        services.AddScoped<RolePermissionService>();
         services.AddScoped<ProductModerationService>();
         services.AddScoped<PhotoModerationService>();
         services.AddScoped<VatRuleService>();

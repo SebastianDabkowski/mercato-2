@@ -80,6 +80,7 @@ public class AppDbContext : DbContext
     public DbSet<Currency> Currencies => Set<Currency>();
     public DbSet<DataProcessingActivity> DataProcessingActivities => Set<DataProcessingActivity>();
     public DbSet<DataProcessingActivityAuditLog> DataProcessingActivityAuditLogs => Set<DataProcessingActivityAuditLog>();
+    public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

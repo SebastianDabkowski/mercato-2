@@ -18,5 +18,15 @@ public enum UserRole
     /// <summary>
     /// An administrator with full platform access.
     /// </summary>
-    Admin = 2
+    Admin = 2,
+
+    /// <summary>
+    /// A support agent who can assist with customer issues.
+    /// </summary>
+    Support = 3,
+
+    /// <summary>
+    /// A compliance officer who can review and approve regulatory matters.
+    /// </summary>
+    Compliance = 4
 }

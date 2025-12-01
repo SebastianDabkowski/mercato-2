@@ -11,7 +11,7 @@ using SD.Project.ViewModels;
 
 namespace SD.Project.Pages.Admin;
 
-[RequireRole(UserRole.Admin)]
+[RequireRole(UserRole.Admin, UserRole.Compliance)]
 public class ProductModerationDetailsModel : PageModel
 {
     private readonly ILogger<ProductModerationDetailsModel> _logger;
