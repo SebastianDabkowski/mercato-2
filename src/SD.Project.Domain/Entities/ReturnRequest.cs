@@ -27,6 +27,23 @@ public enum ReturnRequestType
 }
 
 /// <summary>
+/// Resolution type for a return/complaint case.
+/// </summary>
+public enum CaseResolutionType
+{
+    /// <summary>Full refund of the sub-order amount.</summary>
+    FullRefund,
+    /// <summary>Partial refund of a specific amount.</summary>
+    PartialRefund,
+    /// <summary>Replacement of the product(s).</summary>
+    Replacement,
+    /// <summary>Repair of the product(s).</summary>
+    Repair,
+    /// <summary>No refund or compensation provided.</summary>
+    NoRefund
+}
+
+/// <summary>
 /// Represents a return request initiated by a buyer for a sub-order (shipment).
 /// A return request can be for the entire sub-order or specific items.
 /// </summary>
@@ -110,6 +127,31 @@ public class ReturnRequest
     /// When the return was completed (if completed).
     /// </summary>
     public DateTime? CompletedAt { get; private set; }
+
+    /// <summary>
+    /// The resolution type selected by the seller.
+    /// </summary>
+    public CaseResolutionType? ResolutionType { get; private set; }
+
+    /// <summary>
+    /// Notes or reason provided by the seller for the resolution.
+    /// </summary>
+    public string? ResolutionNotes { get; private set; }
+
+    /// <summary>
+    /// The ID of the linked refund (if resolution involves a refund).
+    /// </summary>
+    public Guid? LinkedRefundId { get; private set; }
+
+    /// <summary>
+    /// When the case was resolved.
+    /// </summary>
+    public DateTime? ResolvedAt { get; private set; }
+
+    /// <summary>
+    /// Partial refund amount if resolution is PartialRefund.
+    /// </summary>
+    public decimal? PartialRefundAmount { get; private set; }
 
     /// <summary>
     /// Items included in this return/complaint request.
@@ -301,5 +343,70 @@ public class ReturnRequest
             ReturnRequestStatus.Completed => Status == ReturnRequestStatus.Approved,
             _ => false
         };
+    }
+
+    /// <summary>
+    /// Resolves the case with the specified resolution type and moves it to completed status.
+    /// </summary>
+    /// <param name="resolutionType">The type of resolution.</param>
+    /// <param name="resolutionNotes">Notes or reason for the resolution.</param>
+    /// <param name="partialRefundAmount">The partial refund amount if resolution is PartialRefund.</param>
+    public void Resolve(CaseResolutionType resolutionType, string? resolutionNotes, decimal? partialRefundAmount = null)
+    {
+        if (Status != ReturnRequestStatus.Requested && Status != ReturnRequestStatus.Approved)
+        {
+            throw new InvalidOperationException($"Cannot resolve case in status {Status}. Must be in Requested or Approved status.");
+        }
+
+        if (resolutionType == CaseResolutionType.PartialRefund && (!partialRefundAmount.HasValue || partialRefundAmount.Value <= 0))
+        {
+            throw new ArgumentException("Partial refund amount is required and must be greater than zero.", nameof(partialRefundAmount));
+        }
+
+        if (resolutionType == CaseResolutionType.NoRefund && string.IsNullOrWhiteSpace(resolutionNotes))
+        {
+            throw new ArgumentException("Resolution notes are required when rejecting with no refund.", nameof(resolutionNotes));
+        }
+
+        ResolutionType = resolutionType;
+        ResolutionNotes = resolutionNotes?.Trim();
+        PartialRefundAmount = resolutionType == CaseResolutionType.PartialRefund ? partialRefundAmount : null;
+        ResolvedAt = DateTime.UtcNow;
+        Status = ReturnRequestStatus.Completed;
+        CompletedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Links a refund to this case.
+    /// </summary>
+    /// <param name="refundId">The ID of the refund to link.</param>
+    public void LinkRefund(Guid refundId)
+    {
+        if (refundId == Guid.Empty)
+        {
+            throw new ArgumentException("Refund ID is required.", nameof(refundId));
+        }
+
+        LinkedRefundId = refundId;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Checks if the seller can still change the resolution.
+    /// Resolution can be changed before a refund has been processed.
+    /// </summary>
+    public bool CanChangeResolution()
+    {
+        // Cannot change resolution if not resolved yet or if refund is already linked
+        return ResolutionType.HasValue && !LinkedRefundId.HasValue;
+    }
+
+    /// <summary>
+    /// Checks if a resolution requires a refund.
+    /// </summary>
+    public bool ResolutionRequiresRefund()
+    {
+        return ResolutionType == CaseResolutionType.FullRefund || ResolutionType == CaseResolutionType.PartialRefund;
     }
 }

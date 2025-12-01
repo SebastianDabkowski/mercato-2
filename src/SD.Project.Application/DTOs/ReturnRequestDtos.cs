@@ -53,7 +53,14 @@ public sealed record SellerReturnRequestDto(
     DateTime? RejectedAt,
     DateTime? CompletedAt,
     IReadOnlyList<SellerSubOrderItemDto> Items,
-    IReadOnlyList<ReturnRequestItemDto> RequestItems);
+    IReadOnlyList<ReturnRequestItemDto> RequestItems,
+    string? ResolutionType = null,
+    string? ResolutionNotes = null,
+    decimal? PartialRefundAmount = null,
+    DateTime? ResolvedAt = null,
+    Guid? LinkedRefundId = null,
+    bool CanChangeResolution = false,
+    LinkedRefundDto? LinkedRefund = null);
 
 /// <summary>
 /// DTO for return request list summary for seller.
@@ -151,4 +158,25 @@ public sealed record BuyerCaseDetailsDto(
     DateTime? RejectedAt,
     DateTime? CompletedAt,
     IReadOnlyList<ReturnRequestItemDto> Items,
-    IReadOnlyList<LinkedRefundDto>? LinkedRefunds);
+    IReadOnlyList<LinkedRefundDto>? LinkedRefunds,
+    string? ResolutionType = null,
+    string? ResolutionNotes = null,
+    decimal? PartialRefundAmount = null,
+    DateTime? ResolvedAt = null);
+
+/// <summary>
+/// Result DTO for resolving a case.
+/// </summary>
+public sealed record ResolveCaseResultDto(
+    bool IsSuccess,
+    string? ErrorMessage,
+    string? ResolutionType = null,
+    Guid? RefundId = null,
+    string? RefundStatus = null);
+
+/// <summary>
+/// Result DTO for linking a refund to a case.
+/// </summary>
+public sealed record LinkRefundResultDto(
+    bool IsSuccess,
+    string? ErrorMessage);

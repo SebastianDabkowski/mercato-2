@@ -437,4 +437,23 @@ public interface INotificationService
         string recipientEmail,
         string senderName,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a notification when a case is resolved by the seller.
+    /// </summary>
+    /// <param name="returnRequestId">The ID of the return request (case).</param>
+    /// <param name="caseNumber">The case number for display.</param>
+    /// <param name="orderNumber">The order number for display.</param>
+    /// <param name="buyerEmail">The buyer's email address.</param>
+    /// <param name="resolutionType">The type of resolution (FullRefund, PartialRefund, etc.).</param>
+    /// <param name="resolutionNotes">Optional notes from the seller about the resolution.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendCaseResolvedAsync(
+        Guid returnRequestId,
+        string caseNumber,
+        string orderNumber,
+        string buyerEmail,
+        string resolutionType,
+        string? resolutionNotes,
+        CancellationToken cancellationToken = default);
 }
