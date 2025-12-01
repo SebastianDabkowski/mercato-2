@@ -137,6 +137,7 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     await app.Services.SeedDevelopmentDataAsync();
+    await app.Services.SeedAuditLogsAsync();
 }
 
 // Configure the HTTP request pipeline.

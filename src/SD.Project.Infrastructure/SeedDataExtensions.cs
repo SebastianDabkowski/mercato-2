@@ -896,4 +896,208 @@ public static class SeedDataExtensions
 
         await userRepo.SaveChangesAsync();
     }
+
+    /// <summary>
+    /// Seeds sample audit log entries for testing the audit log viewer.
+    /// </summary>
+    public static async Task SeedAuditLogsAsync(this IServiceProvider services)
+    {
+        using var scope = services.CreateScope();
+        var auditLogRepo = scope.ServiceProvider.GetRequiredService<ICriticalActionAuditLogRepository>();
+
+        // Check if audit logs already exist
+        var existingLogs = await auditLogRepo.GetByDateRangeAsync(
+            DateTime.UtcNow.AddDays(-365),
+            DateTime.UtcNow.AddDays(1),
+            take: 1);
+
+        if (existingLogs.Count > 0)
+        {
+            return; // Already seeded
+        }
+
+        var adminId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+        var supportAdminId = Guid.Parse("cccccccc-cccc-cccc-cccc-000000000001");
+        var suspendedUserId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-000000000004");
+        var blockedSellerId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-000000000004");
+        var demoStoreId = Guid.NewGuid();
+        var demoOrderId = Guid.NewGuid();
+
+        var sampleLogs = new[]
+        {
+            // Admin login events
+            new CriticalActionAuditLog(
+                adminId,
+                UserRole.Admin,
+                CriticalActionType.Login,
+                "User",
+                adminId,
+                CriticalActionOutcome.Success,
+                details: "Admin logged in from admin panel",
+                ipAddress: "192.168.1.100",
+                userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+                correlationId: Guid.NewGuid().ToString()),
+
+            // User status changes
+            new CriticalActionAuditLog(
+                adminId,
+                UserRole.Admin,
+                CriticalActionType.UserBlock,
+                "User",
+                suspendedUserId,
+                CriticalActionOutcome.Success,
+                details: "User blocked due to policy violation: Multiple fraudulent orders",
+                ipAddress: "192.168.1.100",
+                userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"),
+
+            new CriticalActionAuditLog(
+                supportAdminId,
+                UserRole.Support,
+                CriticalActionType.UserBlock,
+                "User",
+                blockedSellerId,
+                CriticalActionOutcome.Success,
+                details: "Seller blocked for selling prohibited items",
+                ipAddress: "10.0.0.50"),
+
+            // Role changes
+            new CriticalActionAuditLog(
+                adminId,
+                UserRole.Admin,
+                CriticalActionType.RoleChange,
+                "User",
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                CriticalActionOutcome.Success,
+                details: "Role changed from Buyer to Seller",
+                ipAddress: "192.168.1.100"),
+
+            // Order status overrides
+            new CriticalActionAuditLog(
+                supportAdminId,
+                UserRole.Support,
+                CriticalActionType.OrderStatusOverride,
+                "Order",
+                demoOrderId,
+                CriticalActionOutcome.Success,
+                details: "Order status changed to Refunded - Customer requested cancellation",
+                ipAddress: "10.0.0.50"),
+
+            // Store status changes
+            new CriticalActionAuditLog(
+                adminId,
+                UserRole.Admin,
+                CriticalActionType.StoreStatusChange,
+                "Store",
+                demoStoreId,
+                CriticalActionOutcome.Success,
+                details: "Store suspended: Compliance review pending",
+                ipAddress: "192.168.1.100"),
+
+            // Refund processing
+            new CriticalActionAuditLog(
+                supportAdminId,
+                UserRole.Support,
+                CriticalActionType.Refund,
+                "Order",
+                demoOrderId,
+                CriticalActionOutcome.Success,
+                details: "Refund of $49.99 processed for damaged item",
+                ipAddress: "10.0.0.50"),
+
+            // Settlement adjustment
+            new CriticalActionAuditLog(
+                adminId,
+                UserRole.Admin,
+                CriticalActionType.SettlementAdjustment,
+                "Settlement",
+                Guid.NewGuid(),
+                CriticalActionOutcome.Success,
+                details: "Settlement adjusted by +$25.00 - Commission error correction",
+                ipAddress: "192.168.1.100"),
+
+            // Data export
+            new CriticalActionAuditLog(
+                adminId,
+                UserRole.Admin,
+                CriticalActionType.DataExport,
+                "User",
+                Guid.Parse("33333333-3333-3333-3333-333333333333"),
+                CriticalActionOutcome.Success,
+                details: "User data export requested for GDPR compliance",
+                ipAddress: "192.168.1.100"),
+
+            // Permission change
+            new CriticalActionAuditLog(
+                adminId,
+                UserRole.Admin,
+                CriticalActionType.PermissionChange,
+                "User",
+                supportAdminId,
+                CriticalActionOutcome.Success,
+                details: "Added ViewAuditLogs permission",
+                ipAddress: "192.168.1.100"),
+
+            // Failed login attempt
+            new CriticalActionAuditLog(
+                Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-000000000001"),
+                UserRole.Buyer,
+                CriticalActionType.Login,
+                "User",
+                Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-000000000001"),
+                CriticalActionOutcome.Failure,
+                details: "Login failed: Invalid password (attempt 3/5)",
+                ipAddress: "203.0.113.45"),
+
+            // Password change
+            new CriticalActionAuditLog(
+                Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-000000000002"),
+                UserRole.Buyer,
+                CriticalActionType.PasswordChange,
+                "User",
+                Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-000000000002"),
+                CriticalActionOutcome.Success,
+                details: "Password changed successfully",
+                ipAddress: "198.51.100.20"),
+
+            // 2FA change
+            new CriticalActionAuditLog(
+                adminId,
+                UserRole.Admin,
+                CriticalActionType.TwoFactorChange,
+                "User",
+                adminId,
+                CriticalActionOutcome.Success,
+                details: "Two-factor authentication enabled",
+                ipAddress: "192.168.1.100"),
+
+            // Payout settings change
+            new CriticalActionAuditLog(
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                UserRole.Seller,
+                CriticalActionType.PayoutChange,
+                "Store",
+                demoStoreId,
+                CriticalActionOutcome.Success,
+                details: "Bank account updated for payouts",
+                ipAddress: "172.16.0.25"),
+
+            // Logout
+            new CriticalActionAuditLog(
+                adminId,
+                UserRole.Admin,
+                CriticalActionType.Logout,
+                "User",
+                adminId,
+                CriticalActionOutcome.Success,
+                details: "Admin logged out",
+                ipAddress: "192.168.1.100"),
+        };
+
+        foreach (var log in sampleLogs)
+        {
+            await auditLogRepo.AddAsync(log);
+        }
+
+        await auditLogRepo.SaveChangesAsync();
+    }
 }
