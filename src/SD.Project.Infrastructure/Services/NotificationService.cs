@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.Extensions.Logging;
 using SD.Project.Application.Interfaces;
 
@@ -17,6 +18,11 @@ public sealed class NotificationService : INotificationService
         _logger = logger;
         _emailSender = emailSender;
     }
+
+    /// <summary>
+    /// HTML-encodes a string to prevent XSS vulnerabilities in email content.
+    /// </summary>
+    private static string HtmlEncode(string? value) => WebUtility.HtmlEncode(value ?? string.Empty);
 
     public Task SendProductCreatedAsync(Guid productId, CancellationToken cancellationToken = default)
     {
@@ -52,13 +58,14 @@ public sealed class NotificationService : INotificationService
             "Sending registration confirmation email to {Email} for user {UserId}",
             email, userId);
 
+        var encodedFirstName = HtmlEncode(firstName);
         var message = new EmailMessage(
             To: email,
             Subject: "Welcome to Mercato Marketplace!",
             HtmlBody: $@"
                 <html>
                 <body>
-                    <h1>Welcome, {firstName}!</h1>
+                    <h1>Welcome, {encodedFirstName}!</h1>
                     <p>Thank you for registering with Mercato Marketplace.</p>
                     <p>Your account has been created successfully. You can now start exploring our marketplace.</p>
                     <p>If you have any questions, please don't hesitate to contact our support team.</p>
@@ -134,6 +141,8 @@ public sealed class NotificationService : INotificationService
             "Sending internal user invitation to {Email} for store {StoreName} with role {Role}",
             email, storeName, role);
 
+        var encodedStoreName = HtmlEncode(storeName);
+        var encodedRole = HtmlEncode(role);
         var message = new EmailMessage(
             To: email,
             Subject: $"You're Invited to Join {storeName} on Mercato Marketplace",
@@ -141,7 +150,7 @@ public sealed class NotificationService : INotificationService
                 <html>
                 <body>
                     <h1>You're Invited!</h1>
-                    <p>You have been invited to join <strong>{storeName}</strong> on Mercato Marketplace as a <strong>{role}</strong>.</p>
+                    <p>You have been invited to join <strong>{encodedStoreName}</strong> on Mercato Marketplace as a <strong>{encodedRole}</strong>.</p>
                     <p><a href='{invitationLink}'>Accept Invitation</a></p>
                     <p>This invitation will expire in 7 days.</p>
                     <p>Best regards,<br/>The Mercato Team</p>
@@ -293,6 +302,7 @@ public sealed class NotificationService : INotificationService
             "Sending return request notification to seller {SellerEmail} for order {OrderNumber}",
             sellerEmail, orderNumber);
 
+        var encodedReason = HtmlEncode(reason);
         var message = new EmailMessage(
             To: sellerEmail,
             Subject: $"Return Request Received - Order {orderNumber}",
@@ -301,7 +311,7 @@ public sealed class NotificationService : INotificationService
                 <body>
                     <h1>Return Request Received</h1>
                     <p>A buyer has requested a return for order <strong>{orderNumber}</strong>.</p>
-                    <p>Reason: {reason}</p>
+                    <p>Reason: {encodedReason}</p>
                     <p>Please review this request in your seller dashboard.</p>
                     <p>Best regards,<br/>The Mercato Team</p>
                 </body>
@@ -325,7 +335,7 @@ public sealed class NotificationService : INotificationService
             buyerEmail, orderNumber);
 
         var responseHtml = !string.IsNullOrEmpty(sellerResponse)
-            ? $"<p>Seller's message: {sellerResponse}</p>"
+            ? $"<p>Seller's message: {HtmlEncode(sellerResponse)}</p>"
             : "";
 
         var message = new EmailMessage(
@@ -359,6 +369,7 @@ public sealed class NotificationService : INotificationService
             "Sending return rejected notification to {BuyerEmail} for order {OrderNumber}",
             buyerEmail, orderNumber);
 
+        var encodedRejectionReason = HtmlEncode(rejectionReason);
         var message = new EmailMessage(
             To: buyerEmail,
             Subject: $"Return Request Update - Order {orderNumber}",
@@ -367,7 +378,7 @@ public sealed class NotificationService : INotificationService
                 <body>
                     <h1>Return Request Update</h1>
                     <p>Your return request for order <strong>{orderNumber}</strong> could not be approved.</p>
-                    <p>Reason: {rejectionReason}</p>
+                    <p>Reason: {encodedRejectionReason}</p>
                     <p>If you have questions, please contact our support team.</p>
                     <p>Best regards,<br/>The Mercato Team</p>
                 </body>
@@ -730,6 +741,7 @@ public sealed class NotificationService : INotificationService
             "Sending case message notification to {RecipientEmail} for case {CaseNumber}",
             recipientEmail, caseNumber);
 
+        var encodedSenderName = HtmlEncode(senderName);
         var message = new EmailMessage(
             To: recipientEmail,
             Subject: $"New Message - Case {caseNumber}",
@@ -737,7 +749,7 @@ public sealed class NotificationService : INotificationService
                 <html>
                 <body>
                     <h1>New Message in Your Case</h1>
-                    <p>You have received a new message from <strong>{senderName}</strong> regarding case <strong>{caseNumber}</strong>.</p>
+                    <p>You have received a new message from <strong>{encodedSenderName}</strong> regarding case <strong>{caseNumber}</strong>.</p>
                     <p>Please log in to your account to view and respond to the message.</p>
                     <p>Best regards,<br/>The Mercato Team</p>
                 </body>
@@ -763,7 +775,7 @@ public sealed class NotificationService : INotificationService
             buyerEmail, caseNumber);
 
         var notesHtml = !string.IsNullOrEmpty(resolutionNotes)
-            ? $"<p>Notes: {resolutionNotes}</p>"
+            ? $"<p>Notes: {HtmlEncode(resolutionNotes)}</p>"
             : "";
 
         var message = new EmailMessage(
@@ -820,6 +832,7 @@ public sealed class NotificationService : INotificationService
         await _emailSender.SendAsync(buyerMessage, cancellationToken);
 
         // Send to seller
+        var encodedEscalationReason = HtmlEncode(escalationReason);
         var sellerMessage = new EmailMessage(
             To: sellerEmail,
             Subject: $"Case Escalated for Review - {caseNumber}",
@@ -828,7 +841,7 @@ public sealed class NotificationService : INotificationService
                 <body>
                     <h1>Case Under Admin Review</h1>
                     <p>Case <strong>{caseNumber}</strong> for order <strong>{orderNumber}</strong> has been escalated for admin review.</p>
-                    <p>Reason: {escalationReason}</p>
+                    <p>Reason: {encodedEscalationReason}</p>
                     <p>Our team will review the case and make a decision.</p>
                     <p>Best regards,<br/>The Mercato Team</p>
                 </body>
@@ -855,7 +868,7 @@ public sealed class NotificationService : INotificationService
             caseNumber);
 
         var notesHtml = !string.IsNullOrEmpty(decisionNotes)
-            ? $"<p>Notes: {decisionNotes}</p>"
+            ? $"<p>Notes: {HtmlEncode(decisionNotes)}</p>"
             : "";
 
         // Send to buyer
