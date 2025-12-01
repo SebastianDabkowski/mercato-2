@@ -97,7 +97,8 @@ public sealed class AccountDeletionService
             store = await _storeRepository.GetBySellerIdAsync(query.UserId, cancellationToken);
             if (store is not null)
             {
-                hasActiveStore = store.Status == StoreStatus.Active || store.Status == StoreStatus.Approved;
+                // Check if store is active or publicly visible
+                hasActiveStore = store.IsPubliclyVisible();
                 storeName = store.Name;
             }
         }
@@ -508,7 +509,7 @@ public sealed class AccountDeletionService
         string? userAgent,
         CancellationToken cancellationToken)
     {
-        var anonymizedSuffix = user.Id.ToString()[..8].ToUpperInvariant();
+        var anonymizedSuffix = user.Id.ToString("N")[..8].ToUpperInvariant();
 
         // Anonymize user entity
         user.Anonymize(anonymizedSuffix);
