@@ -24,5 +24,11 @@ public enum UserStatus
     /// The user's account has been blocked by an administrator.
     /// Blocked accounts cannot log in and seller stores/listings are hidden.
     /// </summary>
-    Blocked = 3
+    Blocked = 3,
+
+    /// <summary>
+    /// The user's account has been deleted and anonymized.
+    /// Personal data has been removed or pseudonymized per GDPR requirements.
+    /// </summary>
+    Deleted = 4
 }

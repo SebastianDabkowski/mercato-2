@@ -88,6 +88,7 @@ public static class DependencyInjection
         services.AddScoped<ISensitiveAccessAuditLogRepository, SensitiveAccessAuditLogRepository>();
         services.AddScoped<IUserConsentRepository, UserConsentRepository>();
         services.AddScoped<IUserDataExportRepository, UserDataExportRepository>();
+        services.AddScoped<IAccountDeletionRequestRepository, AccountDeletionRequestRepository>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IPushNotificationService, PushNotificationService>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();

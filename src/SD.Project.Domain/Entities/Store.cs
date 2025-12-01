@@ -205,4 +205,13 @@ public class Store
     {
         return Status == StoreStatus.Active || Status == StoreStatus.LimitedActive;
     }
+
+    /// <summary>
+    /// Deactivates the store when the seller's account is deleted.
+    /// </summary>
+    public void Deactivate()
+    {
+        Status = StoreStatus.Deactivated;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

@@ -325,4 +325,21 @@ public class Review
         RejectionReason = null;
         UpdatedAt = DateTime.UtcNow;
     }
+
+    /// <summary>
+    /// Marks the review as anonymized for GDPR compliance.
+    /// Note: The actual anonymization happens at the User entity level - the User's 
+    /// FirstName and LastName are changed to "Deleted" and "User" respectively.
+    /// The BuyerId reference is preserved for data integrity and referential consistency.
+    /// When displaying reviews, the UI should look up the buyer's name from the User entity,
+    /// which will show "Deleted User" for anonymized accounts.
+    /// </summary>
+    public void AnonymizeAuthor()
+    {
+        // The BuyerId reference is kept for data integrity.
+        // The anonymized user entity will have FirstName="Deleted" and LastName="User"
+        // which the UI will use to display the author name.
+        // Update timestamp to indicate the record was modified during anonymization.
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

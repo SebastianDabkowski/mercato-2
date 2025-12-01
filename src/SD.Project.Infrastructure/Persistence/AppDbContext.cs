@@ -87,6 +87,8 @@ public class AppDbContext : DbContext
     public DbSet<UserConsent> UserConsents => Set<UserConsent>();
     public DbSet<UserConsentAuditLog> UserConsentAuditLogs => Set<UserConsentAuditLog>();
     public DbSet<UserDataExport> UserDataExports => Set<UserDataExport>();
+    public DbSet<AccountDeletionRequest> AccountDeletionRequests => Set<AccountDeletionRequest>();
+    public DbSet<AccountDeletionAuditLog> AccountDeletionAuditLogs => Set<AccountDeletionAuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
