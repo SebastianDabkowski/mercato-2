@@ -6,6 +6,8 @@ namespace SD.Project.ViewModels;
 public sealed record CategoryViewModel(
     Guid Id,
     string Name,
+    string? Description,
+    string Slug,
     Guid? ParentId,
     string? ParentName,
     int DisplayOrder,
@@ -34,4 +36,9 @@ public sealed record CategoryViewModel(
     /// Gets the name with indentation for tree display.
     /// </summary>
     public string IndentedName => Level > 0 ? new string('—', Level) + " " + Name : Name;
+
+    /// <summary>
+    /// Gets the description or a placeholder if not set.
+    /// </summary>
+    public string DescriptionDisplay => Description ?? "—";
 }

@@ -6,4 +6,6 @@ namespace SD.Project.Application.Commands;
 public sealed record CreateCategoryCommand(
     string Name,
     Guid? ParentId,
-    int DisplayOrder = 0);
+    int DisplayOrder = 0,
+    string? Description = null,
+    string? Slug = null);

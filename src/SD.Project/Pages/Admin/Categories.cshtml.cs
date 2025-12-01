@@ -65,7 +65,9 @@ namespace SD.Project.Pages.Admin
             var command = new CreateCategoryCommand(
                 NewCategory.Name!,
                 NewCategory.ParentId,
-                NewCategory.DisplayOrder);
+                NewCategory.DisplayOrder,
+                NewCategory.Description,
+                NewCategory.Slug);
 
             var result = await _categoryService.HandleAsync(command);
 
@@ -98,7 +100,9 @@ namespace SD.Project.Pages.Admin
                 EditCategory.CategoryId,
                 EditCategory.Name!,
                 EditCategory.ParentId,
-                EditCategory.DisplayOrder);
+                EditCategory.DisplayOrder,
+                EditCategory.Description,
+                EditCategory.Slug);
 
             var result = await _categoryService.HandleAsync(command);
 
@@ -189,6 +193,8 @@ namespace SD.Project.Pages.Admin
                 result.Add(new CategoryViewModel(
                     category.Id,
                     category.Name,
+                    category.Description,
+                    category.Slug,
                     category.ParentId,
                     category.ParentName,
                     category.DisplayOrder,
@@ -235,6 +241,13 @@ namespace SD.Project.Pages.Admin
             [StringLength(100, MinimumLength = 2, ErrorMessage = "Category name must be between 2 and 100 characters")]
             public string? Name { get; set; }
 
+            [StringLength(500, ErrorMessage = "Description cannot exceed 500 characters")]
+            public string? Description { get; set; }
+
+            [StringLength(100, ErrorMessage = "Slug cannot exceed 100 characters")]
+            [RegularExpression(@"^[a-z0-9\-]*$", ErrorMessage = "Slug can only contain lowercase letters, numbers, and hyphens")]
+            public string? Slug { get; set; }
+
             public Guid? ParentId { get; set; }
 
             [Range(0, int.MaxValue, ErrorMessage = "Display order must be a non-negative number")]
@@ -249,6 +262,13 @@ namespace SD.Project.Pages.Admin
             [Required(ErrorMessage = "Category name is required")]
             [StringLength(100, MinimumLength = 2, ErrorMessage = "Category name must be between 2 and 100 characters")]
             public string? Name { get; set; }
+
+            [StringLength(500, ErrorMessage = "Description cannot exceed 500 characters")]
+            public string? Description { get; set; }
+
+            [StringLength(100, ErrorMessage = "Slug cannot exceed 100 characters")]
+            [RegularExpression(@"^[a-z0-9\-]*$", ErrorMessage = "Slug can only contain lowercase letters, numbers, and hyphens")]
+            public string? Slug { get; set; }
 
             public Guid? ParentId { get; set; }
 

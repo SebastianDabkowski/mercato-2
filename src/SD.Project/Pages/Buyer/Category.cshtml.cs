@@ -305,6 +305,8 @@ public class CategoryModel : PageModel
         return new CategoryViewModel(
             dto.Id,
             dto.Name,
+            dto.Description,
+            dto.Slug,
             dto.ParentId,
             dto.ParentName,
             dto.DisplayOrder,

@@ -11,6 +11,23 @@ public interface ICategoryRepository
     Task<Category?> GetByNameAsync(string name, CancellationToken cancellationToken = default);
     
     /// <summary>
+    /// Gets a category by its slug (case-insensitive).
+    /// </summary>
+    /// <param name="slug">The slug to search for.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The category if found; otherwise null.</returns>
+    Task<Category?> GetBySlugAsync(string slug, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Checks if a slug is already in use by another category.
+    /// </summary>
+    /// <param name="slug">The slug to check.</param>
+    /// <param name="excludeCategoryId">Optional category ID to exclude from the check (for updates).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>True if the slug exists; otherwise false.</returns>
+    Task<bool> SlugExistsAsync(string slug, Guid? excludeCategoryId = null, CancellationToken cancellationToken = default);
+    
+    /// <summary>
     /// Gets categories by their names (case-insensitive).
     /// </summary>
     /// <param name="names">Collection of category names to lookup.</param>

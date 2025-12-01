@@ -51,7 +51,8 @@
                     <table class="table table-hover mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th style="width: 30%">Category Name</th>
+                                <th style="width: 25%">Category Name</th>
+                                <th>Slug</th>
                                 <th>Parent</th>
                                 <th class="text-center">Order</th>
                                 <th class="text-center">Products</th>
@@ -72,8 +73,13 @@
                                                 <span class="text-muted">└─</span>
                                             }
                                             <strong>@category.Name</strong>
+                                            @if (!string.IsNullOrEmpty(category.Description))
+                                            {
+                                                <br /><small class="text-muted">@(category.Description!.Length > 50 ? category.Description.Substring(0, 50) + "..." : category.Description)</small>
+                                            }
                                         </span>
                                     </td>
+                                    <td><code class="text-muted">@category.Slug</code></td>
                                     <td class="text-muted">@category.ParentDisplay</td>
                                     <td class="text-center">@category.DisplayOrder</td>
                                     <td class="text-center">
@@ -112,6 +118,8 @@
                                                 data-bs-toggle="modal" data-bs-target="#editCategoryModal"
                                                 data-category-id="@category.Id"
                                                 data-category-name="@category.Name"
+                                                data-category-description="@(category.Description ?? "")"
+                                                data-category-slug="@category.Slug"
                                                 data-category-parent="@(category.ParentId?.ToString() ?? "")"
                                                 data-category-order="@category.DisplayOrder"
                                                 title="Edit">
@@ -160,6 +168,18 @@
                         <span asp-validation-for="NewCategory.Name" class="text-danger"></span>
                     </div>
                     <div class="mb-3">
+                        <label asp-for="NewCategory.Description" class="form-label">Description</label>
+                        <textarea asp-for="NewCategory.Description" class="form-control" rows="3" placeholder="Optional description for this category"></textarea>
+                        <span asp-validation-for="NewCategory.Description" class="text-danger"></span>
+                        <div class="form-text">Brief description of the category (max 500 characters).</div>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="NewCategory.Slug" class="form-label">URL Slug</label>
+                        <input asp-for="NewCategory.Slug" class="form-control" placeholder="e.g., electronics-accessories" />
+                        <span asp-validation-for="NewCategory.Slug" class="text-danger"></span>
+                        <div class="form-text">SEO-friendly URL. Leave empty to auto-generate from name. Use lowercase letters, numbers, and hyphens only.</div>
+                    </div>
+                    <div class="mb-3">
                         <label asp-for="NewCategory.ParentId" class="form-label">Parent Category</label>
                         <select asp-for="NewCategory.ParentId" asp-items="Model.ParentCategoryOptions" class="form-select">
                         </select>
@@ -198,6 +218,18 @@
                         <span asp-validation-for="EditCategory.Name" class="text-danger"></span>
                     </div>
                     <div class="mb-3">
+                        <label asp-for="EditCategory.Description" class="form-label">Description</label>
+                        <textarea asp-for="EditCategory.Description" class="form-control" rows="3" id="editCategoryDescription" placeholder="Optional description for this category"></textarea>
+                        <span asp-validation-for="EditCategory.Description" class="text-danger"></span>
+                        <div class="form-text">Brief description of the category (max 500 characters).</div>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="EditCategory.Slug" class="form-label">URL Slug</label>
+                        <input asp-for="EditCategory.Slug" class="form-control" id="editCategorySlug" placeholder="e.g., electronics-accessories" />
+                        <span asp-validation-for="EditCategory.Slug" class="text-danger"></span>
+                        <div class="form-text">SEO-friendly URL. Changing this may affect existing links. Use lowercase letters, numbers, and hyphens only.</div>
+                    </div>
+                    <div class="mb-3">
                         <label asp-for="EditCategory.ParentId" class="form-label">Parent Category</label>
                         <select asp-for="EditCategory.ParentId" asp-items="Model.ParentCategoryOptions" class="form-select" id="editCategoryParent">
                         </select>
@@ -225,6 +257,8 @@
             var button = event.relatedTarget;
             document.getElementById('editCategoryId').value = button.getAttribute('data-category-id');
             document.getElementById('editCategoryName').value = button.getAttribute('data-category-name');
+            document.getElementById('editCategoryDescription').value = button.getAttribute('data-category-description');
+            document.getElementById('editCategorySlug').value = button.getAttribute('data-category-slug');
             document.getElementById('editCategoryParent').value = button.getAttribute('data-category-parent');
             document.getElementById('editCategoryOrder').value = button.getAttribute('data-category-order');
         });

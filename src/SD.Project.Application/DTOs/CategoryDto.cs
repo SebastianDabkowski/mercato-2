@@ -6,6 +6,8 @@ namespace SD.Project.Application.DTOs;
 public sealed record CategoryDto(
     Guid Id,
     string Name,
+    string? Description,
+    string Slug,
     Guid? ParentId,
     string? ParentName,
     int DisplayOrder,
