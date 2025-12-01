@@ -52,6 +52,11 @@ public class UserBlockInfo
     /// </summary>
     public DateTime? UnblockedAt { get; private set; }
 
+    /// <summary>
+    /// Optional notes explaining why the user was reactivated/unblocked.
+    /// </summary>
+    public string? ReactivationNotes { get; private set; }
+
     private UserBlockInfo()
     {
         // EF Core constructor
@@ -90,10 +95,11 @@ public class UserBlockInfo
     }
 
     /// <summary>
-    /// Marks this block as inactive when the user is unblocked.
+    /// Marks this block as inactive when the user is unblocked/reactivated.
     /// </summary>
     /// <param name="unblockedByAdminId">The ID of the admin performing the unblock.</param>
-    public void Unblock(Guid unblockedByAdminId)
+    /// <param name="reactivationNotes">Optional notes explaining the reactivation.</param>
+    public void Unblock(Guid unblockedByAdminId, string? reactivationNotes = null)
     {
         if (unblockedByAdminId == Guid.Empty)
         {
@@ -108,5 +114,6 @@ public class UserBlockInfo
         IsActive = false;
         UnblockedByAdminId = unblockedByAdminId;
         UnblockedAt = DateTime.UtcNow;
+        ReactivationNotes = reactivationNotes?.Trim();
     }
 }

@@ -27,7 +27,8 @@ public static class UserDisplayExtensions
     {
         UserStatus.Unverified => "Pending Verification",
         UserStatus.Verified => "Active",
-        UserStatus.Suspended => "Blocked",
+        UserStatus.Suspended => "Suspended",
+        UserStatus.Blocked => "Blocked",
         _ => status.ToString()
     };
 
@@ -35,7 +36,8 @@ public static class UserDisplayExtensions
     {
         UserStatus.Unverified => "bg-warning text-dark",
         UserStatus.Verified => "bg-success",
-        UserStatus.Suspended => "bg-danger",
+        UserStatus.Suspended => "bg-warning text-dark",
+        UserStatus.Blocked => "bg-danger",
         _ => "bg-secondary"
     };
 
@@ -55,6 +57,15 @@ public static class UserDisplayExtensions
         KycStatus.Approved => "bg-success",
         KycStatus.Rejected => "bg-danger",
         _ => "bg-secondary"
+    };
+
+    public static string ToDisplayName(this BlockReason reason) => reason switch
+    {
+        BlockReason.Fraud => "Fraudulent Activity",
+        BlockReason.Spam => "Spam",
+        BlockReason.PolicyViolation => "Policy Violation",
+        BlockReason.Other => "Other",
+        _ => reason.ToString()
     };
 }
 
@@ -136,4 +147,26 @@ public sealed class LoginEventViewModel
 
     public string StatusIcon => IsSuccess ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger";
     public string StatusText => IsSuccess ? "Success" : "Failed";
+}
+
+/// <summary>
+/// View model for block/reactivate history in admin user detail view.
+/// </summary>
+public sealed class UserBlockHistoryViewModel
+{
+    public Guid Id { get; init; }
+    public Guid BlockedByAdminId { get; init; }
+    public string BlockedByAdminName { get; init; } = string.Empty;
+    public DateTime BlockedAt { get; init; }
+    public BlockReason Reason { get; init; }
+    public string? BlockNotes { get; init; }
+    public bool IsActive { get; init; }
+    public Guid? ReactivatedByAdminId { get; init; }
+    public string? ReactivatedByAdminName { get; init; }
+    public DateTime? ReactivatedAt { get; init; }
+    public string? ReactivationNotes { get; init; }
+
+    public string ReasonDisplayName => Reason.ToDisplayName();
+    public string StatusText => IsActive ? "Active Block" : "Reactivated";
+    public string StatusBadgeClass => IsActive ? "bg-danger" : "bg-success";
 }

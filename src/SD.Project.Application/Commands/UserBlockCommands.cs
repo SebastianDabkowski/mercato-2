@@ -12,8 +12,9 @@ public sealed record BlockUserCommand(
     string? Notes);
 
 /// <summary>
-/// Command to unblock a user account.
+/// Command to reactivate (unblock) a user account.
 /// </summary>
-public sealed record UnblockUserCommand(
+public sealed record ReactivateUserCommand(
     Guid UserId,
-    Guid AdminId);
+    Guid AdminId,
+    string? Notes);
