@@ -741,6 +741,102 @@ public static class SeedDataExtensions
             
             await notificationRepo.SaveChangesAsync();
         }
+
+        // Seed consent types for user consent management
+        var userConsentRepo = scope.ServiceProvider.GetRequiredService<IUserConsentRepository>();
+        var existingConsentTypes = await userConsentRepo.GetAllConsentTypesAsync();
+        
+        if (existingConsentTypes.Count == 0)
+        {
+            // Newsletter consent
+            var newsletter = new ConsentType(
+                "newsletter",
+                "Marketing Newsletter",
+                "I agree to receive promotional emails, newsletters, and special offers from Mercato. " +
+                "We'll keep you informed about new products, exclusive deals, and marketplace updates.",
+                allowPreselection: false,
+                isRequired: false,
+                displayOrder: 1);
+            await userConsentRepo.AddConsentTypeAsync(newsletter);
+
+            var newsletterVersion = new ConsentVersion(
+                newsletter.Id,
+                "1.0",
+                "By consenting, you agree to receive marketing communications from Mercato Marketplace. " +
+                "This includes promotional emails, newsletters, and information about special offers and new features. " +
+                "You can unsubscribe at any time using the link in our emails or by updating your consent preferences in your account settings. " +
+                "We will not share your email address with third parties for their marketing purposes.",
+                DateTime.UtcNow);
+            await userConsentRepo.AddConsentVersionAsync(newsletterVersion);
+
+            // Profiling consent
+            var profiling = new ConsentType(
+                "profiling",
+                "Personalization & Profiling",
+                "I agree to allow Mercato to analyze my browsing behavior and purchase history to provide " +
+                "personalized product recommendations and a customized shopping experience.",
+                allowPreselection: false,
+                isRequired: false,
+                displayOrder: 2);
+            await userConsentRepo.AddConsentTypeAsync(profiling);
+
+            var profilingVersion = new ConsentVersion(
+                profiling.Id,
+                "1.0",
+                "By consenting, you allow us to create a profile based on your browsing behavior, search history, " +
+                "purchase history, and interactions with our platform. This profile is used solely to personalize your experience, " +
+                "including product recommendations, search results, and promotional content. " +
+                "Your profile data is kept secure and is not sold to third parties. " +
+                "You can withdraw this consent at any time, which will result in less personalized recommendations.",
+                DateTime.UtcNow);
+            await userConsentRepo.AddConsentVersionAsync(profilingVersion);
+
+            // Third-party sharing consent
+            var thirdParty = new ConsentType(
+                "third_party_sharing",
+                "Third-Party Data Sharing",
+                "I agree to allow Mercato to share my anonymized data with selected partners for " +
+                "analytics and market research purposes.",
+                allowPreselection: false,
+                isRequired: false,
+                displayOrder: 3);
+            await userConsentRepo.AddConsentTypeAsync(thirdParty);
+
+            var thirdPartyVersion = new ConsentVersion(
+                thirdParty.Id,
+                "1.0",
+                "By consenting, you allow us to share anonymized and aggregated data with our trusted partners " +
+                "for the purposes of market research, analytics, and improving marketplace services. " +
+                "This data does not directly identify you and is used to better understand shopping trends and preferences. " +
+                "Our partners are bound by strict data protection agreements. " +
+                "You may withdraw this consent at any time without affecting your ability to use the marketplace.",
+                DateTime.UtcNow);
+            await userConsentRepo.AddConsentVersionAsync(thirdPartyVersion);
+
+            // Essential communications consent (required)
+            var essential = new ConsentType(
+                "essential_communications",
+                "Essential Communications",
+                "I agree to receive essential service-related communications, including order confirmations, " +
+                "shipping updates, and important account notifications.",
+                allowPreselection: true,
+                isRequired: true,
+                displayOrder: 0);
+            await userConsentRepo.AddConsentTypeAsync(essential);
+
+            var essentialVersion = new ConsentVersion(
+                essential.Id,
+                "1.0",
+                "Essential communications are necessary for the operation of your account and our services. " +
+                "This includes order confirmations, shipping updates, delivery notifications, " +
+                "payment receipts, and important security alerts. " +
+                "This consent is required to use the Mercato Marketplace as these communications are " +
+                "integral to providing our services to you.",
+                DateTime.UtcNow);
+            await userConsentRepo.AddConsentVersionAsync(essentialVersion);
+
+            await userConsentRepo.SaveChangesAsync();
+        }
     }
 
     /// <summary>

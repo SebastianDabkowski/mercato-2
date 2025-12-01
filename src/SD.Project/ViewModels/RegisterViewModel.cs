@@ -17,4 +17,10 @@ public sealed class RegisterViewModel
     public string? TaxId { get; set; }
     public string? PhoneNumber { get; set; }
     public bool AcceptTerms { get; set; }
+    
+    /// <summary>
+    /// Consent decisions made during registration.
+    /// Key is the ConsentTypeId, value is whether consent was granted.
+    /// </summary>
+    public Dictionary<Guid, bool> ConsentDecisions { get; set; } = new();
 }

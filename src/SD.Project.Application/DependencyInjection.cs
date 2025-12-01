@@ -74,6 +74,7 @@ public static class DependencyInjection
         services.AddScoped<VatRuleService>();
         services.AddScoped<CurrencyService>();
         services.AddScoped<DataProcessingRegistryService>();
+        services.AddScoped<UserConsentService>();
 
         // Domain services for cart totals calculation
         services.AddSingleton<CartTotalsCalculator>();

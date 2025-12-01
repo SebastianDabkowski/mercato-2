@@ -13,6 +13,7 @@ namespace SD.Project.Application.Services;
 public sealed class RegistrationService
 {
     private readonly IUserRepository _userRepository;
+    private readonly IUserConsentRepository _userConsentRepository;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IPasswordValidator _passwordValidator;
     private readonly EmailVerificationService _emailVerificationService;
@@ -20,12 +21,14 @@ public sealed class RegistrationService
 
     public RegistrationService(
         IUserRepository userRepository,
+        IUserConsentRepository userConsentRepository,
         IPasswordHasher passwordHasher,
         IPasswordValidator passwordValidator,
         EmailVerificationService emailVerificationService,
         INotificationService notificationService)
     {
         _userRepository = userRepository;
+        _userConsentRepository = userConsentRepository;
         _passwordHasher = passwordHasher;
         _passwordValidator = passwordValidator;
         _emailVerificationService = emailVerificationService;
@@ -127,6 +130,53 @@ public sealed class RegistrationService
 
         await _userRepository.AddAsync(user, cancellationToken);
         await _userRepository.SaveChangesAsync(cancellationToken);
+
+        // Record consent decisions if provided (only create records for granted consents)
+        if (command.ConsentDecisions is not null && command.ConsentDecisions.Count > 0)
+        {
+            foreach (var decision in command.ConsentDecisions.Where(d => d.IsGranted))
+            {
+                var consentType = await _userConsentRepository.GetConsentTypeByIdAsync(
+                    decision.ConsentTypeId, cancellationToken);
+                
+                if (consentType is null || !consentType.IsActive)
+                {
+                    continue;
+                }
+
+                var currentVersion = await _userConsentRepository.GetCurrentVersionAsync(
+                    decision.ConsentTypeId, cancellationToken);
+                
+                if (currentVersion is null)
+                {
+                    continue;
+                }
+
+                var consent = new UserConsent(
+                    user.Id,
+                    decision.ConsentTypeId,
+                    currentVersion.Id,
+                    true, // Only granted consents are recorded
+                    "registration",
+                    command.IpAddress,
+                    command.UserAgent);
+
+                await _userConsentRepository.AddAsync(consent, cancellationToken);
+
+                var auditLog = new UserConsentAuditLog(
+                    consent.Id,
+                    user.Id,
+                    UserConsentAuditAction.Granted,
+                    currentVersion.Id,
+                    "registration",
+                    command.IpAddress,
+                    command.UserAgent);
+
+                await _userConsentRepository.AddAuditLogAsync(auditLog, cancellationToken);
+            }
+
+            await _userConsentRepository.SaveChangesAsync(cancellationToken);
+        }
 
         // Send registration confirmation email to welcome the buyer
         if (command.Role == UserRole.Buyer)
