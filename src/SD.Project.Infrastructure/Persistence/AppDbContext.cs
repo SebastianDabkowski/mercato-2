@@ -77,6 +77,7 @@ public class AppDbContext : DbContext
     public DbSet<PhotoModerationAuditLog> PhotoModerationAuditLogs => Set<PhotoModerationAuditLog>();
     public DbSet<VatRule> VatRules => Set<VatRule>();
     public DbSet<VatRuleHistory> VatRuleHistories => Set<VatRuleHistory>();
+    public DbSet<Currency> Currencies => Set<Currency>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

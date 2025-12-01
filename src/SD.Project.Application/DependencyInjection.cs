@@ -70,6 +70,7 @@ public static class DependencyInjection
         services.AddScoped<ProductModerationService>();
         services.AddScoped<PhotoModerationService>();
         services.AddScoped<VatRuleService>();
+        services.AddScoped<CurrencyService>();
 
         // Domain services for cart totals calculation
         services.AddSingleton<CartTotalsCalculator>();
