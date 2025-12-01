@@ -1,0 +1,334 @@
+@page "{documentId:guid}"
+@model SD.Project.Pages.Admin.LegalContentVersionsModel
+@{
+    ViewData["Title"] = $"Versions - {Model.Document?.Title ?? "Legal Document"}";
+}
+
+<!-- Toast for copy notification -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="copyToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <i class="bi bi-check-circle text-success me-2"></i>
+            <strong class="me-auto">Success</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body" id="copyToastMessage">
+            Content copied to clipboard!
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-page="/Admin/Dashboard">Dashboard</a></li>
+            <li class="breadcrumb-item"><a asp-page="/Admin/LegalContent">Legal Content</a></li>
+            <li class="breadcrumb-item active" aria-current="page">@Model.Document?.DocumentTypeName</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>@Model.Document?.Title</h1>
+            <p class="text-muted mb-0">
+                <span class="badge @(Model.Document?.IsActive == true ? "bg-success" : "bg-warning text-dark") me-2">
+                    @(Model.Document?.IsActive == true ? "Active" : "Inactive")
+                </span>
+                @Model.Document?.DocumentTypeName
+                @if (!string.IsNullOrEmpty(Model.Document?.Description))
+                {
+                    <span>• @Model.Document.Description</span>
+                }
+            </p>
+        </div>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createVersionModal">
+            <i class="bi bi-plus-lg me-1"></i> Create New Version
+        </button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Version Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-1">Current Version</h6>
+                    @if (Model.Document?.CurrentVersionNumber is not null)
+                    {
+                        <h4 class="text-primary mb-0">v@Model.Document.CurrentVersionNumber</h4>
+                        <small class="text-muted">Since @Model.Document.CurrentVersionEffectiveFrom?.ToString("MMM d, yyyy")</small>
+                    }
+                    else
+                    {
+                        <h4 class="text-muted mb-0">None</h4>
+                        <small class="text-muted">No active version</small>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-1">Scheduled Version</h6>
+                    @if (Model.Document?.ScheduledVersionNumber is not null)
+                    {
+                        <h4 class="text-info mb-0">v@Model.Document.ScheduledVersionNumber</h4>
+                        <small class="text-muted">From @Model.Document.ScheduledVersionEffectiveFrom?.ToString("MMM d, yyyy")</small>
+                    }
+                    else
+                    {
+                        <h4 class="text-muted mb-0">None</h4>
+                        <small class="text-muted">No scheduled version</small>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-1">Total Versions</h6>
+                    <h4 class="mb-0">@Model.Versions.Count</h4>
+                    <small class="text-muted">@Model.Versions.Count(v => v.IsPublished) published</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Versions List -->
+    @if (Model.Versions.Count == 0)
+    {
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <h4 class="text-muted">No versions yet</h4>
+                <p class="text-muted">Create your first version of this legal document.</p>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createVersionModal">
+                    Create First Version
+                </button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Version History</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="accordion" id="versionsAccordion">
+                    @foreach (var version in Model.Versions)
+                    {
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button @(version.IsCurrentlyActive ? "" : "collapsed")" type="button" 
+                                        data-bs-toggle="collapse" data-bs-target="#version-@version.Id">
+                                    <span class="badge @version.StatusBadgeClass me-2">@version.StatusDisplay</span>
+                                    <strong class="me-3">v@version.VersionNumber</strong>
+                                    <small class="text-muted">
+                                        Effective: @version.EffectiveFrom.ToString("MMM d, yyyy HH:mm")
+                                        @if (version.EffectiveTo.HasValue)
+                                        {
+                                            <span>→ @version.EffectiveTo.Value.ToString("MMM d, yyyy HH:mm")</span>
+                                        }
+                                    </small>
+                                </button>
+                            </h2>
+                            <div id="version-@version.Id" class="accordion-collapse collapse @(version.IsCurrentlyActive ? "show" : "")">
+                                <div class="accordion-body">
+                                    @if (!string.IsNullOrEmpty(version.ChangesSummary))
+                                    {
+                                        <div class="alert alert-info mb-3">
+                                            <strong>Changes Summary:</strong> @version.ChangesSummary
+                                        </div>
+                                    }
+
+                                    <div class="mb-3">
+                                        <strong>Content Preview:</strong>
+                                        @* 
+                                            Note: Legal content is entered by trusted admins and intended to be HTML.
+                                            Using sandbox iframe for additional XSS protection while preserving HTML rendering.
+                                        *@
+                                        <iframe class="border rounded mt-2 bg-white w-100" 
+                                                style="min-height: 300px; max-height: 500px;"
+                                                sandbox="allow-same-origin"
+                                                srcdoc="@version.Content"></iframe>
+                                    </div>
+
+                                    <div class="row text-muted small mb-3">
+                                        <div class="col-md-6">
+                                            <strong>Created:</strong> @version.CreatedAt.ToString("MMM d, yyyy HH:mm")
+                                        </div>
+                                        <div class="col-md-6">
+                                            <strong>Last Updated:</strong> @version.UpdatedAt.ToString("MMM d, yyyy HH:mm")
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex gap-2">
+                                        @if (!version.IsPublished)
+                                        {
+                                            <button type="button" class="btn btn-sm btn-outline-primary"
+                                                    data-bs-toggle="modal" data-bs-target="#editVersionModal"
+                                                    data-version-id="@version.Id"
+                                                    data-version-content="@version.Content"
+                                                    data-version-effective="@version.EffectiveFrom.ToString("yyyy-MM-ddTHH:mm")"
+                                                    data-version-changes="@(version.ChangesSummary ?? "")">
+                                                <i class="bi bi-pencil me-1"></i> Edit
+                                            </button>
+                                            <form method="post" asp-page-handler="PublishVersion" 
+                                                  asp-route-documentId="@Model.Document?.Id" 
+                                                  asp-route-versionId="@version.Id" 
+                                                  class="d-inline"
+                                                  onsubmit="return confirm('Are you sure you want to publish this version? Published versions cannot be modified.');">
+                                                <button type="submit" class="btn btn-sm btn-success">
+                                                    <i class="bi bi-check-lg me-1"></i> Publish
+                                                </button>
+                                            </form>
+                                        }
+                                        <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                onclick="copyContent('@version.Id')">
+                                            <i class="bi bi-clipboard me-1"></i> Copy Content
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="mt-4">
+        <a asp-page="/Admin/LegalContent" class="btn btn-outline-secondary">Back to Legal Content</a>
+    </div>
+</div>
+
+<!-- Create Version Modal -->
+<div class="modal fade" id="createVersionModal" tabindex="-1" aria-labelledby="createVersionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="CreateVersion">
+                <input type="hidden" asp-for="NewVersion.LegalDocumentId" />
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createVersionModalLabel">Create New Version</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="NewVersion.VersionNumber" class="form-label">Version Number <span class="text-danger">*</span></label>
+                            <input asp-for="NewVersion.VersionNumber" class="form-control" placeholder="e.g., 2.0, 2024-06" />
+                            <span asp-validation-for="NewVersion.VersionNumber" class="text-danger"></span>
+                            <div class="form-text">Use a clear versioning scheme (e.g., 1.0, 2.0 or 2024-01).</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="NewVersion.EffectiveFrom" class="form-label">Effective From <span class="text-danger">*</span></label>
+                            <input asp-for="NewVersion.EffectiveFrom" type="datetime-local" class="form-control" />
+                            <span asp-validation-for="NewVersion.EffectiveFrom" class="text-danger"></span>
+                            <div class="form-text">Set a future date to schedule the version. Current or past dates make it active immediately upon publishing.</div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="NewVersion.ChangesSummary" class="form-label">Changes Summary</label>
+                        <input asp-for="NewVersion.ChangesSummary" class="form-control" placeholder="Brief summary of what changed in this version" />
+                        <span asp-validation-for="NewVersion.ChangesSummary" class="text-danger"></span>
+                        <div class="form-text">This will be shown to users when a new version is scheduled (optional notice about upcoming changes).</div>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="NewVersion.Content" class="form-label">Content <span class="text-danger">*</span></label>
+                        <textarea asp-for="NewVersion.Content" class="form-control" rows="15" placeholder="Enter the full legal document content (HTML supported)..."></textarea>
+                        <span asp-validation-for="NewVersion.Content" class="text-danger"></span>
+                        <div class="form-text">You can use HTML formatting. The content will be displayed to users as-is.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Version (Draft)</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Version Modal -->
+<div class="modal fade" id="editVersionModal" tabindex="-1" aria-labelledby="editVersionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="EditVersion">
+                <input type="hidden" asp-for="EditVersion.LegalDocumentId" value="@Model.Document?.Id" />
+                <input type="hidden" asp-for="EditVersion.VersionId" id="editVersionId" />
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editVersionModalLabel">Edit Version (Draft)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        Only draft versions can be edited. Published versions are immutable to maintain audit trail integrity.
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="EditVersion.EffectiveFrom" class="form-label">Effective From <span class="text-danger">*</span></label>
+                        <input asp-for="EditVersion.EffectiveFrom" type="datetime-local" class="form-control" id="editVersionEffective" />
+                        <span asp-validation-for="EditVersion.EffectiveFrom" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="EditVersion.ChangesSummary" class="form-label">Changes Summary</label>
+                        <input asp-for="EditVersion.ChangesSummary" class="form-control" id="editVersionChanges" placeholder="Brief summary of what changed" />
+                        <span asp-validation-for="EditVersion.ChangesSummary" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="EditVersion.Content" class="form-label">Content <span class="text-danger">*</span></label>
+                        <textarea asp-for="EditVersion.Content" class="form-control" rows="15" id="editVersionContent"></textarea>
+                        <span asp-validation-for="EditVersion.Content" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('editVersionModal').addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            document.getElementById('editVersionId').value = button.getAttribute('data-version-id');
+            document.getElementById('editVersionContent').value = button.getAttribute('data-version-content');
+            document.getElementById('editVersionEffective').value = button.getAttribute('data-version-effective');
+            document.getElementById('editVersionChanges').value = button.getAttribute('data-version-changes');
+        });
+
+        function copyContent(versionId) {
+            var content = document.querySelector('#version-' + versionId + ' .bg-white').innerHTML;
+            navigator.clipboard.writeText(content).then(function() {
+                showToast('Content copied to clipboard!');
+            });
+        }
+
+        function showToast(message) {
+            var toastEl = document.getElementById('copyToast');
+            if (toastEl) {
+                document.getElementById('copyToastMessage').textContent = message;
+                var toast = new bootstrap.Toast(toastEl);
+                toast.show();
+            }
+        }
+    </script>
+}
