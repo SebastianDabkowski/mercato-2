@@ -217,4 +217,28 @@ public sealed class EscrowRepository : IEscrowRepository
     {
         await _context.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task<IReadOnlyList<EscrowAllocation>> GetAllocationsByDateRangeAsync(
+        DateTime fromDate,
+        DateTime toDate,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.EscrowAllocations
+            .Where(a => a.CreatedAt >= fromDate && a.CreatedAt <= toDate)
+            .OrderBy(a => a.StoreId)
+            .ThenByDescending(a => a.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<EscrowAllocation>> GetAllocationsByStoreIdAndDateRangeAsync(
+        Guid storeId,
+        DateTime fromDate,
+        DateTime toDate,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.EscrowAllocations
+            .Where(a => a.StoreId == storeId && a.CreatedAt >= fromDate && a.CreatedAt <= toDate)
+            .OrderByDescending(a => a.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
 }

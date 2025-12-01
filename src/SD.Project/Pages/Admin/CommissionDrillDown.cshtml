@@ -1,0 +1,157 @@
+@page
+@model SD.Project.Pages.Admin.CommissionDrillDownModel
+@{
+    ViewData["Title"] = $"Commission Details - {Model.DrillDown.StoreName}";
+}
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a asp-page="/Admin/Dashboard">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a asp-page="/Admin/CommissionSummary">Commission Summary</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">@Model.DrillDown.StoreName</li>
+                </ol>
+            </nav>
+            <h1>Commission Details</h1>
+            <p class="text-muted mb-0">
+                Orders contributing to <strong>@Model.DrillDown.StoreName</strong>'s commission for @Model.DrillDown.DateRangeDisplay
+            </p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="card-title mb-0">@Model.DrillDown.Orders.Count</h3>
+                    <p class="card-text text-muted mb-0">Orders</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="card-title mb-0 text-primary">@Model.DrillDown.FormattedTotalGmv</h3>
+                    <p class="card-text text-muted mb-0">Total GMV</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="card-title mb-0 text-success">@Model.DrillDown.FormattedTotalCommission</h3>
+                    <p class="card-text text-muted mb-0">Total Commission</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="card-title mb-0 text-info">@Model.DrillDown.FormattedTotalNetPayout</h3>
+                    <p class="card-text text-muted mb-0">Total Net Payout</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.DrillDown.Orders.Count == 0)
+    {
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <h4 class="text-muted">No orders found</h4>
+                <p class="text-muted">There are no orders for this seller in the selected period.</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Order #</th>
+                                <th>Date</th>
+                                <th class="text-end">GMV</th>
+                                <th class="text-center">Commission Rate</th>
+                                <th class="text-end">Commission</th>
+                                <th class="text-end">Net Payout</th>
+                                <th class="text-end">Refunded</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var order in Model.DrillDown.Orders)
+                            {
+                                <tr>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(order.OrderNumber))
+                                        {
+                                            <a asp-page="/Admin/OrderDetails" asp-route-orderNumber="@order.OrderNumber" class="text-decoration-none">
+                                                <strong>@order.OrderNumber</strong>
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">N/A</span>
+                                        }
+                                    </td>
+                                    <td>@order.FormattedOrderDate</td>
+                                    <td class="text-end">@order.FormattedGmvAmount</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-secondary">@order.FormattedCommissionRate</span>
+                                    </td>
+                                    <td class="text-end text-success">@order.FormattedCommissionAmount</td>
+                                    <td class="text-end text-info">@order.FormattedNetPayout</td>
+                                    <td class="text-end">
+                                        @if (order.HasRefund)
+                                        {
+                                            <span class="text-danger">@order.FormattedRefundedAmount</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr class="fw-bold">
+                                <td>TOTAL</td>
+                                <td></td>
+                                <td class="text-end">@Model.DrillDown.FormattedTotalGmv</td>
+                                <td></td>
+                                <td class="text-end text-success">@Model.DrillDown.FormattedTotalCommission</td>
+                                <td class="text-end text-info">@Model.DrillDown.FormattedTotalNetPayout</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="mt-4">
+        <a asp-page="/Admin/CommissionSummary" 
+           asp-route-dateRange="custom" 
+           asp-route-customFromDate="@Model.FromDate.ToString("yyyy-MM-dd")" 
+           asp-route-customToDate="@Model.ToDate.ToString("yyyy-MM-dd")"
+           class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Back to Commission Summary
+        </a>
+        <a asp-page="/Admin/Settlements" class="btn btn-outline-secondary ms-2">View Settlements</a>
+    </div>
+</div>
