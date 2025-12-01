@@ -1,0 +1,192 @@
+@page
+@model SD.Project.Pages.Buyer.DataExportModel
+@{
+    ViewData["Title"] = "Export Your Data";
+}
+
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-page="/Buyer/Dashboard">Dashboard</a></li>
+            <li class="breadcrumb-item"><a asp-page="/Buyer/ConsentSettings">Privacy & Consent</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Export Your Data</li>
+        </ol>
+    </nav>
+
+    <h1 class="mb-4">Export Your Data</h1>
+    <p class="text-muted mb-4">
+        Under the GDPR right of access, you can request a copy of your personal data that Mercato stores. 
+        The export includes your profile information, order history, delivery addresses, reviews, consent records, and login history.
+    </p>
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Request Export Section -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-download me-2"></i>Request Data Export
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">
+                        Click the button below to generate a complete export of your personal data. 
+                        The export will be available for download for 72 hours after it's generated.
+                    </p>
+                    
+                    @if (Model.HasPendingExport)
+                    {
+                        <div class="alert alert-info mb-3">
+                            <i class="bi bi-hourglass-split me-2"></i>
+                            You already have a pending data export request. Please wait for it to complete or check your previous exports below.
+                        </div>
+                    }
+
+                    <form method="post" asp-page-handler="RequestExport">
+                        <button type="submit" class="btn btn-primary" 
+                                @(Model.HasPendingExport ? "disabled" : "")
+                                onclick="return confirm('This will generate a complete export of your personal data. Continue?');">
+                            <i class="bi bi-file-earmark-zip me-2"></i>Request Data Export
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Previous Exports Section -->
+            @if (Model.PreviousExports.Any())
+            {
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-clock-history me-2"></i>Previous Exports
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Requested</th>
+                                        <th>Status</th>
+                                        <th>Expires</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var export in Model.PreviousExports)
+                                    {
+                                        var statusBadge = export.Status switch
+                                        {
+                                            SD.Project.Domain.Entities.UserDataExportStatus.Pending => "bg-warning text-dark",
+                                            SD.Project.Domain.Entities.UserDataExportStatus.Processing => "bg-info",
+                                            SD.Project.Domain.Entities.UserDataExportStatus.Completed => "bg-success",
+                                            SD.Project.Domain.Entities.UserDataExportStatus.Failed => "bg-danger",
+                                            SD.Project.Domain.Entities.UserDataExportStatus.Expired => "bg-secondary",
+                                            _ => "bg-secondary"
+                                        };
+                                        
+                                        <tr>
+                                            <td>@export.RequestedAt.ToString("MMM dd, yyyy HH:mm")</td>
+                                            <td>
+                                                <span class="badge @statusBadge">@export.Status</span>
+                                            </td>
+                                            <td>
+                                                @if (export.ExpiresAt.HasValue)
+                                                {
+                                                    @export.ExpiresAt.Value.ToString("MMM dd, yyyy HH:mm")
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (export.IsDownloadable)
+                                                {
+                                                    <a asp-page-handler="Download" asp-route-exportId="@export.Id" 
+                                                       class="btn btn-sm btn-outline-primary">
+                                                        <i class="bi bi-download me-1"></i>Download
+                                                    </a>
+                                                }
+                                                else if (export.Status == SD.Project.Domain.Entities.UserDataExportStatus.Failed)
+                                                {
+                                                    <span class="text-danger small" title="@export.ErrorMessage">
+                                                        <i class="bi bi-exclamation-circle me-1"></i>Failed
+                                                    </span>
+                                                }
+                                                else if (export.Status == SD.Project.Domain.Entities.UserDataExportStatus.Expired)
+                                                {
+                                                    <span class="text-muted small">Expired</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted small">
+                                                        <i class="bi bi-hourglass-split me-1"></i>Processing...
+                                                    </span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Help Section -->
+        <div class="col-md-4">
+            <div class="card bg-light mb-4">
+                <div class="card-body">
+                    <h6><i class="bi bi-info-circle me-2"></i>About Data Exports</h6>
+                    <p class="small text-muted mb-2">
+                        Your data export will include:
+                    </p>
+                    <ul class="small text-muted mb-3">
+                        <li>Profile information (name, email, etc.)</li>
+                        <li>Order history and details</li>
+                        <li>Saved delivery addresses</li>
+                        <li>Product reviews you've written</li>
+                        <li>Consent records</li>
+                        <li>Recent login history</li>
+                        @if (Model.IsSeller)
+                        {
+                            <li>Store information and payout settings</li>
+                        }
+                    </ul>
+                    <p class="small text-muted mb-0">
+                        The export will be provided as a JSON file, which can be viewed in any text editor or JSON viewer.
+                    </p>
+                </div>
+            </div>
+
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h6><i class="bi bi-shield-check me-2"></i>Security Note</h6>
+                    <p class="small text-muted mb-0">
+                        Exports are generated securely and are only accessible by you. 
+                        They automatically expire after 72 hours for your security. 
+                        If you need another copy after expiration, simply request a new export.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -86,6 +86,7 @@ public class AppDbContext : DbContext
     public DbSet<ConsentVersion> ConsentVersions => Set<ConsentVersion>();
     public DbSet<UserConsent> UserConsents => Set<UserConsent>();
     public DbSet<UserConsentAuditLog> UserConsentAuditLogs => Set<UserConsentAuditLog>();
+    public DbSet<UserDataExport> UserDataExports => Set<UserDataExport>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
