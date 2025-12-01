@@ -520,5 +520,84 @@ public static class SeedDataExtensions
 
             await orderRepo.SaveChangesAsync();
         }
+
+        // Seed sample reviews for testing the reviews display feature
+        var reviewRepo = scope.ServiceProvider.GetRequiredService<IReviewRepository>();
+        var storeForReviews = await storeRepo.GetBySlugAsync("demo-store");
+        
+        if (storeForReviews is not null)
+        {
+            var reviewProducts = await productRepo.GetAllByStoreIdAsync(storeForReviews.Id);
+            var firstProduct = reviewProducts.FirstOrDefault();
+            
+            if (firstProduct is not null)
+            {
+                // Check if reviews already exist for this product
+                var existingReviews = await reviewRepo.GetByProductIdAsync(firstProduct.Id);
+                if (existingReviews.Count == 0)
+                {
+                    // Create additional buyer users for reviews
+                    var reviewBuyerIds = new List<Guid>();
+                    for (int i = 1; i <= 8; i++)
+                    {
+                        var reviewBuyerId = Guid.Parse($"44444444-4444-4444-4444-{i:D12}");
+                        var existingReviewBuyer = await userRepo.GetByIdAsync(reviewBuyerId);
+                        if (existingReviewBuyer is null)
+                        {
+                            var buyerEmail = Email.Create($"reviewer{i}@demo.com");
+                            var reviewBuyer = new User(
+                                reviewBuyerId,
+                                buyerEmail,
+                                passwordHasher.HashPassword("Reviewer123!"),
+                                UserRole.Buyer,
+                                $"Reviewer",
+                                $"{(char)('A' + i - 1)}",
+                                acceptedTerms: true);
+                            reviewBuyer.VerifyEmail();
+                            await userRepo.AddAsync(reviewBuyer);
+                        }
+                        reviewBuyerIds.Add(reviewBuyerId);
+                    }
+                    await userRepo.SaveChangesAsync();
+
+                    // Create sample reviews with varying ratings
+                    var reviewData = new[]
+                    {
+                        (Rating: 5, Comment: "Excellent product! Exactly what I was looking for. Fast shipping too.", DaysAgo: 2),
+                        (Rating: 4, Comment: "Good quality, works as expected. Would recommend.", DaysAgo: 5),
+                        (Rating: 5, Comment: "Amazing! Best purchase I've made this year.", DaysAgo: 7),
+                        (Rating: 3, Comment: "It's okay, meets basic expectations but nothing special.", DaysAgo: 10),
+                        (Rating: 4, Comment: "Nice product, good value for money.", DaysAgo: 14),
+                        (Rating: 5, Comment: "Perfect! Five stars all the way.", DaysAgo: 21),
+                        (Rating: 2, Comment: "Not quite what I expected, but it works.", DaysAgo: 30),
+                        (Rating: 4, Comment: (string?)null, DaysAgo: 45)
+                    };
+
+                    // Use fixed GUIDs for test data consistency
+                    var dummyOrderId = Guid.Parse("55555555-5555-5555-5555-555555555555");
+                    var dummyShipmentId = Guid.Parse("66666666-6666-6666-6666-666666666666");
+
+                    for (int i = 0; i < reviewData.Length; i++)
+                    {
+                        var data = reviewData[i];
+                        var review = new Review(
+                            dummyOrderId,
+                            dummyShipmentId,
+                            firstProduct.Id,
+                            storeForReviews.Id,
+                            reviewBuyerIds[i],
+                            data.Rating,
+                            data.Comment);
+                        
+                        // Approve the review so it's visible
+                        review.Approve();
+                        
+                        await reviewRepo.AddAsync(review);
+                    }
+                    
+                    await reviewRepo.SaveChangesAsync();
+                }
+            }
+        }
     }
 }

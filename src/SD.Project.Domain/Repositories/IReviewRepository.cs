@@ -30,6 +30,16 @@ public interface IReviewRepository
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets paginated and sorted reviews for a specific product (only approved reviews).
+    /// </summary>
+    Task<(IReadOnlyList<Review> Items, int TotalCount)> GetByProductIdPagedAsync(
+        Guid productId,
+        ReviewSortOrder sortOrder,
+        int pageNumber,
+        int pageSize,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets all reviews for a specific store (only approved reviews).
     /// </summary>
     Task<IReadOnlyList<Review>> GetByStoreIdAsync(

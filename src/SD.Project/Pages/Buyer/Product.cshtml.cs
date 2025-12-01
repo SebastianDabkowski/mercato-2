@@ -4,6 +4,7 @@ using SD.Project.Application.Commands;
 using SD.Project.Application.DTOs;
 using SD.Project.Application.Queries;
 using SD.Project.Application.Services;
+using SD.Project.Domain.Repositories;
 using SD.Project.ViewModels;
 using System.Security.Claims;
 
@@ -14,11 +15,14 @@ namespace SD.Project.Pages.Buyer;
 /// </summary>
 public class ProductModel : PageModel
 {
+    private const int ReviewsPageSize = 5;
+
     private readonly ILogger<ProductModel> _logger;
     private readonly ProductService _productService;
     private readonly CategoryService _categoryService;
     private readonly StoreService _storeService;
     private readonly CartService _cartService;
+    private readonly ReviewService _reviewService;
 
     /// <summary>
     /// The product being viewed.
@@ -36,6 +40,38 @@ public class ProductModel : PageModel
     public StoreViewModel? Store { get; private set; }
 
     /// <summary>
+    /// Product rating summary.
+    /// </summary>
+    public ProductRatingViewModel? Rating { get; private set; }
+
+    /// <summary>
+    /// Paginated list of reviews for the product.
+    /// </summary>
+    public IReadOnlyCollection<ReviewViewModel> Reviews { get; private set; } = Array.Empty<ReviewViewModel>();
+
+    /// <summary>
+    /// Current page of reviews (1-based).
+    /// </summary>
+    [BindProperty(SupportsGet = true)]
+    public int ReviewPage { get; set; } = 1;
+
+    /// <summary>
+    /// Current sort order for reviews.
+    /// </summary>
+    [BindProperty(SupportsGet = true)]
+    public ReviewSortOrder ReviewSort { get; set; } = ReviewSortOrder.Newest;
+
+    /// <summary>
+    /// Total number of review pages.
+    /// </summary>
+    public int TotalReviewPages { get; private set; }
+
+    /// <summary>
+    /// Total number of reviews.
+    /// </summary>
+    public int TotalReviewCount { get; private set; }
+
+    /// <summary>
     /// Message to display to the user.
     /// </summary>
     public string? Message { get; private set; }
@@ -50,13 +86,15 @@ public class ProductModel : PageModel
         ProductService productService,
         CategoryService categoryService,
         StoreService storeService,
-        CartService cartService)
+        CartService cartService,
+        ReviewService reviewService)
     {
         _logger = logger;
         _productService = productService;
         _categoryService = categoryService;
         _storeService = storeService;
         _cartService = cartService;
+        _reviewService = reviewService;
     }
 
     public async Task<IActionResult> OnGetAsync(
@@ -102,6 +140,9 @@ public class ProductModel : PageModel
             await LoadStoreInfoAsync(productDto.StoreId.Value, cancellationToken);
         }
 
+        // Load reviews and rating
+        await LoadReviewsAsync(id.Value, cancellationToken);
+
         return Page();
     }
 
@@ -138,6 +179,42 @@ public class ProductModel : PageModel
 
         // Reload the page with the product
         return await OnGetAsync(productId, cancellationToken);
+    }
+
+    private async Task LoadReviewsAsync(Guid productId, CancellationToken cancellationToken)
+    {
+        // Load rating summary
+        var ratingDto = await _reviewService.HandleAsync(
+            new GetProductRatingQuery(productId),
+            cancellationToken);
+        Rating = new ProductRatingViewModel(ratingDto.AverageRating, ratingDto.ReviewCount);
+
+        // Ensure valid page number
+        if (ReviewPage < 1)
+        {
+            ReviewPage = 1;
+        }
+
+        // Load paginated reviews
+        var pagedReviews = await _reviewService.HandleAsync(
+            new GetProductReviewsPagedQuery(productId, ReviewSort, ReviewPage, ReviewsPageSize),
+            cancellationToken);
+
+        Reviews = pagedReviews.Items
+            .Select(r => new ReviewViewModel(
+                r.ReviewId,
+                r.ProductId,
+                r.BuyerName,
+                r.Rating,
+                r.Comment,
+                r.CreatedAt))
+            .ToArray();
+
+        TotalReviewPages = pagedReviews.TotalPages;
+        TotalReviewCount = pagedReviews.TotalCount;
+
+        _logger.LogDebug("Loaded {ReviewCount} reviews for product {ProductId} (page {Page} of {TotalPages})",
+            Reviews.Count, productId, ReviewPage, TotalReviewPages);
     }
 
     private (Guid? BuyerId, string? SessionId) GetCartIdentifiers()

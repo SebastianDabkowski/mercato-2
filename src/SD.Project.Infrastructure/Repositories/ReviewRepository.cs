@@ -48,6 +48,35 @@ public sealed class ReviewRepository : IReviewRepository
         return results.AsReadOnly();
     }
 
+    public async Task<(IReadOnlyList<Review> Items, int TotalCount)> GetByProductIdPagedAsync(
+        Guid productId,
+        ReviewSortOrder sortOrder,
+        int pageNumber,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Reviews
+            .AsNoTracking()
+            .Where(r => r.ProductId == productId && r.ModerationStatus == ReviewModerationStatus.Approved);
+
+        // Apply sorting
+        query = sortOrder switch
+        {
+            ReviewSortOrder.HighestRating => query.OrderByDescending(r => r.Rating).ThenByDescending(r => r.CreatedAt),
+            ReviewSortOrder.LowestRating => query.OrderBy(r => r.Rating).ThenByDescending(r => r.CreatedAt),
+            _ => query.OrderByDescending(r => r.CreatedAt)
+        };
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (items.AsReadOnly(), totalCount);
+    }
+
     public async Task<IReadOnlyList<Review>> GetByStoreIdAsync(
         Guid storeId,
         CancellationToken cancellationToken = default)
