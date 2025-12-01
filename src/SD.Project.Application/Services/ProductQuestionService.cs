@@ -159,6 +159,50 @@ public sealed class ProductQuestionService
     }
 
     /// <summary>
+    /// Gets all questions for a store (pending and answered).
+    /// </summary>
+    public async Task<IReadOnlyList<ProductQuestionDto>> HandleAsync(
+        GetAllQuestionsForStoreQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        // Verify seller owns the store
+        var store = await _storeRepository.GetByIdAsync(query.StoreId, cancellationToken);
+        if (store is null || store.SellerId != query.SellerId)
+        {
+            return [];
+        }
+
+        var questions = await _questionRepository.GetAllQuestionsForStoreAsync(query.StoreId, cancellationToken);
+
+        // Get product names for the questions
+        var productIds = questions.Select(q => q.ProductId).Distinct().ToList();
+        var productNames = new Dictionary<Guid, string>();
+        foreach (var productId in productIds)
+        {
+            var product = await _productRepository.GetByIdAsync(productId, cancellationToken);
+            if (product is not null)
+            {
+                productNames[productId] = product.Name;
+            }
+        }
+
+        return questions.Select(q => new ProductQuestionDto(
+            q.Id,
+            q.ProductId,
+            productNames.GetValueOrDefault(q.ProductId),
+            q.StoreId,
+            q.BuyerId,
+            q.BuyerDisplayName,
+            q.Question,
+            q.Answer,
+            q.Status,
+            q.AskedAt,
+            q.AnsweredAt)).ToList().AsReadOnly();
+    }
+
+    /// <summary>
     /// Gets questions asked by a buyer.
     /// </summary>
     public async Task<IReadOnlyList<ProductQuestionDto>> HandleAsync(

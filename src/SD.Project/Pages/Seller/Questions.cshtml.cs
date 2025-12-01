@@ -72,10 +72,9 @@ public class QuestionsModel : PageModel
         }
         else
         {
-            // For "all", we'd need to aggregate across products
-            // For now just show pending
+            // Show all questions (pending and answered)
             Questions = await _questionService.HandleAsync(
-                new GetPendingQuestionsForStoreQuery(store.Id, userId),
+                new GetAllQuestionsForStoreQuery(store.Id, userId),
                 cancellationToken);
         }
 

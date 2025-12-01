@@ -64,6 +64,20 @@ public sealed class ProductQuestionRepository : IProductQuestionRepository
         return questions.AsReadOnly();
     }
 
+    public async Task<IReadOnlyList<ProductQuestion>> GetAllQuestionsForStoreAsync(
+        Guid storeId,
+        CancellationToken cancellationToken = default)
+    {
+        var questions = await _context.ProductQuestions
+            .Where(q => q.StoreId == storeId)
+            .Where(q => q.Status != ProductQuestionStatus.Hidden)
+            .OrderByDescending(q => q.AskedAt)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        return questions.AsReadOnly();
+    }
+
     public async Task<IReadOnlyList<ProductQuestion>> GetQuestionsByBuyerAsync(
         Guid buyerId,
         CancellationToken cancellationToken = default)

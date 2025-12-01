@@ -25,6 +25,15 @@ public record GetPendingQuestionsForStoreQuery(
     Guid SellerId);
 
 /// <summary>
+/// Query to get all questions for a store (pending and answered).
+/// </summary>
+/// <param name="StoreId">The ID of the store.</param>
+/// <param name="SellerId">The ID of the seller requesting (for authorization).</param>
+public record GetAllQuestionsForStoreQuery(
+    Guid StoreId,
+    Guid SellerId);
+
+/// <summary>
 /// Query to get questions asked by a buyer.
 /// </summary>
 /// <param name="BuyerId">The ID of the buyer.</param>

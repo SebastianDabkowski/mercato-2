@@ -34,6 +34,13 @@ public interface IProductQuestionRepository
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets all questions for a store (pending and answered, excluding hidden).
+    /// </summary>
+    Task<IReadOnlyList<ProductQuestion>> GetAllQuestionsForStoreAsync(
+        Guid storeId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets all questions asked by a specific buyer.
     /// </summary>
     Task<IReadOnlyList<ProductQuestion>> GetQuestionsByBuyerAsync(
