@@ -204,6 +204,8 @@ public sealed class FeatureFlagRepository : IFeatureFlagRepository
     public void Delete(FeatureFlag featureFlag)
     {
         // Delete related environment configurations
+        // Note: Using RemoveRange for compatibility with InMemory provider (ExecuteDeleteAsync not supported).
+        // For relational databases, consider using ExecuteDeleteAsync for better performance.
         var environments = _context.FeatureFlagEnvironments
             .Where(e => e.FeatureFlagId == featureFlag.Id);
         _context.FeatureFlagEnvironments.RemoveRange(environments);

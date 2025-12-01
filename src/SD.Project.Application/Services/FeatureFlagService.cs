@@ -13,6 +13,11 @@ namespace SD.Project.Application.Services;
 /// </summary>
 public sealed class FeatureFlagService
 {
+    /// <summary>
+    /// Default environments created for new feature flags.
+    /// </summary>
+    private static readonly string[] DefaultEnvironments = { "development", "test", "staging", "production" };
+
     private readonly ILogger<FeatureFlagService> _logger;
     private readonly IFeatureFlagRepository _repository;
 
@@ -58,8 +63,7 @@ public sealed class FeatureFlagService
             await _repository.AddAsync(featureFlag, cancellationToken);
 
             // Create default environment configurations
-            var defaultEnvironments = new[] { "development", "test", "staging", "production" };
-            foreach (var env in defaultEnvironments)
+            foreach (var env in DefaultEnvironments)
             {
                 var envConfig = new FeatureFlagEnvironment(featureFlag.Id, env, false);
                 await _repository.AddEnvironmentAsync(envConfig, cancellationToken);

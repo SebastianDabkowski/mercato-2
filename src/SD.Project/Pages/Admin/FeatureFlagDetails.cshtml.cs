@@ -14,6 +14,7 @@ namespace SD.Project.Pages.Admin
     [RequireRole(UserRole.Admin)]
     public class FeatureFlagDetailsModel : PageModel
     {
+        private const int AuditLogPageSize = 10;
         private readonly ILogger<FeatureFlagDetailsModel> _logger;
         private readonly FeatureFlagService _featureFlagService;
 
@@ -281,7 +282,7 @@ namespace SD.Project.Pages.Admin
                 FeatureFlag = MapToViewModel(dto);
 
                 // Load audit logs
-                var auditQuery = new GetFeatureFlagAuditLogsQuery(id, PageNumber: 1, PageSize: 10);
+                var auditQuery = new GetFeatureFlagAuditLogsQuery(id, PageNumber: 1, PageSize: AuditLogPageSize);
                 var auditResult = await _featureFlagService.HandleAsync(auditQuery);
                 AuditLogs = auditResult.Items.Select(MapToAuditLogViewModel).ToList().AsReadOnly();
             }

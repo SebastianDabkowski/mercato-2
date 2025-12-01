@@ -99,7 +99,7 @@
                                         <strong>@flag.Name</strong>
                                         @if (!string.IsNullOrEmpty(flag.Description))
                                         {
-                                            <br /><small class="text-muted">@(flag.Description.Length > 50 ? flag.Description.Substring(0, 50) + "..." : flag.Description)</small>
+                                            <br /><small class="text-muted">@(flag.Description.Length > 50 ? flag.Description[..50] + "..." : flag.Description)</small>
                                         }
                                     </td>
                                     <td class="text-center">

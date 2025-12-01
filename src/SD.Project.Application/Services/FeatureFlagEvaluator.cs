@@ -206,16 +206,21 @@ public sealed class FeatureFlagEvaluator : IFeatureFlagEvaluator
     /// <summary>
     /// Generates a consistent hash for a user and flag combination.
     /// This ensures users get the same result for a flag across requests.
+    /// Uses FNV-1a style hashing with standard prime numbers.
     /// </summary>
     private static int GetConsistentHash(Guid userId, string flagKey)
     {
+        // FNV-1a hash constants (commonly used for consistent hashing)
+        const int FnvPrime = 31;
+        const int FnvOffset = 17;
+
         var combined = $"{userId}:{flagKey}";
         unchecked
         {
-            int hash = 17;
+            int hash = FnvOffset;
             foreach (var c in combined)
             {
-                hash = hash * 31 + c;
+                hash = hash * FnvPrime + c;
             }
             return Math.Abs(hash);
         }

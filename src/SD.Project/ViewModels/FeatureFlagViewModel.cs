@@ -117,7 +117,7 @@ public sealed record FeatureFlagEnvironmentViewModel(
         "test" => "Test",
         "staging" => "Staging",
         "production" => "Production",
-        _ => char.ToUpper(Environment[0]) + Environment[1..]
+        _ => string.IsNullOrEmpty(Environment) ? "Unknown" : char.ToUpper(Environment[0]) + Environment[1..]
     };
 
     /// <summary>
