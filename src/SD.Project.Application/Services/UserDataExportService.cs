@@ -353,9 +353,18 @@ public sealed class UserDataExportService
 
     private static string MaskString(string value, int visibleChars)
     {
-        if (string.IsNullOrEmpty(value) || value.Length <= visibleChars)
+        if (string.IsNullOrEmpty(value))
         {
             return value;
+        }
+
+        // For security, always mask at least some characters
+        // If value is too short, show only a portion with masking
+        if (value.Length <= visibleChars)
+        {
+            // For short values, mask the first half
+            var halfLength = Math.Max(1, value.Length / 2);
+            return new string('*', halfLength) + value[halfLength..];
         }
         
         var masked = new string('*', value.Length - visibleChars);

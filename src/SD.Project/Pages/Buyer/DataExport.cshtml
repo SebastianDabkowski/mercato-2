@@ -1,4 +1,5 @@
 @page
+@using SD.Project.Domain.Entities
 @model SD.Project.Pages.Buyer.DataExportModel
 @{
     ViewData["Title"] = "Export Your Data";
@@ -93,11 +94,11 @@
                                     {
                                         var statusBadge = export.Status switch
                                         {
-                                            SD.Project.Domain.Entities.UserDataExportStatus.Pending => "bg-warning text-dark",
-                                            SD.Project.Domain.Entities.UserDataExportStatus.Processing => "bg-info",
-                                            SD.Project.Domain.Entities.UserDataExportStatus.Completed => "bg-success",
-                                            SD.Project.Domain.Entities.UserDataExportStatus.Failed => "bg-danger",
-                                            SD.Project.Domain.Entities.UserDataExportStatus.Expired => "bg-secondary",
+                                            UserDataExportStatus.Pending => "bg-warning text-dark",
+                                            UserDataExportStatus.Processing => "bg-info",
+                                            UserDataExportStatus.Completed => "bg-success",
+                                            UserDataExportStatus.Failed => "bg-danger",
+                                            UserDataExportStatus.Expired => "bg-secondary",
                                             _ => "bg-secondary"
                                         };
                                         
@@ -124,13 +125,13 @@
                                                         <i class="bi bi-download me-1"></i>Download
                                                     </a>
                                                 }
-                                                else if (export.Status == SD.Project.Domain.Entities.UserDataExportStatus.Failed)
+                                                else if (export.Status == UserDataExportStatus.Failed)
                                                 {
                                                     <span class="text-danger small" title="@export.ErrorMessage">
                                                         <i class="bi bi-exclamation-circle me-1"></i>Failed
                                                     </span>
                                                 }
-                                                else if (export.Status == SD.Project.Domain.Entities.UserDataExportStatus.Expired)
+                                                else if (export.Status == UserDataExportStatus.Expired)
                                                 {
                                                     <span class="text-muted small">Expired</span>
                                                 }
