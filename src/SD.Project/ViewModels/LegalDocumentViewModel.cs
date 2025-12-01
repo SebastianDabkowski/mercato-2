@@ -44,13 +44,23 @@ public class LegalDocumentVersionViewModel
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
-    public string StatusDisplay => IsCurrentlyActive ? "Active" : 
-                                   IsScheduled ? "Scheduled" : 
-                                   !IsPublished ? "Draft" : 
-                                   "Superseded";
+    public string StatusDisplay => GetStatusDisplay();
 
-    public string StatusBadgeClass => IsCurrentlyActive ? "bg-success" :
-                                      IsScheduled ? "bg-info" :
-                                      !IsPublished ? "bg-warning text-dark" :
-                                      "bg-secondary";
+    public string StatusBadgeClass => GetStatusBadgeClass();
+
+    private string GetStatusDisplay()
+    {
+        if (IsCurrentlyActive) return "Active";
+        if (IsScheduled) return "Scheduled";
+        if (!IsPublished) return "Draft";
+        return "Superseded";
+    }
+
+    private string GetStatusBadgeClass()
+    {
+        if (IsCurrentlyActive) return "bg-success";
+        if (IsScheduled) return "bg-info";
+        if (!IsPublished) return "bg-warning text-dark";
+        return "bg-secondary";
+    }
 }

@@ -4,6 +4,20 @@
     ViewData["Title"] = $"Versions - {Model.Document?.Title ?? "Legal Document"}";
 }
 
+<!-- Toast for copy notification -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="copyToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <i class="bi bi-check-circle text-success me-2"></i>
+            <strong class="me-auto">Success</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body" id="copyToastMessage">
+            Content copied to clipboard!
+        </div>
+    </div>
+</div>
+
 <div class="container">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
@@ -144,9 +158,14 @@
 
                                     <div class="mb-3">
                                         <strong>Content Preview:</strong>
-                                        <div class="border rounded p-3 bg-white mt-2" style="max-height: 300px; overflow-y: auto;">
-                                            @Html.Raw(version.Content)
-                                        </div>
+                                        @* 
+                                            Note: Legal content is entered by trusted admins and intended to be HTML.
+                                            Using sandbox iframe for additional XSS protection while preserving HTML rendering.
+                                        *@
+                                        <iframe class="border rounded mt-2 bg-white w-100" 
+                                                style="min-height: 300px; max-height: 500px;"
+                                                sandbox="allow-same-origin"
+                                                srcdoc="@version.Content"></iframe>
                                     </div>
 
                                     <div class="row text-muted small mb-3">
@@ -299,8 +318,17 @@
         function copyContent(versionId) {
             var content = document.querySelector('#version-' + versionId + ' .bg-white').innerHTML;
             navigator.clipboard.writeText(content).then(function() {
-                alert('Content copied to clipboard!');
+                showToast('Content copied to clipboard!');
             });
+        }
+
+        function showToast(message) {
+            var toastEl = document.getElementById('copyToast');
+            if (toastEl) {
+                document.getElementById('copyToastMessage').textContent = message;
+                var toast = new bootstrap.Toast(toastEl);
+                toast.show();
+            }
         }
     </script>
 }
