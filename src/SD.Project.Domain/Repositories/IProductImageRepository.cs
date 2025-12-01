@@ -15,4 +15,25 @@ public interface IProductImageRepository
     void Update(ProductImage image);
     void Delete(ProductImage image);
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets images by moderation status with pagination.
+    /// </summary>
+    Task<(IReadOnlyCollection<ProductImage> Items, int TotalCount)> GetByModerationStatusPagedAsync(
+        PhotoModerationStatus? status,
+        bool? isFlagged,
+        string? searchTerm,
+        int pageNumber,
+        int pageSize,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets images by multiple IDs.
+    /// </summary>
+    Task<IReadOnlyCollection<ProductImage>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets visible (not removed) images for a product.
+    /// </summary>
+    Task<IReadOnlyCollection<ProductImage>> GetVisibleByProductIdAsync(Guid productId, CancellationToken cancellationToken = default);
 }

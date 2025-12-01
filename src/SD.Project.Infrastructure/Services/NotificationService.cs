@@ -1257,4 +1257,42 @@ public sealed class NotificationService : INotificationService
 
         await _emailSender.SendAsync(message, cancellationToken);
     }
+
+    public async Task SendPhotoRemovedAsync(
+        Guid photoId,
+        Guid productId,
+        string productName,
+        string sellerEmail,
+        string removalReason,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation(
+            "Sending photo removed notification to seller {SellerEmail} for product {ProductName}",
+            sellerEmail, productName);
+
+        var encodedProductName = HtmlEncode(productName);
+        var encodedRemovalReason = HtmlEncode(removalReason);
+        var productLink = $"/Seller/Products/{productId}";
+        var encodedLink = HtmlEncodeUrl(productLink);
+        var message = new EmailMessage(
+            To: sellerEmail,
+            Subject: $"Photo Removed - {productName}",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1>Product Photo Removed</h1>
+                    <p>A photo on your product <strong>{encodedProductName}</strong> has been removed by a moderator.</p>
+                    <p><strong>Reason:</strong> {encodedRemovalReason}</p>
+                    <p>You may upload a new photo that complies with our marketplace guidelines.</p>
+                    <p><a href='{encodedLink}'>Manage Your Product</a></p>
+                    <p>If you have questions about this decision, please contact our support team.</p>
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"A photo on your product {productName} has been removed. Reason: {removalReason}. Manage at: {productLink}",
+            TemplateName: "PhotoRemoved",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(message, cancellationToken);
+    }
 }
