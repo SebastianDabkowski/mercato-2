@@ -96,23 +96,31 @@ public class CurrencyConfigurationModel : PageModel
 
     public async Task<IActionResult> OnPostCreateAsync()
     {
-        // Log all ModelState entries for debugging
-        _logger.LogInformation("ModelState entries before cleanup: {Entries}",
-            string.Join("; ", ModelState.Keys));
+        // Clear all ModelState and manually validate NewCurrency only
+        ModelState.Clear();
 
-        // Remove validation errors from EditCurrency since we're only creating
-        foreach (var key in ModelState.Keys.ToList())
+        // Manual validation for create
+        if (string.IsNullOrWhiteSpace(NewCurrency.Code))
         {
-            if (key.StartsWith("EditCurrency"))
-            {
-                ModelState.Remove(key);
-            }
+            ModelState.AddModelError("NewCurrency.Code", "Currency code is required");
+        }
+        else if (NewCurrency.Code.Length != 3)
+        {
+            ModelState.AddModelError("NewCurrency.Code", "Currency code must be 3 characters");
         }
 
-        _logger.LogInformation("ModelState entries after cleanup: {Entries}",
-            string.Join("; ", ModelState.Keys));
-        _logger.LogInformation("NewCurrency values: Code={Code}, Name={Name}, Symbol={Symbol}",
-            NewCurrency.Code, NewCurrency.Name, NewCurrency.Symbol);
+        if (string.IsNullOrWhiteSpace(NewCurrency.Name))
+        {
+            ModelState.AddModelError("NewCurrency.Name", "Name is required");
+        }
+
+        if (string.IsNullOrWhiteSpace(NewCurrency.Symbol))
+        {
+            ModelState.AddModelError("NewCurrency.Symbol", "Symbol is required");
+        }
+
+        _logger.LogInformation("NewCurrency bound values: Code='{Code}', Name='{Name}', Symbol='{Symbol}'",
+            NewCurrency.Code ?? "(null)", NewCurrency.Name ?? "(null)", NewCurrency.Symbol ?? "(null)");
 
         if (!ModelState.IsValid)
         {
@@ -120,9 +128,7 @@ public class CurrencyConfigurationModel : PageModel
             var errorDetails = string.Join("; ", ModelState
                 .Where(m => m.Value?.Errors.Count > 0)
                 .Select(m => $"{m.Key}: {string.Join(", ", m.Value!.Errors.Select(e => e.ErrorMessage))}"));
-            ErrorMessage = string.IsNullOrEmpty(errorDetails)
-                ? "Please correct the validation errors."
-                : $"Validation errors: {errorDetails}";
+            ErrorMessage = $"Validation errors: {errorDetails}";
             return Page();
         }
 
@@ -152,13 +158,22 @@ public class CurrencyConfigurationModel : PageModel
 
     public async Task<IActionResult> OnPostEditAsync()
     {
-        // Remove validation errors from NewCurrency since we're only editing
-        foreach (var key in ModelState.Keys.ToList())
+        // Clear all ModelState and manually validate EditCurrency only
+        ModelState.Clear();
+
+        if (EditCurrency.CurrencyId == Guid.Empty)
         {
-            if (key.StartsWith("NewCurrency"))
-            {
-                ModelState.Remove(key);
-            }
+            ModelState.AddModelError("EditCurrency.CurrencyId", "Currency ID is required");
+        }
+
+        if (string.IsNullOrWhiteSpace(EditCurrency.Name))
+        {
+            ModelState.AddModelError("EditCurrency.Name", "Name is required");
+        }
+
+        if (string.IsNullOrWhiteSpace(EditCurrency.Symbol))
+        {
+            ModelState.AddModelError("EditCurrency.Symbol", "Symbol is required");
         }
 
         if (!ModelState.IsValid)
