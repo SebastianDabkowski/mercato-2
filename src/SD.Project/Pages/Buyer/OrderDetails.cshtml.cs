@@ -16,6 +16,7 @@ public class OrderDetailsModel : PageModel
     private readonly OrderService _orderService;
     private readonly ReturnRequestService _returnRequestService;
     private readonly ReviewService _reviewService;
+    private readonly SellerRatingService _sellerRatingService;
 
     public OrderDetailsViewModel? Order { get; private set; }
     
@@ -34,16 +35,23 @@ public class OrderDetailsModel : PageModel
     /// </summary>
     public Dictionary<(Guid ShipmentId, Guid ProductId), ReviewEligibilityViewModel> ReviewEligibility { get; private set; } = new();
 
+    /// <summary>
+    /// Seller rating eligibility status for the order.
+    /// </summary>
+    public SellerRatingEligibilityViewModel? SellerRatingEligibility { get; private set; }
+
     public OrderDetailsModel(
         ILogger<OrderDetailsModel> logger,
         OrderService orderService,
         ReturnRequestService returnRequestService,
-        ReviewService reviewService)
+        ReviewService reviewService,
+        SellerRatingService sellerRatingService)
     {
         _logger = logger;
         _orderService = orderService;
         _returnRequestService = returnRequestService;
         _reviewService = reviewService;
+        _sellerRatingService = sellerRatingService;
     }
 
     public async Task<IActionResult> OnGetAsync(Guid orderId, CancellationToken cancellationToken = default)
@@ -180,6 +188,16 @@ public class OrderDetailsModel : PageModel
                     reviewEligibility.HasExistingReview);
             }
         }
+
+        // Check seller rating eligibility for the order
+        var sellerRatingEligibility = await _sellerRatingService.HandleAsync(
+            new CheckSellerRatingEligibilityQuery(buyerId.Value, orderId),
+            cancellationToken);
+
+        SellerRatingEligibility = new SellerRatingEligibilityViewModel(
+            sellerRatingEligibility.IsEligible,
+            sellerRatingEligibility.IneligibilityReason,
+            sellerRatingEligibility.HasExistingRating);
 
         _logger.LogInformation("Order details viewed: {OrderNumber} with {SubOrderCount} seller sub-orders",
             Order.OrderNumber, Order.SellerSubOrders.Count);
