@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -112,6 +113,33 @@ public static class DependencyInjection
             options.PersistToDatabase = section.GetValue<bool>("PersistToDatabase", true);
         });
         services.AddScoped<IAnalyticsService, AnalyticsService>();
+
+        // Data encryption configuration and service
+        // In production, configure key storage using Azure Key Vault, AWS KMS, or similar managed service
+        var encryptionSection = configuration.GetSection("DataEncryption");
+        services.Configure<DataEncryptionOptions>(options =>
+        {
+            options.Enabled = encryptionSection.GetValue<bool>("Enabled", true);
+            options.Purpose = encryptionSection.GetValue<string>("Purpose") ?? "SD.Project.SensitiveData.v1";
+            options.KeysPath = encryptionSection.GetValue<string>("KeysPath");
+        });
+
+        // Configure Data Protection API
+        // NOTE: For production, configure persistent key storage:
+        // - Azure: services.AddDataProtection().PersistKeysToAzureBlobStorage(...).ProtectKeysWithAzureKeyVault(...)
+        // - AWS: Use a custom IXmlRepository with S3/KMS
+        // - On-premises: PersistKeysToFileSystem with key encryption
+        var dataProtectionBuilder = services.AddDataProtection()
+            .SetApplicationName("SD.Project");
+
+        var keysPath = encryptionSection.GetValue<string>("KeysPath");
+        if (!string.IsNullOrWhiteSpace(keysPath))
+        {
+            var keysDirectory = new DirectoryInfo(keysPath);
+            dataProtectionBuilder.PersistKeysToFileSystem(keysDirectory);
+        }
+
+        services.AddScoped<IDataEncryptionService, DataEncryptionService>();
 
         return services;
     }
