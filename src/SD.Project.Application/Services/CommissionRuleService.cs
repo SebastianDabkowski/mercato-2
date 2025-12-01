@@ -415,16 +415,17 @@ public sealed class CommissionRuleService
         }
 
         // Batch load categories and stores
-        var categoryIds = rules.Where(r => r.CategoryId.HasValue).Select(r => r.CategoryId!.Value).Distinct().ToList();
+        var categoryIds = rules.Where(r => r.CategoryId.HasValue).Select(r => r.CategoryId!.Value).Distinct().ToHashSet();
         var storeIds = rules.Where(r => r.StoreId.HasValue).Select(r => r.StoreId!.Value).Distinct().ToList();
 
+        // Load all categories once and filter locally to avoid N+1 queries
         var categories = new Dictionary<Guid, string>();
-        foreach (var categoryId in categoryIds)
+        if (categoryIds.Count > 0)
         {
-            var category = await _categoryRepository.GetByIdAsync(categoryId, cancellationToken);
-            if (category is not null)
+            var allCategories = await _categoryRepository.GetAllAsync(cancellationToken);
+            foreach (var category in allCategories.Where(c => categoryIds.Contains(c.Id)))
             {
-                categories[categoryId] = category.Name;
+                categories[category.Id] = category.Name;
             }
         }
 
