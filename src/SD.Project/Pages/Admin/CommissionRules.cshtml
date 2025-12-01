@@ -1,0 +1,285 @@
+@page
+@model SD.Project.Pages.Admin.CommissionRulesModel
+@using SD.Project.Domain.Entities
+@{
+    ViewData["Title"] = "Commission Rules";
+}
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>Commission Rules</h1>
+            <p class="text-muted mb-0">Manage platform commission rates and fees for sellers.</p>
+        </div>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createRuleModal">
+            <i class="bi bi-plus-lg me-1"></i> Add Rule
+        </button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="card-title mb-0">@Model.Rules.Count</h3>
+                    <p class="card-text text-muted mb-0">Total Rules</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="card-title mb-0 text-success">@Model.Rules.Count(r => r.IsCurrentlyEffective)</h3>
+                    <p class="card-text text-muted mb-0">Currently Effective</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="card-title mb-0 text-info">@Model.Rules.Count(r => r.IsFutureDated)</h3>
+                    <p class="card-text text-muted mb-0">Scheduled</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    @{
+                        var defaultRate = Model.Rules.FirstOrDefault(r => r.RuleType == CommissionRuleType.Global && r.IsCurrentlyEffective);
+                    }
+                    <h3 class="card-title mb-0 text-primary">@(defaultRate?.FormattedRate ?? "Not Set")</h3>
+                    <p class="card-text text-muted mb-0">Default Rate</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.Rules.Count == 0)
+    {
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <h4 class="text-muted">No commission rules configured</h4>
+                <p class="text-muted">Set up commission rules to define how platform fees are calculated for sellers.</p>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createRuleModal">
+                    Add Your First Rule
+                </button>
+            </div>
+        </div>
+    }
+    else
+    {
+        var globalRules = Model.Rules.Where(r => r.RuleType == CommissionRuleType.Global).ToList();
+        var categoryRules = Model.Rules.Where(r => r.RuleType == CommissionRuleType.Category).ToList();
+        var sellerRules = Model.Rules.Where(r => r.RuleType == CommissionRuleType.Seller).ToList();
+
+        <!-- Global Rules Section -->
+        if (globalRules.Count > 0)
+        {
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-globe me-2"></i>Global Default Rules</h5>
+                </div>
+                <div class="card-body p-0">
+                    @await Html.PartialAsync("_CommissionRulesTable", globalRules)
+                </div>
+            </div>
+        }
+
+        <!-- Category Rules Section -->
+        if (categoryRules.Count > 0)
+        {
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-tags me-2"></i>Category-Specific Rules</h5>
+                </div>
+                <div class="card-body p-0">
+                    @await Html.PartialAsync("_CommissionRulesTable", categoryRules)
+                </div>
+            </div>
+        }
+
+        <!-- Seller Rules Section -->
+        if (sellerRules.Count > 0)
+        {
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-shop me-2"></i>Seller-Specific Rules</h5>
+                </div>
+                <div class="card-body p-0">
+                    @await Html.PartialAsync("_CommissionRulesTable", sellerRules)
+                </div>
+            </div>
+        }
+    }
+
+    <div class="mt-4">
+        <a asp-page="/Admin/Dashboard" class="btn btn-outline-secondary">Back to Dashboard</a>
+        <a asp-page="/Admin/CommissionSummary" class="btn btn-outline-secondary ms-2">View Commission Summary</a>
+    </div>
+</div>
+
+<!-- Create Rule Modal -->
+<div class="modal fade" id="createRuleModal" tabindex="-1" aria-labelledby="createRuleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Create">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createRuleModalLabel">Create Commission Rule</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label asp-for="NewRule.RuleType" class="form-label">Rule Type <span class="text-danger">*</span></label>
+                        <select asp-for="NewRule.RuleType" class="form-select" id="createRuleType" onchange="updateScopeFields('create')">
+                            <option value="@CommissionRuleType.Global">Global Default</option>
+                            <option value="@CommissionRuleType.Category">Category-Specific</option>
+                            <option value="@CommissionRuleType.Seller">Seller-Specific</option>
+                        </select>
+                        <div class="form-text">Global rules apply to all transactions. Category and Seller rules override the global default.</div>
+                    </div>
+                    <div class="mb-3" id="createCategoryContainer" style="display:none;">
+                        <label asp-for="NewRule.CategoryId" class="form-label">Category <span class="text-danger">*</span></label>
+                        <select asp-for="NewRule.CategoryId" asp-items="Model.CategoryOptions" class="form-select">
+                        </select>
+                    </div>
+                    <div class="mb-3" id="createStoreContainer" style="display:none;">
+                        <label asp-for="NewRule.StoreId" class="form-label">Seller/Store <span class="text-danger">*</span></label>
+                        <select asp-for="NewRule.StoreId" asp-items="Model.StoreOptions" class="form-select">
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="NewRule.CommissionRate" class="form-label">Commission Rate (%) <span class="text-danger">*</span></label>
+                        <input asp-for="NewRule.CommissionRate" class="form-control" type="number" step="0.01" min="0" max="100" placeholder="e.g., 10.00" />
+                        <span asp-validation-for="NewRule.CommissionRate" class="text-danger"></span>
+                        <div class="form-text">The percentage of each transaction that goes to the platform.</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="NewRule.EffectiveFrom" class="form-label">Effective From</label>
+                            <input asp-for="NewRule.EffectiveFrom" class="form-control" type="date" />
+                            <div class="form-text">Leave empty for immediate effect.</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="NewRule.EffectiveTo" class="form-label">Effective To</label>
+                            <input asp-for="NewRule.EffectiveTo" class="form-control" type="date" />
+                            <div class="form-text">Leave empty for no end date.</div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="NewRule.Description" class="form-label">Description</label>
+                        <textarea asp-for="NewRule.Description" class="form-control" rows="2" placeholder="Optional description or reason for this rule"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Rule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Rule Modal -->
+<div class="modal fade" id="editRuleModal" tabindex="-1" aria-labelledby="editRuleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Edit">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editRuleModalLabel">Edit Commission Rule</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="EditRule.RuleId" id="editRuleId" />
+                    <div class="mb-3">
+                        <label class="form-label">Rule Type</label>
+                        <input type="text" class="form-control" id="editRuleTypeDisplay" readonly />
+                        <div class="form-text">Rule type cannot be changed after creation.</div>
+                    </div>
+                    <div class="mb-3" id="editScopeContainer">
+                        <label class="form-label">Applies To</label>
+                        <input type="text" class="form-control" id="editScopeDisplay" readonly />
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="EditRule.CommissionRate" class="form-label">Commission Rate (%) <span class="text-danger">*</span></label>
+                        <input asp-for="EditRule.CommissionRate" class="form-control" id="editCommissionRate" type="number" step="0.01" min="0" max="100" />
+                        <span asp-validation-for="EditRule.CommissionRate" class="text-danger"></span>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="EditRule.EffectiveFrom" class="form-label">Effective From</label>
+                            <input asp-for="EditRule.EffectiveFrom" class="form-control" id="editEffectiveFrom" type="date" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="EditRule.EffectiveTo" class="form-label">Effective To</label>
+                            <input asp-for="EditRule.EffectiveTo" class="form-control" id="editEffectiveTo" type="date" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="EditRule.Description" class="form-label">Description</label>
+                        <textarea asp-for="EditRule.Description" class="form-control" id="editDescription" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function updateScopeFields(mode) {
+            var prefix = mode === 'create' ? 'create' : 'edit';
+            var ruleType = document.getElementById(prefix + 'RuleType').value;
+            var categoryContainer = document.getElementById(prefix + 'CategoryContainer');
+            var storeContainer = document.getElementById(prefix + 'StoreContainer');
+            
+            if (categoryContainer) {
+                categoryContainer.style.display = ruleType === '@((int)CommissionRuleType.Category)' ? '' : 'none';
+            }
+            if (storeContainer) {
+                storeContainer.style.display = ruleType === '@((int)CommissionRuleType.Seller)' ? '' : 'none';
+            }
+        }
+
+        document.getElementById('editRuleModal').addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            document.getElementById('editRuleId').value = button.getAttribute('data-rule-id');
+            document.getElementById('editRuleTypeDisplay').value = button.getAttribute('data-rule-type-display');
+            document.getElementById('editScopeDisplay').value = button.getAttribute('data-rule-scope');
+            document.getElementById('editCommissionRate').value = button.getAttribute('data-rule-rate');
+            document.getElementById('editEffectiveFrom').value = button.getAttribute('data-rule-from') || '';
+            document.getElementById('editEffectiveTo').value = button.getAttribute('data-rule-to') || '';
+            document.getElementById('editDescription').value = button.getAttribute('data-rule-description') || '';
+            
+            // Show/hide scope container based on rule type
+            var scopeContainer = document.getElementById('editScopeContainer');
+            var ruleType = button.getAttribute('data-rule-type');
+            scopeContainer.style.display = ruleType === '@((int)CommissionRuleType.Global)' ? 'none' : '';
+        });
+
+        // Initialize create form scope fields
+        document.addEventListener('DOMContentLoaded', function() {
+            updateScopeFields('create');
+        });
+    </script>
+}

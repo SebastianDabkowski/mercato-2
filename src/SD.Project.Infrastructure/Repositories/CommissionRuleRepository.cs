@@ -172,4 +172,59 @@ public class CommissionRuleRepository : ICommissionRuleRepository
     {
         await _context.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task<IReadOnlyList<CommissionRule>> GetOverlappingRulesAsync(
+        CommissionRuleType ruleType,
+        Guid? categoryId,
+        Guid? storeId,
+        DateTime? effectiveFrom,
+        DateTime? effectiveTo,
+        Guid? excludeRuleId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.CommissionRules
+            .Where(r => r.IsActive && r.RuleType == ruleType);
+
+        // Filter by scope based on rule type
+        query = ruleType switch
+        {
+            CommissionRuleType.Category => query.Where(r => r.CategoryId == categoryId),
+            CommissionRuleType.Seller => query.Where(r => r.StoreId == storeId),
+            _ => query // Global rules have no additional scope filter
+        };
+
+        // Exclude the rule being updated
+        if (excludeRuleId.HasValue)
+        {
+            query = query.Where(r => r.Id != excludeRuleId.Value);
+        }
+
+        var existingRules = await query.ToListAsync(cancellationToken);
+
+        // Check for date overlap in memory (more complex logic)
+        return existingRules
+            .Where(r => DateRangesOverlap(r.EffectiveFrom, r.EffectiveTo, effectiveFrom, effectiveTo))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Determines if two date ranges overlap.
+    /// Null dates are treated as unbounded (negative/positive infinity).
+    /// </summary>
+    private static bool DateRangesOverlap(DateTime? from1, DateTime? to1, DateTime? from2, DateTime? to2)
+    {
+        // Treat null as unbounded
+        // Range 1: [from1, to1], Range 2: [from2, to2]
+        // Overlap occurs if: from1 <= to2 AND from2 <= to1
+
+        // If from is null, treat as negative infinity (always <= any to)
+        // If to is null, treat as positive infinity (any from is always <=)
+
+        var from1Bounded = from1 ?? DateTime.MinValue;
+        var to1Bounded = to1 ?? DateTime.MaxValue;
+        var from2Bounded = from2 ?? DateTime.MinValue;
+        var to2Bounded = to2 ?? DateTime.MaxValue;
+
+        return from1Bounded <= to2Bounded && from2Bounded <= to1Bounded;
+    }
 }

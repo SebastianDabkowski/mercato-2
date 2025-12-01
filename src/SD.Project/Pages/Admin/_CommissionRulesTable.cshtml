@@ -1,0 +1,63 @@
+@model IReadOnlyList<SD.Project.ViewModels.CommissionRuleViewModel>
+
+<div class="table-responsive">
+    <table class="table table-hover mb-0">
+        <thead class="table-light">
+            <tr>
+                <th>Scope</th>
+                <th class="text-center">Rate</th>
+                <th>Effective Period</th>
+                <th class="text-center">Status</th>
+                <th>Description</th>
+                <th class="text-end">Created</th>
+                <th class="text-center" style="width: 150px">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var rule in Model)
+            {
+                <tr class="@(rule.IsExpired ? "table-secondary" : "")">
+                    <td>
+                        <strong>@rule.ScopeDisplay</strong>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge bg-primary fs-6">@rule.FormattedRate</span>
+                    </td>
+                    <td>@rule.EffectiveDateRangeDisplay</td>
+                    <td class="text-center">
+                        <span class="badge @rule.StatusBadgeClass">@rule.StatusDisplay</span>
+                    </td>
+                    <td class="text-muted">@(rule.Description ?? "—")</td>
+                    <td class="text-end">@rule.CreatedAt.ToString("MMM d, yyyy")</td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-sm btn-outline-primary me-1"
+                                data-bs-toggle="modal" data-bs-target="#editRuleModal"
+                                data-rule-id="@rule.Id"
+                                data-rule-type="@((int)rule.RuleType)"
+                                data-rule-type-display="@rule.RuleTypeDisplay"
+                                data-rule-scope="@rule.ScopeDisplay"
+                                data-rule-rate="@rule.CommissionRate"
+                                data-rule-from="@(rule.EffectiveFrom?.ToString("yyyy-MM-dd") ?? "")"
+                                data-rule-to="@(rule.EffectiveTo?.ToString("yyyy-MM-dd") ?? "")"
+                                data-rule-description="@rule.Description"
+                                title="Edit">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <form method="post" asp-page="/Admin/CommissionRules" asp-page-handler="ToggleStatus" asp-route-ruleId="@rule.Id" class="d-inline">
+                            <button type="submit" class="btn btn-sm @(rule.IsActive ? "btn-outline-warning" : "btn-outline-success") me-1"
+                                    title="@(rule.IsActive ? "Deactivate" : "Activate")">
+                                <i class="bi @(rule.IsActive ? "bi-pause-circle" : "bi-play-circle")"></i>
+                            </button>
+                        </form>
+                        <form method="post" asp-page="/Admin/CommissionRules" asp-page-handler="Delete" asp-route-ruleId="@rule.Id" class="d-inline"
+                              onsubmit="return confirm('Are you sure you want to delete this commission rule? This action cannot be undone.');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

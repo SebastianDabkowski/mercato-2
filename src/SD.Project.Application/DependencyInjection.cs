@@ -62,6 +62,7 @@ public static class DependencyInjection
         services.AddScoped<AdminOrderReportService>();
         services.AddScoped<SellerOrderReportService>();
         services.AddScoped<CommissionSummaryService>();
+        services.AddScoped<CommissionRuleService>();
         services.AddScoped<UserAnalyticsService>();
         services.AddScoped<AnalyticsQueryService>();
         services.AddScoped<UserAdminService>();
