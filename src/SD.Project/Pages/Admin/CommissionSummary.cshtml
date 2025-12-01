@@ -1,0 +1,198 @@
+@page
+@model SD.Project.Pages.Admin.CommissionSummaryModel
+@{
+    ViewData["Title"] = "Commission Summary";
+}
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>Commission Summary</h1>
+            <p class="text-muted mb-0">View commission summaries per seller for the selected period.</p>
+        </div>
+        @if (Model.Summary.Rows.Count > 0)
+        {
+            <a asp-page-handler="ExportCsv" asp-route-dateRange="@Model.DateRange" 
+               asp-route-customFromDate="@Model.CustomFromDate?.ToString("yyyy-MM-dd")"
+               asp-route-customToDate="@Model.CustomToDate?.ToString("yyyy-MM-dd")"
+               class="btn btn-outline-primary">
+                <i class="bi bi-download me-1"></i> Export CSV
+            </a>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Date Range Filter -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">Date Range</label>
+                    <select asp-for="DateRange" class="form-select" onchange="toggleCustomDates(this)">
+                        @foreach (var preset in Model.DateRangePresets)
+                        {
+                            <option value="@preset.Value" selected="@preset.IsSelected">@preset.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2" id="customFromDateContainer" style="@(Model.DateRange != "custom" ? "display:none;" : "")">
+                    <label class="form-label">From Date</label>
+                    <input type="date" asp-for="CustomFromDate" class="form-control" />
+                </div>
+                <div class="col-md-2" id="customToDateContainer" style="@(Model.DateRange != "custom" ? "display:none;" : "")">
+                    <label class="form-label">To Date</label>
+                    <input type="date" asp-for="CustomToDate" class="form-control" />
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-outline-primary me-2">
+                        <i class="bi bi-funnel me-1"></i> Apply Filter
+                    </button>
+                    <a asp-page="/Admin/CommissionSummary" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-lg me-1"></i> Clear
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="card-title mb-0">@Model.Summary.Rows.Count</h3>
+                    <p class="card-text text-muted mb-0">Sellers</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="card-title mb-0 text-primary">@Model.Summary.FormattedTotalGmv</h3>
+                    <p class="card-text text-muted mb-0">Total GMV</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="card-title mb-0 text-success">@Model.Summary.FormattedTotalCommission</h3>
+                    <p class="card-text text-muted mb-0">Total Commission</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="card-title mb-0 text-info">@Model.Summary.FormattedTotalNetPayout</h3>
+                    <p class="card-text text-muted mb-0">Total Net Payout</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Period Display -->
+    <div class="mb-3">
+        <span class="text-muted">Showing data for: <strong>@Model.Summary.DateRangeDisplay</strong></span>
+    </div>
+
+    @if (Model.Summary.Rows.Count == 0)
+    {
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <h4 class="text-muted">No commission data found</h4>
+                <p class="text-muted">There are no commission records for the selected period.</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Seller</th>
+                                <th class="text-center">Orders</th>
+                                <th class="text-end">Total GMV</th>
+                                <th class="text-end">Commission</th>
+                                <th class="text-end">Net Payout</th>
+                                <th class="text-center" style="width: 100px">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in Model.Summary.Rows)
+                            {
+                                <tr>
+                                    <td><strong>@row.StoreName</strong></td>
+                                    <td class="text-center">
+                                        <span class="badge bg-info">@row.OrderCount</span>
+                                    </td>
+                                    <td class="text-end">@row.FormattedTotalGmv</td>
+                                    <td class="text-end text-success">@row.FormattedTotalCommission</td>
+                                    <td class="text-end text-info">@row.FormattedTotalNetPayout</td>
+                                    <td class="text-center">
+                                        <a asp-page="/Admin/CommissionDrillDown" 
+                                           asp-route-storeId="@row.StoreId"
+                                           asp-route-fromDate="@Model.Summary.FromDate.ToString("yyyy-MM-dd")"
+                                           asp-route-toDate="@Model.Summary.ToDate.ToString("yyyy-MM-dd")"
+                                           class="btn btn-sm btn-outline-primary" title="View Orders">
+                                            <i class="bi bi-eye"></i> Details
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr class="fw-bold">
+                                <td>TOTAL</td>
+                                <td class="text-center">@Model.Summary.Rows.Sum(r => r.OrderCount)</td>
+                                <td class="text-end">@Model.Summary.FormattedTotalGmv</td>
+                                <td class="text-end text-success">@Model.Summary.FormattedTotalCommission</td>
+                                <td class="text-end text-info">@Model.Summary.FormattedTotalNetPayout</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="mt-4">
+        <a asp-page="/Admin/Dashboard" class="btn btn-outline-secondary">Back to Dashboard</a>
+        <a asp-page="/Admin/Settlements" class="btn btn-outline-secondary ms-2">View Settlements</a>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function toggleCustomDates(select) {
+            var customFromContainer = document.getElementById('customFromDateContainer');
+            var customToContainer = document.getElementById('customToDateContainer');
+            if (select.value === 'custom') {
+                customFromContainer.style.display = '';
+                customToContainer.style.display = '';
+            } else {
+                customFromContainer.style.display = 'none';
+                customToContainer.style.display = 'none';
+            }
+        }
+    </script>
+}

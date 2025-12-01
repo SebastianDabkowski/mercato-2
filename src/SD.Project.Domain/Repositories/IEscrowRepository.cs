@@ -107,4 +107,21 @@ public interface IEscrowRepository
     /// Saves all changes to the database.
     /// </summary>
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all escrow allocations for a date range.
+    /// </summary>
+    Task<IReadOnlyList<EscrowAllocation>> GetAllocationsByDateRangeAsync(
+        DateTime fromDate,
+        DateTime toDate,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets escrow allocations for a specific store within a date range.
+    /// </summary>
+    Task<IReadOnlyList<EscrowAllocation>> GetAllocationsByStoreIdAndDateRangeAsync(
+        Guid storeId,
+        DateTime fromDate,
+        DateTime toDate,
+        CancellationToken cancellationToken = default);
 }
