@@ -207,6 +207,8 @@ public sealed class UserAdminService
             }
         }
 
+        // Save all changes (user, block info, and store) in a single transaction
+        // All repositories share the same DbContext, so SaveChangesAsync commits all pending changes
         await _userRepository.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation(
@@ -264,6 +266,8 @@ public sealed class UserAdminService
         // Unblock the user
         user.Unblock();
 
+        // Save all changes (user and block info) in a single transaction
+        // All repositories share the same DbContext, so SaveChangesAsync commits all pending changes
         await _userRepository.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("User unblocked successfully: UserId={UserId}", command.UserId);
