@@ -72,6 +72,7 @@ public class AppDbContext : DbContext
     public DbSet<OrderMessage> OrderMessages => Set<OrderMessage>();
     public DbSet<AnalyticsEvent> AnalyticsEvents => Set<AnalyticsEvent>();
     public DbSet<UserBlockInfo> UserBlockInfos => Set<UserBlockInfo>();
+    public DbSet<ProductModerationAuditLog> ProductModerationAuditLogs => Set<ProductModerationAuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

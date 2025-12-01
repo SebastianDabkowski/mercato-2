@@ -1187,4 +1187,74 @@ public sealed class NotificationService : INotificationService
 
         await _emailSender.SendAsync(message, cancellationToken);
     }
+
+    public async Task SendProductApprovedAsync(
+        Guid productId,
+        string productName,
+        string sellerEmail,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation(
+            "Sending product approved notification to seller {SellerEmail} for product {ProductName}",
+            sellerEmail, productName);
+
+        var encodedProductName = HtmlEncode(productName);
+        var productLink = $"/Seller/Products/{productId}";
+        var encodedLink = HtmlEncodeUrl(productLink);
+        var message = new EmailMessage(
+            To: sellerEmail,
+            Subject: $"Product Approved - {productName}",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1>Product Approved!</h1>
+                    <p>Great news! Your product <strong>{encodedProductName}</strong> has been approved and is now visible to buyers.</p>
+                    <p><a href='{encodedLink}'>View Your Product</a></p>
+                    <p>Thank you for listing quality products on Mercato.</p>
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"Your product {productName} has been approved and is now visible to buyers. View at: {productLink}",
+            TemplateName: "ProductApproved",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(message, cancellationToken);
+    }
+
+    public async Task SendProductRejectedAsync(
+        Guid productId,
+        string productName,
+        string sellerEmail,
+        string rejectionReason,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation(
+            "Sending product rejected notification to seller {SellerEmail} for product {ProductName}",
+            sellerEmail, productName);
+
+        var encodedProductName = HtmlEncode(productName);
+        var encodedRejectionReason = HtmlEncode(rejectionReason);
+        var productLink = $"/Seller/Products/{productId}";
+        var encodedLink = HtmlEncodeUrl(productLink);
+        var message = new EmailMessage(
+            To: sellerEmail,
+            Subject: $"Product Requires Changes - {productName}",
+            HtmlBody: $@"
+                <html>
+                <body>
+                    <h1>Product Moderation Update</h1>
+                    <p>Your product <strong>{encodedProductName}</strong> requires changes before it can be listed.</p>
+                    <p><strong>Reason:</strong> {encodedRejectionReason}</p>
+                    <p>Please update your product and resubmit it for review.</p>
+                    <p><a href='{encodedLink}'>Edit Your Product</a></p>
+                    <p>If you have questions, please contact our support team.</p>
+                    <p>Best regards,<br/>The Mercato Team</p>
+                </body>
+                </html>",
+            TextBody: $"Your product {productName} requires changes. Reason: {rejectionReason}. Edit at: {productLink}",
+            TemplateName: "ProductRejected",
+            Locale: "en-US");
+
+        await _emailSender.SendAsync(message, cancellationToken);
+    }
 }
