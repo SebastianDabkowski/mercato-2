@@ -7,6 +7,17 @@ namespace SD.Project.Domain.Entities;
 public class SecurityIncident
 {
     /// <summary>
+    /// Maximum length for IP address fields.
+    /// Supports IPv4 (max 15 chars) and IPv6 (max 39 chars) with some buffer.
+    /// </summary>
+    private const int MaxIpAddressLength = 45;
+
+    /// <summary>
+    /// Maximum length for user agent strings.
+    /// </summary>
+    private const int MaxUserAgentLength = 512;
+
+    /// <summary>
     /// Unique identifier for the security incident.
     /// </summary>
     public Guid Id { get; private set; }
@@ -178,8 +189,8 @@ public class SecurityIncident
         AffectedUserId = affectedUserId;
         AffectedResourceId = affectedResourceId;
         AffectedResourceType = affectedResourceType?.Trim();
-        SourceIpAddress = sourceIpAddress?.Length > 45 ? sourceIpAddress[..45] : sourceIpAddress;
-        UserAgent = userAgent?.Length > 512 ? userAgent[..512] : userAgent;
+        SourceIpAddress = sourceIpAddress?.Length > MaxIpAddressLength ? sourceIpAddress[..MaxIpAddressLength] : sourceIpAddress;
+        UserAgent = userAgent?.Length > MaxUserAgentLength ? userAgent[..MaxUserAgentLength] : userAgent;
         DetectedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
 

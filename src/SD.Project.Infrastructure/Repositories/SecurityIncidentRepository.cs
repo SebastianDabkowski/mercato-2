@@ -93,7 +93,7 @@ public sealed class SecurityIncidentRepository : ISecurityIncidentRepository
         DateTime? toDate = null,
         CancellationToken cancellationToken = default)
     {
-        var query = _context.SecurityIncidents.AsQueryable();
+        var query = _context.SecurityIncidents.AsNoTracking();
 
         query = ApplyFilters(query, status, severity, incidentType, assignedToUserId, fromDate, toDate);
 

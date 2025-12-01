@@ -7,6 +7,11 @@ namespace SD.Project.Domain.Entities;
 public class SecurityIncidentStatusHistory
 {
     /// <summary>
+    /// Maximum length for notes field.
+    /// </summary>
+    private const int MaxNotesLength = 2000;
+
+    /// <summary>
     /// Unique identifier for this status history entry.
     /// </summary>
     public Guid Id { get; private set; }
@@ -72,7 +77,7 @@ public class SecurityIncidentStatusHistory
         Status = status;
         PreviousStatus = previousStatus;
         ChangedByUserId = changedByUserId;
-        Notes = notes?.Length > 2000 ? notes[..2000] : notes;
+        Notes = notes?.Length > MaxNotesLength ? notes[..MaxNotesLength] : notes;
         ChangedAt = DateTime.UtcNow;
     }
 }

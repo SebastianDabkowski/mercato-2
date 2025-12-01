@@ -16,25 +16,18 @@ public sealed class SecurityIncidentService
 {
     private readonly ISecurityIncidentRepository _repository;
     private readonly IEmailSender _emailSender;
+    private readonly ISecurityIncidentAlertOptions _alertOptions;
     private readonly ILogger<SecurityIncidentService> _logger;
-
-    /// <summary>
-    /// Configuration for alert thresholds. In production, this should be externalized.
-    /// </summary>
-    private const SecurityIncidentSeverity AlertThreshold = SecurityIncidentSeverity.High;
-
-    /// <summary>
-    /// Placeholder for security contact emails. In production, load from configuration.
-    /// </summary>
-    private static readonly string[] SecurityContacts = { "security@mercato.example" };
 
     public SecurityIncidentService(
         ISecurityIncidentRepository repository,
         IEmailSender emailSender,
+        ISecurityIncidentAlertOptions alertOptions,
         ILogger<SecurityIncidentService> logger)
     {
         _repository = repository;
         _emailSender = emailSender;
+        _alertOptions = alertOptions;
         _logger = logger;
     }
 
@@ -85,7 +78,7 @@ public sealed class SecurityIncidentService
 
             // Send alert if severity meets threshold
             var alertSent = false;
-            if (incident.RequiresAlert(AlertThreshold))
+            if (incident.RequiresAlert(_alertOptions.AlertThreshold))
             {
                 alertSent = await SendAlertAsync(incident, cancellationToken);
             }
@@ -195,7 +188,7 @@ public sealed class SecurityIncidentService
             command.ActorUserId);
 
         // Send alert if severity was escalated to meet threshold
-        if (previousSeverity < AlertThreshold && incident.RequiresAlert(AlertThreshold))
+        if (previousSeverity < _alertOptions.AlertThreshold && incident.RequiresAlert(_alertOptions.AlertThreshold))
         {
             await SendAlertAsync(incident, cancellationToken);
         }
@@ -342,6 +335,15 @@ public sealed class SecurityIncidentService
 
     private async Task<bool> SendAlertAsync(SecurityIncident incident, CancellationToken cancellationToken)
     {
+        var securityContacts = _alertOptions.SecurityContactEmails;
+        if (securityContacts.Count == 0)
+        {
+            _logger.LogWarning(
+                "No security contacts configured. Cannot send alert for incident {IncidentNumber}",
+                incident.IncidentNumber);
+            return false;
+        }
+
         try
         {
             var subject = $"[SECURITY ALERT] {incident.Severity} - {incident.IncidentNumber}: {incident.Title}";
@@ -377,7 +379,7 @@ Description:
 
 Please review and respond to this incident according to the security response playbook.";
 
-            foreach (var contact in SecurityContacts)
+            foreach (var contact in securityContacts)
             {
                 var message = new EmailMessage(
                     contact,
@@ -392,7 +394,7 @@ Please review and respond to this incident according to the security response pl
             _logger.LogInformation(
                 "Security alert sent for incident {IncidentNumber} to {ContactCount} contacts",
                 incident.IncidentNumber,
-                SecurityContacts.Length);
+                securityContacts.Count);
 
             return true;
         }

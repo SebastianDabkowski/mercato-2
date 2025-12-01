@@ -106,6 +106,15 @@ public static class DependencyInjection
         services.AddScoped<IImageStorageService, LocalImageStorageService>();
         services.AddSingleton<ILoginRateLimiter, LoginRateLimiter>();
 
+        // Security incident alerting configuration
+        // Configure in appsettings.json under "SecurityIncidentAlerts" section
+        var securityAlertSection = configuration.GetSection(SecurityIncidentAlertOptions.SectionName);
+        services.Configure<SecurityIncidentAlertOptions>(options =>
+        {
+            securityAlertSection.Bind(options);
+        });
+        services.AddScoped<ISecurityIncidentAlertOptions, SecurityIncidentAlertOptionsAdapter>();
+
         // Analytics configuration and service
         services.Configure<AnalyticsOptions>(options =>
         {
