@@ -1,0 +1,229 @@
+@page
+@model SD.Project.Pages.Admin.FeatureFlagsModel
+@{
+    ViewData["Title"] = "Feature Flag Management";
+}
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>Feature Flag Management</h1>
+            <p class="text-muted mb-0">Manage feature flags for gradual rollouts and A/B testing.</p>
+        </div>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createFlagModal">
+            <i class="bi bi-plus-lg me-1"></i> Create Feature Flag
+        </button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Filter Bar -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-5">
+                    <label class="form-label">Search</label>
+                    <input type="text" name="searchTerm" class="form-control" placeholder="Search by key, name or description..." value="@Model.SearchTerm" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select name="statusFilter" class="form-select">
+                        <option value="">All Statuses</option>
+                        <option value="Disabled" selected="@(Model.StatusFilter == "Disabled")">Disabled</option>
+                        <option value="Enabled" selected="@(Model.StatusFilter == "Enabled")">Enabled</option>
+                        <option value="Targeted" selected="@(Model.StatusFilter == "Targeted")">Targeted</option>
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-outline-primary me-2">
+                        <i class="bi bi-search me-1"></i> Search
+                    </button>
+                    <a asp-page="/Admin/FeatureFlags" class="btn btn-outline-secondary">Clear</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (Model.FeatureFlags.Count == 0)
+    {
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <h4 class="text-muted">No feature flags yet</h4>
+                <p class="text-muted">Create your first feature flag to start managing feature rollouts.</p>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createFlagModal">
+                    Create Your First Flag
+                </button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 20%">Key</th>
+                                <th style="width: 20%">Name</th>
+                                <th class="text-center">Status</th>
+                                <th class="text-center">Global Override</th>
+                                <th>Targeting</th>
+                                <th class="text-center">Environments</th>
+                                <th class="text-end">Last Updated</th>
+                                <th class="text-center" style="width: 120px">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var flag in Model.FeatureFlags)
+                            {
+                                <tr>
+                                    <td>
+                                        <code>@flag.Key</code>
+                                    </td>
+                                    <td>
+                                        <strong>@flag.Name</strong>
+                                        @if (!string.IsNullOrEmpty(flag.Description))
+                                        {
+                                            <br /><small class="text-muted">@(flag.Description.Length > 50 ? flag.Description.Substring(0, 50) + "..." : flag.Description)</small>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge @flag.StatusBadgeClass">@flag.StatusDisplay</span>
+                                    </td>
+                                    <td class="text-center">
+                                        @if (flag.GlobalOverride)
+                                        {
+                                            <span class="badge bg-warning text-dark">ON</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (flag.HasTargetingRules)
+                                        {
+                                            <small>@flag.TargetingSummary</small>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        @{
+                                            var enabledEnvCount = flag.Environments.Count(e => e.IsEnabled);
+                                            var totalEnvCount = flag.Environments.Count;
+                                        }
+                                        <span class="badge bg-info">@enabledEnvCount / @totalEnvCount enabled</span>
+                                    </td>
+                                    <td class="text-end">
+                                        <small>@flag.UpdatedAt.ToString("MMM d, yyyy HH:mm")</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <a asp-page="/Admin/FeatureFlagDetails" asp-route-id="@flag.Id" class="btn btn-sm btn-outline-primary me-1" title="View Details">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        @if (flag.Status == SD.Project.Domain.Entities.FeatureFlagStatus.Disabled)
+                                        {
+                                            <form method="post" asp-page-handler="Enable" asp-route-flagId="@flag.Id" class="d-inline">
+                                                <button type="submit" class="btn btn-sm btn-outline-success" title="Enable">
+                                                    <i class="bi bi-play-fill"></i>
+                                                </button>
+                                            </form>
+                                        }
+                                        else
+                                        {
+                                            <form method="post" asp-page-handler="Disable" asp-route-flagId="@flag.Id" class="d-inline">
+                                                <button type="submit" class="btn btn-sm btn-outline-secondary" title="Disable">
+                                                    <i class="bi bi-stop-fill"></i>
+                                                </button>
+                                            </form>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        @if (Model.TotalPages > 1)
+        {
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                        <a class="page-link" asp-page="/Admin/FeatureFlags" asp-route-page="@(Model.CurrentPage - 1)" asp-route-searchTerm="@Model.SearchTerm" asp-route-statusFilter="@Model.StatusFilter">Previous</a>
+                    </li>
+                    @for (var i = 1; i <= Model.TotalPages; i++)
+                    {
+                        <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                            <a class="page-link" asp-page="/Admin/FeatureFlags" asp-route-page="@i" asp-route-searchTerm="@Model.SearchTerm" asp-route-statusFilter="@Model.StatusFilter">@i</a>
+                        </li>
+                    }
+                    <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                        <a class="page-link" asp-page="/Admin/FeatureFlags" asp-route-page="@(Model.CurrentPage + 1)" asp-route-searchTerm="@Model.SearchTerm" asp-route-statusFilter="@Model.StatusFilter">Next</a>
+                    </li>
+                </ul>
+            </nav>
+        }
+    }
+
+    <div class="mt-4">
+        <a asp-page="/Admin/Dashboard" class="btn btn-outline-secondary">Back to Dashboard</a>
+    </div>
+</div>
+
+<!-- Create Feature Flag Modal -->
+<div class="modal fade" id="createFlagModal" tabindex="-1" aria-labelledby="createFlagModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Create">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createFlagModalLabel">Create Feature Flag</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label asp-for="NewFlag.Key" class="form-label">Key <span class="text-danger">*</span></label>
+                        <input asp-for="NewFlag.Key" class="form-control" placeholder="e.g., new-checkout-flow" />
+                        <span asp-validation-for="NewFlag.Key" class="text-danger"></span>
+                        <div class="form-text">Unique identifier used to reference this flag in code. Use lowercase letters, numbers, hyphens, and underscores.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="NewFlag.Name" class="form-label">Name <span class="text-danger">*</span></label>
+                        <input asp-for="NewFlag.Name" class="form-control" placeholder="e.g., New Checkout Flow" />
+                        <span asp-validation-for="NewFlag.Name" class="text-danger"></span>
+                        <div class="form-text">Human-readable name for this feature flag.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="NewFlag.Description" class="form-label">Description</label>
+                        <textarea asp-for="NewFlag.Description" class="form-control" rows="3" placeholder="Describe what this feature flag controls..."></textarea>
+                        <span asp-validation-for="NewFlag.Description" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Feature Flag</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

@@ -82,6 +82,8 @@ public static class DependencyInjection
         services.AddScoped<SecurityIncidentService>();
         services.AddScoped<IntegrationService>();
         services.AddScoped<LegalDocumentService>();
+        services.AddScoped<FeatureFlagService>();
+        services.AddScoped<IFeatureFlagEvaluator, FeatureFlagEvaluator>();
 
         // Domain services for cart totals calculation
         services.AddSingleton<CartTotalsCalculator>();
