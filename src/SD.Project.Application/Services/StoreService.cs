@@ -41,7 +41,18 @@ public sealed class StoreService
         ArgumentNullException.ThrowIfNull(query);
 
         var store = await _storeRepository.GetByIdAsync(query.StoreId, cancellationToken);
-        return store is null ? null : MapToDto(store);
+        if (store is null)
+        {
+            return null;
+        }
+
+        // For public queries, only return publicly visible stores
+        if (query.PublicOnly && !store.IsPubliclyVisible())
+        {
+            return null;
+        }
+
+        return MapToDto(store);
     }
 
     /// <summary>
@@ -57,7 +68,18 @@ public sealed class StoreService
         }
 
         var store = await _storeRepository.GetBySlugAsync(query.Slug, cancellationToken);
-        return store is null ? null : MapToDto(store);
+        if (store is null)
+        {
+            return null;
+        }
+
+        // For public queries, only return publicly visible stores
+        if (query.PublicOnly && !store.IsPubliclyVisible())
+        {
+            return null;
+        }
+
+        return MapToDto(store);
     }
 
     /// <summary>

@@ -245,6 +245,32 @@ public class User
     }
 
     /// <summary>
+    /// Blocks the user account. Blocked users cannot log in and seller stores/listings become hidden.
+    /// </summary>
+    public void Block()
+    {
+        Status = UserStatus.Blocked;
+    }
+
+    /// <summary>
+    /// Unblocks the user account, restoring it to verified status.
+    /// </summary>
+    public void Unblock()
+    {
+        if (Status != UserStatus.Blocked)
+        {
+            throw new InvalidOperationException("User is not currently blocked.");
+        }
+
+        Status = UserStatus.Verified;
+    }
+
+    /// <summary>
+    /// Indicates whether the user account is blocked.
+    /// </summary>
+    public bool IsBlocked => Status == UserStatus.Blocked;
+
+    /// <summary>
     /// Updates the user's password hash. Only valid for users with password-based authentication.
     /// </summary>
     /// <param name="newPasswordHash">The new password hash.</param>

@@ -34,6 +34,7 @@ public static class DependencyInjection
         services.AddScoped<IProductVariantAttributeDefinitionRepository, ProductVariantAttributeDefinitionRepository>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IUserBlockInfoRepository, UserBlockInfoRepository>();
         services.AddScoped<IEmailVerificationTokenRepository, EmailVerificationTokenRepository>();
         services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
         services.AddScoped<IUserSessionRepository, UserSessionRepository>();
