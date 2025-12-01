@@ -1,0 +1,498 @@
+@page
+@model SD.Project.Pages.Admin.DataProcessingRegistryModel
+@{
+    ViewData["Title"] = "Data Processing Registry";
+}
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1>Data Processing Registry</h1>
+            <p class="text-muted mb-0">GDPR Art. 30 - Registry of processing activities for personal data.</p>
+        </div>
+        <div>
+            <form method="post" asp-page-handler="Export" class="d-inline">
+                <input type="hidden" name="includeArchived" value="@Model.ShowArchived" />
+                <button type="submit" class="btn btn-outline-secondary me-2">
+                    <i class="bi bi-download me-1"></i> Export CSV
+                </button>
+            </form>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createActivityModal">
+                <i class="bi bi-plus-lg me-1"></i> Add Processing Activity
+            </button>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="card-title mb-0">@Model.Activities.Count</h3>
+                    <p class="card-text text-muted mb-0">Total Activities</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="card-title mb-0 text-success">@Model.Activities.Count(a => a.IsActive)</h3>
+                    <p class="card-text text-muted mb-0">Active</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="card-title mb-0 text-secondary">@Model.Activities.Count(a => !a.IsActive)</h3>
+                    <p class="card-text text-muted mb-0">Archived</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h3 class="card-title mb-0 text-primary">@Model.Activities.Select(a => a.LegalBasis).Distinct().Count()</h3>
+                    <p class="card-text text-muted mb-0">Legal Bases</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-auto">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="showArchived" id="showArchived" value="true" @(Model.ShowArchived ? "checked" : "")>
+                        <label class="form-check-label" for="showArchived">
+                            Show archived activities
+                        </label>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-outline-primary">Apply Filter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (Model.Activities.Count == 0)
+    {
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <h4 class="text-muted">No processing activities registered</h4>
+                <p class="text-muted">Create your first data processing activity record to maintain GDPR compliance.</p>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createActivityModal">
+                    Add Your First Processing Activity
+                </button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Name</th>
+                                <th>Purpose</th>
+                                <th>Legal Basis</th>
+                                <th>Data Subjects</th>
+                                <th>Retention</th>
+                                <th>Status</th>
+                                <th>Last Modified</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var activity in Model.Activities)
+                            {
+                                <tr>
+                                    <td>
+                                        <strong>@activity.Name</strong>
+                                        @if (!string.IsNullOrEmpty(activity.Description))
+                                        {
+                                            <br />
+                                            <small class="text-muted">@activity.TruncatedDescription</small>
+                                        }
+                                    </td>
+                                    <td>@activity.TruncatedPurpose</td>
+                                    <td><span class="badge bg-info">@activity.LegalBasis</span></td>
+                                    <td>@activity.TruncatedDataSubjects</td>
+                                    <td><small>@activity.RetentionPeriod</small></td>
+                                    <td>
+                                        <span class="badge @activity.StatusBadgeClass">@activity.StatusDisplay</span>
+                                        @if (activity.HasInternationalTransfers)
+                                        {
+                                            <span class="badge bg-warning text-dark" title="Contains international transfers">
+                                                <i class="bi bi-globe"></i>
+                                            </span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <small>@activity.LastModifiedDisplay</small>
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button"
+                                                    class="btn btn-outline-secondary"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#viewActivityModal"
+                                                    data-activity-id="@activity.Id"
+                                                    data-activity-name="@activity.Name"
+                                                    data-activity-description="@activity.Description"
+                                                    data-activity-purpose="@activity.Purpose"
+                                                    data-activity-legalbasis="@activity.LegalBasis"
+                                                    data-activity-datacategories="@activity.DataCategories"
+                                                    data-activity-datasubjects="@activity.DataSubjects"
+                                                    data-activity-processors="@activity.Processors"
+                                                    data-activity-retention="@activity.RetentionPeriod"
+                                                    data-activity-transfers="@activity.InternationalTransfers"
+                                                    data-activity-security="@activity.SecurityMeasures"
+                                                    data-activity-created="@activity.CreatedDisplay"
+                                                    data-activity-modified="@activity.LastModifiedDisplay"
+                                                    title="View Details">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                            <button type="button"
+                                                    class="btn btn-outline-secondary"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#editActivityModal"
+                                                    data-activity-id="@activity.Id"
+                                                    data-activity-name="@activity.Name"
+                                                    data-activity-description="@activity.Description"
+                                                    data-activity-purpose="@activity.Purpose"
+                                                    data-activity-legalbasis="@activity.LegalBasis"
+                                                    data-activity-datacategories="@activity.DataCategories"
+                                                    data-activity-datasubjects="@activity.DataSubjects"
+                                                    data-activity-processors="@activity.Processors"
+                                                    data-activity-retention="@activity.RetentionPeriod"
+                                                    data-activity-transfers="@activity.InternationalTransfers"
+                                                    data-activity-security="@activity.SecurityMeasures"
+                                                    title="Edit">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <a asp-page="/Admin/DataProcessingHistory" asp-route-activityId="@activity.Id" class="btn btn-outline-secondary" title="View Audit History">
+                                                <i class="bi bi-clock-history"></i>
+                                            </a>
+                                            @if (activity.IsActive)
+                                            {
+                                                <form method="post" asp-page-handler="Archive" class="d-inline" onsubmit="return confirm('Are you sure you want to archive this processing activity?');">
+                                                    <input type="hidden" name="activityId" value="@activity.Id" />
+                                                    <button type="submit" class="btn btn-outline-warning" title="Archive">
+                                                        <i class="bi bi-archive"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                            else
+                                            {
+                                                <form method="post" asp-page-handler="Reactivate" class="d-inline">
+                                                    <input type="hidden" name="activityId" value="@activity.Id" />
+                                                    <button type="submit" class="btn btn-outline-success" title="Reactivate">
+                                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="mt-4">
+        <a asp-page="/Admin/Dashboard" class="btn btn-outline-secondary">Back to Dashboard</a>
+    </div>
+</div>
+
+<!-- Create Activity Modal -->
+<div class="modal fade" id="createActivityModal" tabindex="-1" aria-labelledby="createActivityModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Create">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createActivityModalLabel">Create Data Processing Activity</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="NewActivity.Name" class="form-label">Activity Name <span class="text-danger">*</span></label>
+                            <input asp-for="NewActivity.Name" class="form-control" placeholder="e.g., Customer Order Processing" />
+                            <span asp-validation-for="NewActivity.Name" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="NewActivity.LegalBasis" class="form-label">Legal Basis <span class="text-danger">*</span></label>
+                            <select asp-for="NewActivity.LegalBasis" asp-items="DataProcessingRegistryModel.LegalBasisOptions" class="form-select">
+                            </select>
+                            <span asp-validation-for="NewActivity.LegalBasis" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="NewActivity.Description" class="form-label">Description</label>
+                        <textarea asp-for="NewActivity.Description" class="form-control" rows="2" placeholder="Optional description of the processing activity"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="NewActivity.Purpose" class="form-label">Purpose(s) of Processing <span class="text-danger">*</span></label>
+                        <textarea asp-for="NewActivity.Purpose" class="form-control" rows="2" placeholder="e.g., Processing customer orders, delivering products, handling returns"></textarea>
+                        <span asp-validation-for="NewActivity.Purpose" class="text-danger"></span>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="NewActivity.DataCategories" class="form-label">Categories of Personal Data <span class="text-danger">*</span></label>
+                            <textarea asp-for="NewActivity.DataCategories" class="form-control" rows="2" placeholder="e.g., Name, email, shipping address, payment information"></textarea>
+                            <span asp-validation-for="NewActivity.DataCategories" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="NewActivity.DataSubjects" class="form-label">Categories of Data Subjects <span class="text-danger">*</span></label>
+                            <textarea asp-for="NewActivity.DataSubjects" class="form-control" rows="2" placeholder="e.g., Customers, Website visitors, Sellers"></textarea>
+                            <span asp-validation-for="NewActivity.DataSubjects" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="NewActivity.Processors" class="form-label">Processors / Recipients</label>
+                            <textarea asp-for="NewActivity.Processors" class="form-control" rows="2" placeholder="e.g., Payment gateway (Stripe), Shipping providers, Email service"></textarea>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="NewActivity.RetentionPeriod" class="form-label">Retention Period <span class="text-danger">*</span></label>
+                            <input asp-for="NewActivity.RetentionPeriod" class="form-control" placeholder="e.g., 5 years after contract termination" />
+                            <span asp-validation-for="NewActivity.RetentionPeriod" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="NewActivity.InternationalTransfers" class="form-label">International Transfers</label>
+                            <textarea asp-for="NewActivity.InternationalTransfers" class="form-control" rows="2" placeholder="Describe any transfers to third countries outside EU/EEA"></textarea>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="NewActivity.SecurityMeasures" class="form-label">Security Measures</label>
+                            <textarea asp-for="NewActivity.SecurityMeasures" class="form-control" rows="2" placeholder="e.g., Encryption at rest and in transit, access controls, regular audits"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Activity</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Activity Modal -->
+<div class="modal fade" id="editActivityModal" tabindex="-1" aria-labelledby="editActivityModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Edit">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editActivityModalLabel">Edit Data Processing Activity</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="EditActivity.Id" id="editActivityId" />
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="EditActivity.Name" class="form-label">Activity Name <span class="text-danger">*</span></label>
+                            <input asp-for="EditActivity.Name" class="form-control" id="editName" />
+                            <span asp-validation-for="EditActivity.Name" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="EditActivity.LegalBasis" class="form-label">Legal Basis <span class="text-danger">*</span></label>
+                            <select asp-for="EditActivity.LegalBasis" asp-items="DataProcessingRegistryModel.LegalBasisOptions" class="form-select" id="editLegalBasis">
+                            </select>
+                            <span asp-validation-for="EditActivity.LegalBasis" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="EditActivity.Description" class="form-label">Description</label>
+                        <textarea asp-for="EditActivity.Description" class="form-control" rows="2" id="editDescription"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="EditActivity.Purpose" class="form-label">Purpose(s) of Processing <span class="text-danger">*</span></label>
+                        <textarea asp-for="EditActivity.Purpose" class="form-control" rows="2" id="editPurpose"></textarea>
+                        <span asp-validation-for="EditActivity.Purpose" class="text-danger"></span>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="EditActivity.DataCategories" class="form-label">Categories of Personal Data <span class="text-danger">*</span></label>
+                            <textarea asp-for="EditActivity.DataCategories" class="form-control" rows="2" id="editDataCategories"></textarea>
+                            <span asp-validation-for="EditActivity.DataCategories" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="EditActivity.DataSubjects" class="form-label">Categories of Data Subjects <span class="text-danger">*</span></label>
+                            <textarea asp-for="EditActivity.DataSubjects" class="form-control" rows="2" id="editDataSubjects"></textarea>
+                            <span asp-validation-for="EditActivity.DataSubjects" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="EditActivity.Processors" class="form-label">Processors / Recipients</label>
+                            <textarea asp-for="EditActivity.Processors" class="form-control" rows="2" id="editProcessors"></textarea>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="EditActivity.RetentionPeriod" class="form-label">Retention Period <span class="text-danger">*</span></label>
+                            <input asp-for="EditActivity.RetentionPeriod" class="form-control" id="editRetentionPeriod" />
+                            <span asp-validation-for="EditActivity.RetentionPeriod" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="EditActivity.InternationalTransfers" class="form-label">International Transfers</label>
+                            <textarea asp-for="EditActivity.InternationalTransfers" class="form-control" rows="2" id="editInternationalTransfers"></textarea>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="EditActivity.SecurityMeasures" class="form-label">Security Measures</label>
+                            <textarea asp-for="EditActivity.SecurityMeasures" class="form-control" rows="2" id="editSecurityMeasures"></textarea>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="EditActivity.ChangeReason" class="form-label">Change Reason</label>
+                        <textarea asp-for="EditActivity.ChangeReason" class="form-control" rows="2" placeholder="Optional reason for this change (recorded in audit history)"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- View Activity Modal -->
+<div class="modal fade" id="viewActivityModal" tabindex="-1" aria-labelledby="viewActivityModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewActivityModalLabel">Data Processing Activity Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Activity Name</h6>
+                        <p id="viewName" class="fw-bold"></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Legal Basis</h6>
+                        <p id="viewLegalBasis"></p>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <h6 class="text-muted">Description</h6>
+                    <p id="viewDescription"></p>
+                </div>
+                <div class="mb-3">
+                    <h6 class="text-muted">Purpose(s) of Processing</h6>
+                    <p id="viewPurpose"></p>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Categories of Personal Data</h6>
+                        <p id="viewDataCategories"></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Categories of Data Subjects</h6>
+                        <p id="viewDataSubjects"></p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Processors / Recipients</h6>
+                        <p id="viewProcessors"></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Retention Period</h6>
+                        <p id="viewRetention"></p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">International Transfers</h6>
+                        <p id="viewTransfers"></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Security Measures</h6>
+                        <p id="viewSecurity"></p>
+                    </div>
+                </div>
+                <hr />
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Created</h6>
+                        <p id="viewCreated" class="small"></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Last Modified</h6>
+                        <p id="viewModified" class="small"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Edit modal population
+        document.getElementById('editActivityModal').addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            document.getElementById('editActivityId').value = button.getAttribute('data-activity-id');
+            document.getElementById('editName').value = button.getAttribute('data-activity-name');
+            document.getElementById('editDescription').value = button.getAttribute('data-activity-description') || '';
+            document.getElementById('editPurpose').value = button.getAttribute('data-activity-purpose');
+            document.getElementById('editLegalBasis').value = button.getAttribute('data-activity-legalbasis');
+            document.getElementById('editDataCategories').value = button.getAttribute('data-activity-datacategories');
+            document.getElementById('editDataSubjects').value = button.getAttribute('data-activity-datasubjects');
+            document.getElementById('editProcessors').value = button.getAttribute('data-activity-processors') || '';
+            document.getElementById('editRetentionPeriod').value = button.getAttribute('data-activity-retention');
+            document.getElementById('editInternationalTransfers').value = button.getAttribute('data-activity-transfers') || '';
+            document.getElementById('editSecurityMeasures').value = button.getAttribute('data-activity-security') || '';
+        });
+
+        // View modal population
+        document.getElementById('viewActivityModal').addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            document.getElementById('viewName').textContent = button.getAttribute('data-activity-name');
+            document.getElementById('viewDescription').textContent = button.getAttribute('data-activity-description') || 'No description provided';
+            document.getElementById('viewPurpose').textContent = button.getAttribute('data-activity-purpose');
+            document.getElementById('viewLegalBasis').textContent = button.getAttribute('data-activity-legalbasis');
+            document.getElementById('viewDataCategories').textContent = button.getAttribute('data-activity-datacategories');
+            document.getElementById('viewDataSubjects').textContent = button.getAttribute('data-activity-datasubjects');
+            document.getElementById('viewProcessors').textContent = button.getAttribute('data-activity-processors') || 'None specified';
+            document.getElementById('viewRetention').textContent = button.getAttribute('data-activity-retention');
+            document.getElementById('viewTransfers').textContent = button.getAttribute('data-activity-transfers') || 'None';
+            document.getElementById('viewSecurity').textContent = button.getAttribute('data-activity-security') || 'Not specified';
+            document.getElementById('viewCreated').textContent = button.getAttribute('data-activity-created');
+            document.getElementById('viewModified').textContent = button.getAttribute('data-activity-modified');
+        });
+    </script>
+}
