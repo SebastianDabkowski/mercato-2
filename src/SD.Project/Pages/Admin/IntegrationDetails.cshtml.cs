@@ -52,25 +52,7 @@ public class IntegrationDetailsModel : PageModel
                 return NotFound();
             }
 
-            CurrentIntegration = new IntegrationViewModel
-            {
-                Id = dto.Id,
-                Name = dto.Name,
-                Type = dto.Type,
-                Status = dto.Status,
-                Environment = dto.Environment,
-                Endpoint = dto.Endpoint,
-                MerchantId = dto.MerchantId,
-                CallbackUrl = dto.CallbackUrl,
-                Description = dto.Description,
-                MaskedApiKey = dto.MaskedApiKey,
-                HasApiKey = dto.HasApiKey,
-                LastHealthCheckAt = dto.LastHealthCheckAt,
-                LastHealthCheckMessage = dto.LastHealthCheckMessage,
-                LastHealthCheckSuccess = dto.LastHealthCheckSuccess,
-                CreatedAt = dto.CreatedAt,
-                UpdatedAt = dto.UpdatedAt
-            };
+            CurrentIntegration = MapToViewModel(dto);
 
             // Pre-populate the form
             Form = new IntegrationFormModel
@@ -99,10 +81,8 @@ public class IntegrationDetailsModel : PageModel
             return Page();
         }
 
-        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-        if (userIdClaim is null || !Guid.TryParse(userIdClaim.Value, out var userId))
+        if (!TryGetCurrentUserId(out var userId))
         {
-            ErrorMessage = "Unable to determine current user.";
             return RedirectToPage("Integrations");
         }
 
@@ -175,10 +155,8 @@ public class IntegrationDetailsModel : PageModel
             return BadRequest();
         }
 
-        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-        if (userIdClaim is null || !Guid.TryParse(userIdClaim.Value, out var userId))
+        if (!TryGetCurrentUserId(out var userId))
         {
-            ErrorMessage = "Unable to determine current user.";
             return RedirectToPage();
         }
 
@@ -200,10 +178,8 @@ public class IntegrationDetailsModel : PageModel
             return BadRequest();
         }
 
-        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-        if (userIdClaim is null || !Guid.TryParse(userIdClaim.Value, out var userId))
+        if (!TryGetCurrentUserId(out var userId))
         {
-            ErrorMessage = "Unable to determine current user.";
             return RedirectToPage();
         }
 
@@ -224,6 +200,18 @@ public class IntegrationDetailsModel : PageModel
         return RedirectToPage(new { id = Id });
     }
 
+    private bool TryGetCurrentUserId(out Guid userId)
+    {
+        userId = Guid.Empty;
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (userIdClaim is null || !Guid.TryParse(userIdClaim.Value, out userId))
+        {
+            ErrorMessage = "Unable to determine current user.";
+            return false;
+        }
+        return true;
+    }
+
     private async Task LoadCurrentIntegration()
     {
         if (!Id.HasValue)
@@ -234,26 +222,31 @@ public class IntegrationDetailsModel : PageModel
         var dto = await _integrationService.HandleAsync(new GetIntegrationByIdQuery(Id.Value));
         if (dto is not null)
         {
-            CurrentIntegration = new IntegrationViewModel
-            {
-                Id = dto.Id,
-                Name = dto.Name,
-                Type = dto.Type,
-                Status = dto.Status,
-                Environment = dto.Environment,
-                Endpoint = dto.Endpoint,
-                MerchantId = dto.MerchantId,
-                CallbackUrl = dto.CallbackUrl,
-                Description = dto.Description,
-                MaskedApiKey = dto.MaskedApiKey,
-                HasApiKey = dto.HasApiKey,
-                LastHealthCheckAt = dto.LastHealthCheckAt,
-                LastHealthCheckMessage = dto.LastHealthCheckMessage,
-                LastHealthCheckSuccess = dto.LastHealthCheckSuccess,
-                CreatedAt = dto.CreatedAt,
-                UpdatedAt = dto.UpdatedAt
-            };
+            CurrentIntegration = MapToViewModel(dto);
         }
+    }
+
+    private static IntegrationViewModel MapToViewModel(Application.DTOs.IntegrationDto dto)
+    {
+        return new IntegrationViewModel
+        {
+            Id = dto.Id,
+            Name = dto.Name,
+            Type = dto.Type,
+            Status = dto.Status,
+            Environment = dto.Environment,
+            Endpoint = dto.Endpoint,
+            MerchantId = dto.MerchantId,
+            CallbackUrl = dto.CallbackUrl,
+            Description = dto.Description,
+            MaskedApiKey = dto.MaskedApiKey,
+            HasApiKey = dto.HasApiKey,
+            LastHealthCheckAt = dto.LastHealthCheckAt,
+            LastHealthCheckMessage = dto.LastHealthCheckMessage,
+            LastHealthCheckSuccess = dto.LastHealthCheckSuccess,
+            CreatedAt = dto.CreatedAt,
+            UpdatedAt = dto.UpdatedAt
+        };
     }
 }
 

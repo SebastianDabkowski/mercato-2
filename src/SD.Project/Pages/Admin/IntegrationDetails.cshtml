@@ -1,6 +1,7 @@
 @page "{id:guid?}"
 @model SD.Project.Pages.Admin.IntegrationDetailsModel
 @using SD.Project.Domain.Entities
+@using SD.Project.ViewModels
 @{
     ViewData["Title"] = Model.IsEditMode ? $"Edit Integration - {Model.CurrentIntegration?.Name}" : "Add Integration";
 }
@@ -73,7 +74,7 @@
                                 <select asp-for="Form.Type" class="form-select">
                                     @foreach (IntegrationType type in Enum.GetValues<IntegrationType>())
                                     {
-                                        <option value="@type">@GetTypeDisplayName(type)</option>
+                                        <option value="@type">@IntegrationViewModel.GetTypeDisplayName(type)</option>
                                     }
                                 </select>
                                 <span asp-validation-for="Form.Type" class="text-danger"></span>
@@ -263,16 +264,4 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-}
-
-@functions {
-    string GetTypeDisplayName(IntegrationType type) => type switch
-    {
-        IntegrationType.Payment => "Payment Gateway",
-        IntegrationType.Shipping => "Shipping Provider",
-        IntegrationType.Erp => "ERP System",
-        IntegrationType.Ecommerce => "E-commerce Connector",
-        IntegrationType.Other => "Other",
-        _ => type.ToString()
-    };
 }

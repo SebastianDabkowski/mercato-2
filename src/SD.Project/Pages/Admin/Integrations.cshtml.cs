@@ -89,10 +89,8 @@ public class IntegrationsModel : PageModel
 
     public async Task<IActionResult> OnPostToggleStatusAsync(Guid id, bool enable)
     {
-        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-        if (userIdClaim is null || !Guid.TryParse(userIdClaim.Value, out var userId))
+        if (!TryGetCurrentUserId(out var userId))
         {
-            ErrorMessage = "Unable to determine current user.";
             return RedirectToPage();
         }
 
@@ -115,10 +113,8 @@ public class IntegrationsModel : PageModel
 
     public async Task<IActionResult> OnPostTestConnectionAsync(Guid id)
     {
-        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-        if (userIdClaim is null || !Guid.TryParse(userIdClaim.Value, out var userId))
+        if (!TryGetCurrentUserId(out var userId))
         {
-            ErrorMessage = "Unable to determine current user.";
             return RedirectToPage();
         }
 
@@ -139,10 +135,8 @@ public class IntegrationsModel : PageModel
 
     public async Task<IActionResult> OnPostDeleteAsync(Guid id)
     {
-        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-        if (userIdClaim is null || !Guid.TryParse(userIdClaim.Value, out var userId))
+        if (!TryGetCurrentUserId(out var userId))
         {
-            ErrorMessage = "Unable to determine current user.";
             return RedirectToPage();
         }
 
@@ -159,5 +153,17 @@ public class IntegrationsModel : PageModel
         }
 
         return RedirectToPage();
+    }
+
+    private bool TryGetCurrentUserId(out Guid userId)
+    {
+        userId = Guid.Empty;
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (userIdClaim is null || !Guid.TryParse(userIdClaim.Value, out userId))
+        {
+            ErrorMessage = "Unable to determine current user.";
+            return false;
+        }
+        return true;
     }
 }

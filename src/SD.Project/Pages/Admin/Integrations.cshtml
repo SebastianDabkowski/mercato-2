@@ -1,6 +1,7 @@
 @page
 @model SD.Project.Pages.Admin.IntegrationsModel
 @using SD.Project.Domain.Entities
+@using SD.Project.ViewModels
 @{
     ViewData["Title"] = "Integrations Management";
 }
@@ -46,7 +47,7 @@
                         <option value="">All Types</option>
                         @foreach (IntegrationType type in Enum.GetValues<IntegrationType>())
                         {
-                            <option value="@type" selected="@(Model.TypeFilter == type)">@GetTypeDisplayName(type)</option>
+                            <option value="@type" selected="@(Model.TypeFilter == type)">@IntegrationViewModel.GetTypeDisplayName(type)</option>
                         }
                     </select>
                 </div>
@@ -56,7 +57,7 @@
                         <option value="">All Statuses</option>
                         @foreach (IntegrationStatus status in Enum.GetValues<IntegrationStatus>())
                         {
-                            <option value="@status" selected="@(Model.StatusFilter == status)">@GetStatusDisplayName(status)</option>
+                            <option value="@status" selected="@(Model.StatusFilter == status)">@IntegrationViewModel.GetStatusDisplayName(status)</option>
                         }
                     </select>
                 </div>
@@ -259,25 +260,4 @@
             document.getElementById('deleteIntegrationName').textContent = integrationName;
         });
     </script>
-}
-
-@functions {
-    string GetTypeDisplayName(IntegrationType type) => type switch
-    {
-        IntegrationType.Payment => "Payment Gateway",
-        IntegrationType.Shipping => "Shipping Provider",
-        IntegrationType.Erp => "ERP System",
-        IntegrationType.Ecommerce => "E-commerce Connector",
-        IntegrationType.Other => "Other",
-        _ => type.ToString()
-    };
-
-    string GetStatusDisplayName(IntegrationStatus status) => status switch
-    {
-        IntegrationStatus.Active => "Active",
-        IntegrationStatus.Disabled => "Disabled",
-        IntegrationStatus.Unhealthy => "Unhealthy",
-        IntegrationStatus.Pending => "Pending Setup",
-        _ => status.ToString()
-    };
 }

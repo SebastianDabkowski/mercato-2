@@ -6,6 +6,9 @@ namespace SD.Project.Domain.Entities;
 /// </summary>
 public class Integration
 {
+    private const int MaskedApiKeyVisibleChars = 4;
+    private const int MaskedApiKeyAsteriskCount = 12;
+
     public Guid Id { get; private set; }
     public string Name { get; private set; } = default!;
     public IntegrationType Type { get; private set; }
@@ -276,14 +279,13 @@ public class Integration
             return string.Empty;
         }
 
-        // Show asterisks with last 4 characters visible
-        const int visibleChars = 4;
-        if (ApiKeyEncrypted.Length <= visibleChars)
+        // Show asterisks with last visible characters
+        if (ApiKeyEncrypted.Length <= MaskedApiKeyVisibleChars)
         {
             return new string('*', ApiKeyEncrypted.Length);
         }
 
-        return new string('*', 12) + ApiKeyEncrypted[^visibleChars..];
+        return new string('*', MaskedApiKeyAsteriskCount) + ApiKeyEncrypted[^MaskedApiKeyVisibleChars..];
         
     }
 }

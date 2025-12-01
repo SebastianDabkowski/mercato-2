@@ -27,27 +27,12 @@ public sealed class IntegrationViewModel
     /// <summary>
     /// Gets the display name for the integration type.
     /// </summary>
-    public string TypeDisplayName => Type switch
-    {
-        IntegrationType.Payment => "Payment Gateway",
-        IntegrationType.Shipping => "Shipping Provider",
-        IntegrationType.Erp => "ERP System",
-        IntegrationType.Ecommerce => "E-commerce Connector",
-        IntegrationType.Other => "Other",
-        _ => Type.ToString()
-    };
+    public string TypeDisplayName => GetTypeDisplayName(Type);
 
     /// <summary>
     /// Gets the display name for the status.
     /// </summary>
-    public string StatusDisplayName => Status switch
-    {
-        IntegrationStatus.Active => "Active",
-        IntegrationStatus.Disabled => "Disabled",
-        IntegrationStatus.Unhealthy => "Unhealthy",
-        IntegrationStatus.Pending => "Pending Setup",
-        _ => Status.ToString()
-    };
+    public string StatusDisplayName => GetStatusDisplayName(Status);
 
     /// <summary>
     /// Gets the CSS class for the status badge.
@@ -100,4 +85,29 @@ public sealed class IntegrationViewModel
     /// Checks if the integration can be disabled.
     /// </summary>
     public bool CanBeDisabled => Status == IntegrationStatus.Active || Status == IntegrationStatus.Unhealthy;
+
+    /// <summary>
+    /// Gets the display name for an integration type.
+    /// </summary>
+    public static string GetTypeDisplayName(IntegrationType type) => type switch
+    {
+        IntegrationType.Payment => "Payment Gateway",
+        IntegrationType.Shipping => "Shipping Provider",
+        IntegrationType.Erp => "ERP System",
+        IntegrationType.Ecommerce => "E-commerce Connector",
+        IntegrationType.Other => "Other",
+        _ => type.ToString()
+    };
+
+    /// <summary>
+    /// Gets the display name for an integration status.
+    /// </summary>
+    public static string GetStatusDisplayName(IntegrationStatus status) => status switch
+    {
+        IntegrationStatus.Active => "Active",
+        IntegrationStatus.Disabled => "Disabled",
+        IntegrationStatus.Unhealthy => "Unhealthy",
+        IntegrationStatus.Pending => "Pending Setup",
+        _ => status.ToString()
+    };
 }
