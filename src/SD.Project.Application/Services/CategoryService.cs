@@ -25,7 +25,7 @@ public sealed class CategoryService
     {
         ArgumentNullException.ThrowIfNull(command);
 
-        var validationErrors = ValidateCategory(command.Name);
+        var validationErrors = ValidateCategory(command.Name, command.Slug, command.Description);
         if (validationErrors.Count > 0)
         {
             return CreateCategoryResultDto.Failed(validationErrors);
@@ -41,13 +41,33 @@ public sealed class CategoryService
             }
         }
 
+        // Check slug uniqueness if provided
+        if (!string.IsNullOrWhiteSpace(command.Slug))
+        {
+            var slugExists = await _repository.SlugExistsAsync(command.Slug, cancellationToken: cancellationToken);
+            if (slugExists)
+            {
+                return CreateCategoryResultDto.Failed("A category with this slug already exists.");
+            }
+        }
+
         try
         {
             var category = new Category(
                 Guid.NewGuid(),
                 command.Name,
                 command.ParentId,
-                command.DisplayOrder);
+                command.DisplayOrder,
+                command.Description,
+                command.Slug);
+
+            // Verify generated slug is unique
+            var generatedSlugExists = await _repository.SlugExistsAsync(category.Slug, cancellationToken: cancellationToken);
+            if (generatedSlugExists)
+            {
+                // Append a unique suffix if the auto-generated slug conflicts
+                category.UpdateSlug(category.Slug + "-" + Guid.NewGuid().ToString("N")[..8]);
+            }
 
             await _repository.AddAsync(category, cancellationToken);
             await _repository.SaveChangesAsync(cancellationToken);
@@ -74,7 +94,7 @@ public sealed class CategoryService
             return UpdateCategoryResultDto.Failed("Category not found.");
         }
 
-        var validationErrors = ValidateCategory(command.Name);
+        var validationErrors = ValidateCategory(command.Name, command.Slug, command.Description);
         if (validationErrors.Count > 0)
         {
             return UpdateCategoryResultDto.Failed(validationErrors);
@@ -103,11 +123,27 @@ public sealed class CategoryService
             }
         }
 
+        // Check slug uniqueness if provided
+        var slugToCheck = command.Slug ?? category.Slug;
+        if (!string.IsNullOrWhiteSpace(slugToCheck))
+        {
+            var slugExists = await _repository.SlugExistsAsync(slugToCheck, command.CategoryId, cancellationToken);
+            if (slugExists)
+            {
+                return UpdateCategoryResultDto.Failed("A category with this slug already exists.");
+            }
+        }
+
         try
         {
             category.UpdateName(command.Name);
             category.UpdateParent(command.ParentId);
             category.UpdateDisplayOrder(command.DisplayOrder);
+            category.UpdateDescription(command.Description);
+            if (command.Slug is not null)
+            {
+                category.UpdateSlug(command.Slug);
+            }
 
             _repository.Update(category);
             await _repository.SaveChangesAsync(cancellationToken);
@@ -278,6 +314,8 @@ public sealed class CategoryService
             result.Add(new CategoryDto(
                 category.Id,
                 category.Name,
+                category.Description,
+                category.Slug,
                 category.ParentId,
                 parentName,
                 category.DisplayOrder,
@@ -309,6 +347,8 @@ public sealed class CategoryService
         return new CategoryDto(
             category.Id,
             category.Name,
+            category.Description,
+            category.Slug,
             category.ParentId,
             parentName,
             category.DisplayOrder,
@@ -341,7 +381,7 @@ public sealed class CategoryService
         return false;
     }
 
-    private static IReadOnlyList<string> ValidateCategory(string name)
+    private static IReadOnlyList<string> ValidateCategory(string name, string? slug = null, string? description = null)
     {
         var errors = new List<string>();
 
@@ -356,6 +396,16 @@ public sealed class CategoryService
         else if (name.Trim().Length > 100)
         {
             errors.Add("Category name cannot exceed 100 characters.");
+        }
+
+        if (slug is not null && slug.Trim().Length > 100)
+        {
+            errors.Add("Category slug cannot exceed 100 characters.");
+        }
+
+        if (description is not null && description.Trim().Length > 500)
+        {
+            errors.Add("Category description cannot exceed 500 characters.");
         }
 
         return errors;

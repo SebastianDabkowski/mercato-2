@@ -35,6 +35,38 @@ public sealed class CategoryRepository : ICategoryRepository
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    public async Task<Category?> GetBySlugAsync(string slug, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(slug))
+        {
+            return null;
+        }
+
+        return await _context.Categories
+            .AsNoTracking()
+            .Where(c => c.IsActive && c.Slug.ToLower() == slug.ToLower())
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<bool> SlugExistsAsync(string slug, Guid? excludeCategoryId = null, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(slug))
+        {
+            return false;
+        }
+
+        var query = _context.Categories
+            .AsNoTracking()
+            .Where(c => c.Slug.ToLower() == slug.ToLower());
+
+        if (excludeCategoryId.HasValue)
+        {
+            query = query.Where(c => c.Id != excludeCategoryId.Value);
+        }
+
+        return await query.AnyAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyCollection<Category>> GetByNamesAsync(IEnumerable<string> names, CancellationToken cancellationToken = default)
     {
         var namesList = names

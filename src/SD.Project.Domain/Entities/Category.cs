@@ -8,6 +8,8 @@ public class Category
 {
     public Guid Id { get; private set; }
     public string Name { get; private set; } = default!;
+    public string? Description { get; private set; }
+    public string Slug { get; private set; } = default!;
     public Guid? ParentId { get; private set; }
     public int DisplayOrder { get; private set; }
     public bool IsActive { get; private set; }
@@ -19,7 +21,7 @@ public class Category
         // EF Core constructor
     }
 
-    public Category(Guid id, string name, Guid? parentId = null, int displayOrder = 0)
+    public Category(Guid id, string name, Guid? parentId = null, int displayOrder = 0, string? description = null, string? slug = null)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -28,6 +30,8 @@ public class Category
 
         Id = id == Guid.Empty ? Guid.NewGuid() : id;
         Name = name.Trim();
+        Description = description?.Trim();
+        Slug = string.IsNullOrWhiteSpace(slug) ? GenerateSlug(name) : slug.Trim().ToLowerInvariant();
         ParentId = parentId;
         DisplayOrder = displayOrder;
         IsActive = true;
@@ -47,6 +51,46 @@ public class Category
 
         Name = name.Trim();
         UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Updates the category description.
+    /// </summary>
+    public void UpdateDescription(string? description)
+    {
+        Description = description?.Trim();
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Updates the category slug for SEO-friendly URLs.
+    /// </summary>
+    public void UpdateSlug(string? slug)
+    {
+        Slug = string.IsNullOrWhiteSpace(slug) ? GenerateSlug(Name) : slug.Trim().ToLowerInvariant();
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Generates a URL-friendly slug from the given name.
+    /// </summary>
+    private static string GenerateSlug(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return string.Empty;
+        }
+
+        var slug = name.Trim().ToLowerInvariant();
+        // Replace spaces with hyphens
+        slug = System.Text.RegularExpressions.Regex.Replace(slug, @"\s+", "-");
+        // Remove invalid URL characters
+        slug = System.Text.RegularExpressions.Regex.Replace(slug, @"[^a-z0-9\-]", "");
+        // Remove multiple consecutive hyphens
+        slug = System.Text.RegularExpressions.Regex.Replace(slug, @"-+", "-");
+        // Trim hyphens from start and end
+        slug = slug.Trim('-');
+        return slug;
     }
 
     /// <summary>

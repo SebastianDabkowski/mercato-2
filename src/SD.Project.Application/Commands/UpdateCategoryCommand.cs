@@ -7,4 +7,6 @@ public sealed record UpdateCategoryCommand(
     Guid CategoryId,
     string Name,
     Guid? ParentId,
-    int DisplayOrder);
+    int DisplayOrder,
+    string? Description = null,
+    string? Slug = null);
