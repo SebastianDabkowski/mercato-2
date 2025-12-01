@@ -1,0 +1,298 @@
+@page "{id:guid}"
+@model SD.Project.Pages.Admin.SellerRatingModerationDetailsModel
+@using SD.Project.ViewModels
+@{
+    ViewData["Title"] = "Seller Rating Details";
+}
+
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-page="/Admin/Dashboard">Admin</a></li>
+            <li class="breadcrumb-item"><a asp-page="/Admin/SellerRatingModeration">Seller Rating Moderation</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Rating Details</li>
+        </ol>
+    </nav>
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (Model.SellerRating != null)
+    {
+        <div class="row">
+            <!-- Rating Details -->
+            <div class="col-lg-8">
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Seller Rating Details</h5>
+                        <span class="badge @SellerRatingModerationStatusHelper.GetStatusBadgeClass(Model.SellerRating.ModerationStatus) fs-6">
+                            @SellerRatingModerationStatusHelper.GetStatusDisplayName(Model.SellerRating.ModerationStatus)
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <!-- Rating -->
+                        <div class="mb-4">
+                            <h2 class="text-warning mb-0">@SellerRatingModerationStatusHelper.GetRatingStars(Model.SellerRating.Rating)</h2>
+                            <small class="text-muted">@Model.SellerRating.Rating out of 5 stars</small>
+                        </div>
+
+                        <!-- Comment -->
+                        <div class="mb-4">
+                            <h6 class="text-muted mb-2">Comment</h6>
+                            <div class="p-3 bg-light rounded">
+                                @if (!string.IsNullOrEmpty(Model.SellerRating.Comment))
+                                {
+                                    <p class="mb-0" style="white-space: pre-wrap;">@Model.SellerRating.Comment</p>
+                                }
+                                else
+                                {
+                                    <p class="mb-0 text-muted fst-italic">No comment provided</p>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Flags and Reports -->
+                        @if (Model.SellerRating.IsFlagged || Model.SellerRating.ReportCount > 0)
+                        {
+                            <div class="mb-4">
+                                @if (Model.SellerRating.IsFlagged)
+                                {
+                                    <div class="alert alert-warning d-flex align-items-center mb-2">
+                                        <i class="bi bi-flag-fill me-2"></i>
+                                        <div>
+                                            <strong>Flagged:</strong> @Model.SellerRating.FlagReason
+                                            <br><small>Flagged on @Model.SellerRating.FlaggedAt?.ToString("MMM dd, yyyy HH:mm")</small>
+                                        </div>
+                                    </div>
+                                }
+                                @if (Model.SellerRating.ReportCount > 0)
+                                {
+                                    <div class="alert alert-info d-flex align-items-center">
+                                        <i class="bi bi-exclamation-triangle me-2"></i>
+                                        <div>
+                                            <strong>User Reports:</strong> @Model.SellerRating.ReportCount report(s) received
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        <!-- Rejection Reason -->
+                        @if (Model.SellerRating.ModerationStatus == "Rejected" && !string.IsNullOrEmpty(Model.SellerRating.RejectionReason))
+                        {
+                            <div class="mb-4">
+                                <div class="alert alert-danger d-flex align-items-center">
+                                    <i class="bi bi-x-circle me-2"></i>
+                                    <div>
+                                        <strong>Rejection Reason:</strong> @Model.SellerRating.RejectionReason
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        <!-- Store and Order Info -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="text-muted mb-2">Store</h6>
+                                <p class="mb-1 fw-semibold">@(Model.SellerRating.StoreName ?? "Unknown Store")</p>
+                                <small class="text-muted">ID: @Model.SellerRating.StoreId</small>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-muted mb-2">Order</h6>
+                                @{
+                                    var orderIdStr = Model.SellerRating.OrderId.ToString();
+                                    var truncatedOrderId = orderIdStr.Length >= 8 ? orderIdStr[..8] + "..." : orderIdStr;
+                                }
+                                <p class="mb-1 fw-semibold">@truncatedOrderId</p>
+                                <small class="text-muted">Full ID: @Model.SellerRating.OrderId</small>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <!-- Buyer Info -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="text-muted mb-2">Buyer</h6>
+                                <p class="mb-1">@(Model.SellerRating.BuyerName ?? "Anonymous")</p>
+                                <small class="text-muted">ID: @Model.SellerRating.BuyerId</small>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-muted mb-2">Timestamps</h6>
+                                <p class="mb-1"><small><strong>Created:</strong> @Model.SellerRating.CreatedAt.ToString("MMM dd, yyyy HH:mm")</small></p>
+                                <p class="mb-1"><small><strong>Updated:</strong> @Model.SellerRating.UpdatedAt.ToString("MMM dd, yyyy HH:mm")</small></p>
+                                @if (Model.SellerRating.ModeratedAt.HasValue)
+                                {
+                                    <p class="mb-0"><small><strong>Moderated:</strong> @Model.SellerRating.ModeratedAt.Value.ToString("MMM dd, yyyy HH:mm") by @(Model.SellerRating.ModeratorName ?? "Unknown")</small></p>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Audit Log -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Moderation History</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        @if (Model.AuditLogs.Count == 0)
+                        {
+                            <div class="text-center py-4">
+                                <p class="text-muted mb-0">No moderation history available.</p>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Action</th>
+                                            <th>By</th>
+                                            <th>Reason</th>
+                                            <th>Status Change</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var log in Model.AuditLogs)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <span title="@log.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")">
+                                                        @log.CreatedAt.ToString("MMM dd, HH:mm")
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge @SellerRatingModerationStatusHelper.GetActionBadgeClass(log.Action)">
+                                                        @SellerRatingModerationStatusHelper.GetActionDisplayName(log.Action)
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    @if (log.IsAutomated)
+                                                    {
+                                                        <span class="badge bg-secondary">System</span>
+                                                        <br><small class="text-muted">@log.AutomatedRuleName</small>
+                                                    }
+                                                    else
+                                                    {
+                                                        @(log.ModeratorName ?? "Unknown")
+                                                    }
+                                                </td>
+                                                <td class="text-truncate" style="max-width: 200px;" title="@log.Reason">
+                                                    @(log.Reason ?? "-")
+                                                    @if (!string.IsNullOrEmpty(log.Notes))
+                                                    {
+                                                        <br><small class="text-muted">Notes: @log.Notes</small>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @log.PreviousStatus → @log.NewStatus
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions Panel -->
+            <div class="col-lg-4">
+                <div class="card sticky-top" style="top: 1rem;">
+                    <div class="card-header">
+                        <h5 class="mb-0">Moderation Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (Model.SellerRating.ModerationStatus == "Pending")
+                        {
+                            <!-- Approve -->
+                            <form method="post" asp-page-handler="Approve" class="mb-3">
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="bi bi-check-lg me-2"></i>Approve Rating
+                                </button>
+                            </form>
+
+                            <!-- Reject -->
+                            <form method="post" asp-page-handler="Reject" class="mb-3">
+                                <div class="mb-2">
+                                    <select class="form-select" name="reason" required>
+                                        <option value="">Select rejection reason...</option>
+                                        <option value="Hate speech or discriminatory content">Hate speech or discriminatory content</option>
+                                        <option value="Spam or promotional content">Spam or promotional content</option>
+                                        <option value="Off-topic or irrelevant">Off-topic or irrelevant</option>
+                                        <option value="Contains personal data">Contains personal data</option>
+                                        <option value="Violates community guidelines">Violates community guidelines</option>
+                                        <option value="Fraudulent or fake rating">Fraudulent or fake rating</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-danger w-100">
+                                    <i class="bi bi-x-lg me-2"></i>Reject Rating
+                                </button>
+                            </form>
+                        }
+                        else
+                        {
+                            <!-- Reset to Pending -->
+                            <form method="post" asp-page-handler="ResetToPending" class="mb-3">
+                                <div class="mb-2">
+                                    <input type="text" class="form-control" name="reason" 
+                                           placeholder="Reason for re-review..." required>
+                                </div>
+                                <button type="submit" class="btn btn-warning w-100">
+                                    <i class="bi bi-arrow-clockwise me-2"></i>Reset to Pending
+                                </button>
+                            </form>
+                        }
+
+                        <hr>
+
+                        <!-- Flag/Clear Flag -->
+                        @if (!Model.SellerRating.IsFlagged)
+                        {
+                            <form method="post" asp-page-handler="Flag">
+                                <div class="mb-2">
+                                    <input type="text" class="form-control" name="reason" 
+                                           placeholder="Flag reason..." required>
+                                </div>
+                                <button type="submit" class="btn btn-outline-warning w-100">
+                                    <i class="bi bi-flag me-2"></i>Flag Rating
+                                </button>
+                            </form>
+                        }
+                        else
+                        {
+                            <form method="post" asp-page-handler="ClearFlag">
+                                <button type="submit" class="btn btn-outline-secondary w-100">
+                                    <i class="bi bi-flag-fill me-2"></i>Clear Flag
+                                </button>
+                            </form>
+                        }
+                    </div>
+                    <div class="card-footer text-center">
+                        <a asp-page="/Admin/SellerRatingModeration" class="btn btn-link">
+                            <i class="bi bi-arrow-left me-1"></i>Back to List
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>

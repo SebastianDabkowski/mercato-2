@@ -3,6 +3,16 @@ using SD.Project.Domain.Entities;
 namespace SD.Project.Domain.Repositories;
 
 /// <summary>
+/// Statistics for seller rating moderation.
+/// </summary>
+public record SellerRatingModerationStats(
+    int PendingCount,
+    int FlaggedCount,
+    int ReportedCount,
+    int ApprovedTodayCount,
+    int RejectedTodayCount);
+
+/// <summary>
 /// Contract for seller rating persistence operations.
 /// </summary>
 public interface ISellerRatingRepository
@@ -19,18 +29,38 @@ public interface ISellerRatingRepository
     Task<SellerRating?> GetByOrderIdAsync(Guid orderId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets all ratings for a specific store.
+    /// Gets all ratings for a specific store (only approved ratings).
     /// </summary>
     Task<IReadOnlyList<SellerRating>> GetByStoreIdAsync(
         Guid storeId,
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets the average rating and count for a store.
+    /// Gets the average rating and count for a store (only approved ratings).
     /// This is used to calculate the seller's reputation score.
     /// </summary>
     Task<(double AverageRating, int RatingCount)> GetStoreRatingStatsAsync(
         Guid storeId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets paginated seller ratings for moderation with filtering options.
+    /// </summary>
+    Task<(IReadOnlyList<SellerRating> Items, int TotalCount)> GetForModerationPagedAsync(
+        SellerRatingModerationStatus? status,
+        bool? isFlagged,
+        string? searchTerm,
+        Guid? storeId,
+        DateTime? fromDate,
+        DateTime? toDate,
+        int pageNumber,
+        int pageSize,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets moderation statistics.
+    /// </summary>
+    Task<SellerRatingModerationStats> GetModerationStatsAsync(
         CancellationToken cancellationToken = default);
 
     /// <summary>
