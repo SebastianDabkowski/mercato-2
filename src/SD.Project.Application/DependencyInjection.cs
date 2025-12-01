@@ -18,6 +18,7 @@ public static class DependencyInjection
         services.AddScoped<ProductExportService>();
         services.AddScoped<ProductVariantService>();
         services.AddScoped<CategoryService>();
+        services.AddScoped<CategoryAttributeService>();
         services.AddScoped<SearchSuggestionService>();
         services.AddScoped<RegistrationService>();
         services.AddScoped<LoginService>();
