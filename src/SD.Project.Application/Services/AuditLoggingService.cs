@@ -7,6 +7,7 @@ namespace SD.Project.Application.Services;
 
 /// <summary>
 /// Service for logging access to sensitive data for audit and compliance purposes.
+/// Failures are logged at critical level to enable monitoring and alerting.
 /// </summary>
 public sealed class AuditLoggingService : IAuditLoggingService
 {
@@ -60,12 +61,27 @@ public sealed class AuditLoggingService : IAuditLoggingService
         }
         catch (Exception ex)
         {
-            // Log the error but don't throw - audit logging should not block the main operation
-            _logger.LogError(ex,
-                "Failed to create audit log for user {UserId} accessing {ResourceType} {ResourceId}",
+            // Log at critical level to enable monitoring and alerting systems to catch audit failures
+            // This supports compliance requirements while not blocking the main operation
+            _logger.LogCritical(ex,
+                "AUDIT_FAILURE: Failed to create audit log for user {UserId} ({UserRole}) {Action} {ResourceType} {ResourceId}. " +
+                "This indicates a potential compliance gap that requires immediate attention.",
                 accessedByUserId,
+                accessedByRole,
+                action,
                 resourceType,
                 resourceId);
+
+            // Also log the access attempt with available details for manual compliance review
+            _logger.LogWarning(
+                "AUDIT_FALLBACK: Sensitive access by user {UserId} ({UserRole}) to {ResourceType} {ResourceId} " +
+                "at {Timestamp} from IP {IpAddress} could not be persisted to audit log.",
+                accessedByUserId,
+                accessedByRole,
+                resourceType,
+                resourceId,
+                DateTime.UtcNow,
+                ipAddress ?? "unknown");
         }
     }
 

@@ -34,16 +34,22 @@ public sealed class RequireResourceOwnerAttribute : Attribute, IAsyncPageFilter
 
     private readonly ResourceType _resourceType;
     private readonly string _resourceIdParameterName;
+    private readonly bool _requireResourceId;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RequireResourceOwnerAttribute"/> class.
     /// </summary>
     /// <param name="resourceType">The type of resource being accessed.</param>
     /// <param name="resourceIdParameterName">The name of the route/query parameter containing the resource ID. Defaults to "id".</param>
-    public RequireResourceOwnerAttribute(ResourceType resourceType, string resourceIdParameterName = "id")
+    /// <param name="requireResourceId">If true, denies access when resource ID is missing. Defaults to false for backwards compatibility with list pages.</param>
+    public RequireResourceOwnerAttribute(
+        ResourceType resourceType,
+        string resourceIdParameterName = "id",
+        bool requireResourceId = false)
     {
         _resourceType = resourceType;
         _resourceIdParameterName = resourceIdParameterName;
+        _requireResourceId = requireResourceId;
     }
 
     public Task OnPageHandlerSelectionAsync(PageHandlerSelectedContext context)
@@ -99,7 +105,20 @@ public sealed class RequireResourceOwnerAttribute : Attribute, IAsyncPageFilter
         // Get resource ID from route data or query string
         if (!TryGetResourceId(context, out var resourceId))
         {
-            // If no resource ID is present, allow the request (it might be a list page)
+            // If resource ID is required but not present, deny access
+            if (_requireResourceId)
+            {
+                logger.LogWarning(
+                    "Authorization failure: User {UserId} attempted to access {ResourceType} without providing a resource ID on {PagePath}",
+                    userId,
+                    _resourceType,
+                    context.ActionDescriptor.RelativePath);
+
+                context.Result = CreateAccessDeniedResult("Access denied. Resource identifier is required.");
+                return;
+            }
+
+            // If resource ID is optional (e.g., list pages), allow the request
             await next();
             return;
         }

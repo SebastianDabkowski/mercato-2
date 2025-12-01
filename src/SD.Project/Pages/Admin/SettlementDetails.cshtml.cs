@@ -280,7 +280,14 @@ namespace SD.Project.Pages.Admin
         private UserRole GetUserRole()
         {
             var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value;
-            return Enum.TryParse<UserRole>(roleClaim, out var role) ? role : UserRole.Buyer;
+            // For admin pages, if role claim is missing or invalid, default to the most restrictive role
+            // This ensures audit logging will still capture the access attempt correctly
+            if (string.IsNullOrEmpty(roleClaim) || !Enum.TryParse<UserRole>(roleClaim, out var role))
+            {
+                _logger.LogWarning("Invalid or missing role claim for user {UserId}", GetUserId());
+                return UserRole.Buyer; // Most restrictive - will still be logged but won't have elevated access
+            }
+            return role;
         }
 
         private async Task LogSensitiveAccessAsync(Guid settlementId, Guid sellerId, SensitiveAccessAction action)
