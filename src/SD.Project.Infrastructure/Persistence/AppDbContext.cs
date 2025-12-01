@@ -89,6 +89,7 @@ public class AppDbContext : DbContext
     public DbSet<UserDataExport> UserDataExports => Set<UserDataExport>();
     public DbSet<AccountDeletionRequest> AccountDeletionRequests => Set<AccountDeletionRequest>();
     public DbSet<AccountDeletionAuditLog> AccountDeletionAuditLogs => Set<AccountDeletionAuditLog>();
+    public DbSet<CriticalActionAuditLog> CriticalActionAuditLogs => Set<CriticalActionAuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

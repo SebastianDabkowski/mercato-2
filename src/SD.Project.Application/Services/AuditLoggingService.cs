@@ -6,20 +6,23 @@ using SD.Project.Domain.Repositories;
 namespace SD.Project.Application.Services;
 
 /// <summary>
-/// Service for logging access to sensitive data for audit and compliance purposes.
+/// Service for logging access to sensitive data and critical actions for audit and compliance purposes.
 /// Failures are logged at critical level to enable monitoring and alerting.
 /// </summary>
 public sealed class AuditLoggingService : IAuditLoggingService
 {
     private readonly ILogger<AuditLoggingService> _logger;
-    private readonly ISensitiveAccessAuditLogRepository _auditLogRepository;
+    private readonly ISensitiveAccessAuditLogRepository _sensitiveAccessAuditLogRepository;
+    private readonly ICriticalActionAuditLogRepository _criticalActionAuditLogRepository;
 
     public AuditLoggingService(
         ILogger<AuditLoggingService> logger,
-        ISensitiveAccessAuditLogRepository auditLogRepository)
+        ISensitiveAccessAuditLogRepository sensitiveAccessAuditLogRepository,
+        ICriticalActionAuditLogRepository criticalActionAuditLogRepository)
     {
         _logger = logger;
-        _auditLogRepository = auditLogRepository;
+        _sensitiveAccessAuditLogRepository = sensitiveAccessAuditLogRepository;
+        _criticalActionAuditLogRepository = criticalActionAuditLogRepository;
     }
 
     /// <inheritdoc />
@@ -48,8 +51,8 @@ public sealed class AuditLoggingService : IAuditLoggingService
                 ipAddress,
                 userAgent);
 
-            await _auditLogRepository.AddAsync(auditLog, cancellationToken);
-            await _auditLogRepository.SaveChangesAsync(cancellationToken);
+            await _sensitiveAccessAuditLogRepository.AddAsync(auditLog, cancellationToken);
+            await _sensitiveAccessAuditLogRepository.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation(
                 "Audit log created: User {UserId} ({UserRole}) {Action} {ResourceType} {ResourceId}",
@@ -91,7 +94,7 @@ public sealed class AuditLoggingService : IAuditLoggingService
         Guid resourceId,
         CancellationToken cancellationToken = default)
     {
-        return await _auditLogRepository.GetByResourceAsync(resourceType, resourceId, cancellationToken);
+        return await _sensitiveAccessAuditLogRepository.GetByResourceAsync(resourceType, resourceId, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -101,6 +104,107 @@ public sealed class AuditLoggingService : IAuditLoggingService
         int take = 50,
         CancellationToken cancellationToken = default)
     {
-        return await _auditLogRepository.GetByAccessorAsync(accessedByUserId, skip, take, cancellationToken);
+        return await _sensitiveAccessAuditLogRepository.GetByAccessorAsync(accessedByUserId, skip, take, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task LogCriticalActionAsync(
+        Guid userId,
+        UserRole userRole,
+        CriticalActionType actionType,
+        string targetResourceType,
+        Guid? targetResourceId,
+        CriticalActionOutcome outcome,
+        string? details = null,
+        string? ipAddress = null,
+        string? userAgent = null,
+        string? correlationId = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var auditLog = new CriticalActionAuditLog(
+                userId,
+                userRole,
+                actionType,
+                targetResourceType,
+                targetResourceId,
+                outcome,
+                details,
+                ipAddress,
+                userAgent,
+                correlationId);
+
+            await _criticalActionAuditLogRepository.AddAsync(auditLog, cancellationToken);
+            await _criticalActionAuditLogRepository.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation(
+                "Critical action audit log created: User {UserId} ({UserRole}) performed {ActionType} on {ResourceType} {ResourceId} with outcome {Outcome}",
+                userId,
+                userRole,
+                actionType,
+                targetResourceType,
+                targetResourceId,
+                outcome);
+        }
+        catch (Exception ex)
+        {
+            // Log at critical level to enable monitoring and alerting systems to catch audit failures
+            // This supports compliance requirements while not blocking the main operation
+            _logger.LogCritical(ex,
+                "CRITICAL_ACTION_AUDIT_FAILURE: Failed to create audit log for user {UserId} ({UserRole}) {ActionType} on {ResourceType} {ResourceId}. " +
+                "This indicates a potential compliance gap that requires immediate attention.",
+                userId,
+                userRole,
+                actionType,
+                targetResourceType,
+                targetResourceId);
+
+            // Also log the action with available details for manual compliance review
+            _logger.LogWarning(
+                "CRITICAL_ACTION_AUDIT_FALLBACK: Critical action {ActionType} by user {UserId} ({UserRole}) on {ResourceType} {ResourceId} " +
+                "at {Timestamp} from IP {IpAddress} with outcome {Outcome} could not be persisted to audit log. Details: {Details}",
+                actionType,
+                userId,
+                userRole,
+                targetResourceType,
+                targetResourceId,
+                DateTime.UtcNow,
+                ipAddress ?? "unknown",
+                outcome,
+                details ?? "none");
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<CriticalActionAuditLog>> GetCriticalActionLogsByUserAsync(
+        Guid userId,
+        int skip = 0,
+        int take = 50,
+        CancellationToken cancellationToken = default)
+    {
+        return await _criticalActionAuditLogRepository.GetByUserIdAsync(userId, skip, take, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<CriticalActionAuditLog>> GetCriticalActionLogsAsync(
+        DateTime fromDate,
+        DateTime toDate,
+        Guid? userId = null,
+        CriticalActionType? actionType = null,
+        CriticalActionOutcome? outcome = null,
+        int skip = 0,
+        int take = 100,
+        CancellationToken cancellationToken = default)
+    {
+        return await _criticalActionAuditLogRepository.GetByDateRangeAsync(
+            fromDate,
+            toDate,
+            userId,
+            actionType,
+            outcome,
+            skip,
+            take,
+            cancellationToken);
     }
 }
