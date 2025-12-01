@@ -671,12 +671,14 @@ public static class SeedDataExtensions
 
             foreach (var data in notificationData)
             {
-                var notification = new Notification(
+                var createdAt = DateTime.UtcNow.AddDays(-data.DaysAgo);
+                var notification = Notification.CreateWithTimestamp(
                     Guid.NewGuid(),
                     demoBuyerId,
                     data.Type,
                     data.Title,
                     data.Message,
+                    createdAt,
                     relatedEntityId: null,
                     relatedEntityType: null,
                     relatedUrl: data.RelatedUrl);
@@ -714,12 +716,14 @@ public static class SeedDataExtensions
 
             foreach (var data in sellerNotificationData)
             {
-                var notification = new Notification(
+                var createdAt = DateTime.UtcNow.AddDays(-data.DaysAgo);
+                var notification = Notification.CreateWithTimestamp(
                     Guid.NewGuid(),
                     demoSellerId,
                     data.Type,
                     data.Title,
                     data.Message,
+                    createdAt,
                     relatedEntityId: null,
                     relatedEntityType: null,
                     relatedUrl: data.RelatedUrl);

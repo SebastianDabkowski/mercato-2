@@ -74,4 +74,23 @@ public class Notification
         IsRead = false;
         ReadAt = null;
     }
+
+    /// <summary>
+    /// Creates a notification with a specified creation time (for seeding/testing purposes).
+    /// </summary>
+    public static Notification CreateWithTimestamp(
+        Guid id,
+        Guid userId,
+        NotificationType type,
+        string title,
+        string message,
+        DateTime createdAt,
+        Guid? relatedEntityId = null,
+        string? relatedEntityType = null,
+        string? relatedUrl = null)
+    {
+        var notification = new Notification(id, userId, type, title, message, relatedEntityId, relatedEntityType, relatedUrl);
+        notification.CreatedAt = createdAt;
+        return notification;
+    }
 }
