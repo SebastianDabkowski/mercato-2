@@ -18,5 +18,11 @@ public enum UserStatus
     /// <summary>
     /// The user's account has been suspended by an administrator.
     /// </summary>
-    Suspended = 2
+    Suspended = 2,
+
+    /// <summary>
+    /// The user's account has been blocked by an administrator.
+    /// Blocked accounts cannot log in and seller stores/listings are hidden.
+    /// </summary>
+    Blocked = 3
 }

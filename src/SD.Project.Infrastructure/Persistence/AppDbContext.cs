@@ -71,6 +71,7 @@ public class AppDbContext : DbContext
     public DbSet<ProductQuestion> ProductQuestions => Set<ProductQuestion>();
     public DbSet<OrderMessage> OrderMessages => Set<OrderMessage>();
     public DbSet<AnalyticsEvent> AnalyticsEvents => Set<AnalyticsEvent>();
+    public DbSet<UserBlockInfo> UserBlockInfos => Set<UserBlockInfo>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

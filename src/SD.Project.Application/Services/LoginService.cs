@@ -93,7 +93,15 @@ public sealed class LoginService
             return LoginResultDto.Failed(InvalidCredentialsMessage);
         }
 
-        // Check account status
+        // Check account status - blocked accounts
+        if (user.Status == UserStatus.Blocked)
+        {
+            _rateLimiter.RecordFailedAttempt(normalizedEmail);
+            await LogLoginEventAsync(user.Id, normalizedEmail, false, LoginEventType.Password, "Account blocked", command.IpAddress, command.UserAgent, cancellationToken);
+            return LoginResultDto.Failed("Your account has been blocked. Please contact support for more information.");
+        }
+
+        // Check account status - suspended accounts
         if (user.Status == UserStatus.Suspended)
         {
             _rateLimiter.RecordFailedAttempt(normalizedEmail);
