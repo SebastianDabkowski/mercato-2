@@ -1,0 +1,331 @@
+@page
+@model SD.Project.Pages.Seller.SalesDashboardModel
+@{
+    ViewData["Title"] = "Sales Dashboard";
+}
+
+<h1>Sales Dashboard</h1>
+<p>Track your sales performance over time.</p>
+
+@if (!Model.HasStore)
+{
+    <div class="alert alert-warning">
+        <h5 class="alert-heading">Store Not Found</h5>
+        <p>You don't have a store set up yet. Please complete the seller onboarding to access your sales dashboard.</p>
+        <a asp-page="/Seller/Onboarding" class="btn btn-primary">Start Onboarding</a>
+    </div>
+}
+else
+{
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <!-- Date Range -->
+                <div class="col-md-2">
+                    <label for="dateRange" class="form-label">Date Range</label>
+                    <select id="dateRange" name="dateRange" class="form-select" onchange="toggleCustomDateInputs()">
+                        @foreach (var preset in Model.DateRangePresets)
+                        {
+                            if (preset.IsSelected)
+                            {
+                                <option value="@preset.Value" selected>@preset.Name</option>
+                            }
+                            else
+                            {
+                                <option value="@preset.Value">@preset.Name</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2 custom-date-input" style="display: @(Model.DateRange == "custom" ? "block" : "none")">
+                    <label for="customFromDate" class="form-label">From</label>
+                    <input type="date" id="customFromDate" name="customFromDate" class="form-control"
+                           value="@(Model.CustomFromDate?.ToString("yyyy-MM-dd") ?? Model.Dashboard.FromDate.ToString("yyyy-MM-dd"))" />
+                </div>
+                <div class="col-md-2 custom-date-input" style="display: @(Model.DateRange == "custom" ? "block" : "none")">
+                    <label for="customToDate" class="form-label">To</label>
+                    <input type="date" id="customToDate" name="customToDate" class="form-control"
+                           value="@(Model.CustomToDate?.ToString("yyyy-MM-dd") ?? Model.Dashboard.ToDate.ToString("yyyy-MM-dd"))" />
+                </div>
+
+                <!-- Granularity -->
+                <div class="col-md-2">
+                    <label for="granularity" class="form-label">Granularity</label>
+                    <select id="granularity" name="granularity" class="form-select">
+                        @foreach (var option in Model.GranularityOptions)
+                        {
+                            if (option.IsSelected)
+                            {
+                                <option value="@option.Value" selected>@option.Name</option>
+                            }
+                            else
+                            {
+                                <option value="@option.Value">@option.Name</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <!-- Product Filter -->
+                @if (Model.ProductOptions.Count > 0)
+                {
+                    <div class="col-md-2">
+                        <label for="productId" class="form-label">Product</label>
+                        <select id="productId" name="productId" class="form-select">
+                            <option value="">All Products</option>
+                            @foreach (var product in Model.ProductOptions)
+                            {
+                                if (product.IsSelected)
+                                {
+                                    <option value="@product.ProductId" selected>@product.ProductName</option>
+                                }
+                                else
+                                {
+                                    <option value="@product.ProductId">@product.ProductName</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                }
+
+                <!-- Category Filter -->
+                @if (Model.CategoryOptions.Count > 0)
+                {
+                    <div class="col-md-2">
+                        <label for="category" class="form-label">Category</label>
+                        <select id="category" name="category" class="form-select">
+                            <option value="">All Categories</option>
+                            @foreach (var cat in Model.CategoryOptions)
+                            {
+                                if (Model.Category == cat)
+                                {
+                                    <option value="@cat" selected>@cat</option>
+                                }
+                                else
+                                {
+                                    <option value="@cat">@cat</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                }
+
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary">Apply</button>
+                    <a href="@Url.Page("/Seller/SalesDashboard")" class="btn btn-outline-secondary ms-2">Reset</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Refresh Indicator -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="badge bg-info fs-6">@Model.Dashboard.PeriodLabel</span>
+        <span class="text-muted small">
+            <i class="bi bi-clock"></i> @Model.Dashboard.RefreshTimeDisplay
+            <button onclick="location.reload()" class="btn btn-link btn-sm p-0 ms-2" title="Refresh dashboard">
+                <i class="bi bi-arrow-clockwise"></i> Refresh
+            </button>
+        </span>
+    </div>
+
+    <!-- No Data Message -->
+    @if (!Model.Dashboard.HasData)
+    {
+        <div class="alert alert-info" role="alert">
+            <i class="bi bi-info-circle"></i> No sales data available for the selected period.
+            All KPIs will show zero values. Try selecting a different date range or wait for new orders.
+        </div>
+    }
+
+    <!-- KPI Tiles -->
+    <div class="row mb-4">
+        <!-- GMV Tile -->
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card h-100 border-primary">
+                <div class="card-body text-center">
+                    <h6 class="card-subtitle mb-2 text-muted">Gross Merchandise Value</h6>
+                    <h2 class="card-title text-primary mb-3">@Model.Dashboard.FormattedGmv</h2>
+                    <p class="card-text small text-muted">Total sales including shipping</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Orders Tile -->
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card h-100 border-success">
+                <div class="card-body text-center">
+                    <h6 class="card-subtitle mb-2 text-muted">Total Orders</h6>
+                    <h2 class="card-title text-success mb-3">@Model.Dashboard.OrderCount.ToString("N0")</h2>
+                    <p class="card-text small text-muted">Orders in period</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Items Sold Tile -->
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card h-100 border-warning">
+                <div class="card-body text-center">
+                    <h6 class="card-subtitle mb-2 text-muted">Items Sold</h6>
+                    <h2 class="card-title text-warning mb-3">@Model.Dashboard.ItemCount.ToString("N0")</h2>
+                    <p class="card-text small text-muted">Total units sold</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Average Order Value Tile -->
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card h-100 border-info">
+                <div class="card-body text-center">
+                    <h6 class="card-subtitle mb-2 text-muted">Avg. Order Value</h6>
+                    <h2 class="card-title text-info mb-3">@Model.Dashboard.FormattedAverageOrderValue</h2>
+                    <p class="card-text small text-muted">Average per order</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sales Chart -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Sales Over Time</h5>
+        </div>
+        <div class="card-body">
+            <canvas id="salesChart" style="min-height: 300px;"></canvas>
+        </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">View Orders</h5>
+                    <p class="card-text">See detailed order information and manage fulfilment.</p>
+                    <a asp-page="/Seller/Orders" class="btn btn-outline-primary">View Orders</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Manage Products</h5>
+                    <p class="card-text">Add, edit, or update your product listings.</p>
+                    <a asp-page="/Seller/Products" class="btn btn-outline-primary">Manage Products</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Payout History</h5>
+                    <p class="card-text">View your payout history and upcoming payments.</p>
+                    <a asp-page="/Seller/Payouts" class="btn btn-outline-primary">View Payouts</a>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        function toggleCustomDateInputs() {
+            var dateRange = document.getElementById('dateRange').value;
+            var customInputs = document.querySelectorAll('.custom-date-input');
+            customInputs.forEach(function(input) {
+                input.style.display = dateRange === 'custom' ? 'block' : 'none';
+            });
+        }
+
+        @if (Model.HasStore && Model.Dashboard.TimeSeries.Count > 0)
+        {
+            <text>
+            // Sales Chart
+            var ctx = document.getElementById('salesChart').getContext('2d');
+            var salesChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: @Html.Raw(Model.Dashboard.TimeSeriesLabelsJson),
+                    datasets: [
+                        {
+                            label: 'GMV (@Model.Dashboard.Currency)',
+                            data: @Html.Raw(Model.Dashboard.TimeSeriesGmvJson),
+                            backgroundColor: 'rgba(13, 110, 253, 0.5)',
+                            borderColor: 'rgba(13, 110, 253, 1)',
+                            borderWidth: 1,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Orders',
+                            data: @Html.Raw(Model.Dashboard.TimeSeriesOrderCountJson),
+                            type: 'line',
+                            borderColor: 'rgba(25, 135, 84, 1)',
+                            backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.1,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'GMV (@Model.Dashboard.Currency)'
+                            },
+                            beginAtZero: true
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Orders'
+                            },
+                            beginAtZero: true,
+                            grid: {
+                                drawOnChartArea: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    var label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.datasetIndex === 0) {
+                                        label += '@Model.Dashboard.Currency ' + context.parsed.y.toFixed(2);
+                                    } else {
+                                        label += context.parsed.y;
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            </text>
+        }
+    </script>
+}
