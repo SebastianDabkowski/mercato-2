@@ -23,6 +23,28 @@ public sealed class ReturnRequestRepository : IReturnRequestRepository
             .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
     }
 
+    public async Task<ReturnRequest?> GetByIdWithItemsAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var request = await _context.ReturnRequests
+            .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+
+        if (request is not null)
+        {
+            var items = await _context.ReturnRequestItems
+                .Where(i => i.ReturnRequestId == id)
+                .ToListAsync(cancellationToken);
+            request.LoadItems(items);
+        }
+
+        return request;
+    }
+
+    public async Task<ReturnRequest?> GetByCaseNumberAsync(string caseNumber, CancellationToken cancellationToken = default)
+    {
+        return await _context.ReturnRequests
+            .FirstOrDefaultAsync(r => r.CaseNumber == caseNumber, cancellationToken);
+    }
+
     public async Task<ReturnRequest?> GetByShipmentIdAsync(Guid shipmentId, CancellationToken cancellationToken = default)
     {
         return await _context.ReturnRequests
@@ -35,6 +57,15 @@ public sealed class ReturnRequestRepository : IReturnRequestRepository
             .Where(r => r.BuyerId == buyerId)
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync(cancellationToken);
+
+        // Load items for each request
+        foreach (var request in requests)
+        {
+            var items = await _context.ReturnRequestItems
+                .Where(i => i.ReturnRequestId == request.Id)
+                .ToListAsync(cancellationToken);
+            request.LoadItems(items);
+        }
 
         return requests.AsReadOnly();
     }
@@ -94,9 +125,47 @@ public sealed class ReturnRequestRepository : IReturnRequestRepository
             .AnyAsync(r => r.ShipmentId == shipmentId, cancellationToken);
     }
 
+    public async Task<bool> HasOpenRequestForOrderItemAsync(Guid orderItemId, CancellationToken cancellationToken = default)
+    {
+        // An "open" request is one that is not Rejected or Completed
+        var openStatuses = new[] { ReturnRequestStatus.Requested, ReturnRequestStatus.Approved };
+
+        return await _context.ReturnRequestItems
+            .AnyAsync(i => i.OrderItemId == orderItemId &&
+                          _context.ReturnRequests.Any(r =>
+                              r.Id == i.ReturnRequestId &&
+                              openStatuses.Contains(r.Status)),
+                cancellationToken);
+    }
+
+    public async Task<ReturnRequest?> GetOpenRequestForOrderItemAsync(Guid orderItemId, CancellationToken cancellationToken = default)
+    {
+        var openStatuses = new[] { ReturnRequestStatus.Requested, ReturnRequestStatus.Approved };
+
+        var requestItem = await _context.ReturnRequestItems
+            .FirstOrDefaultAsync(i => i.OrderItemId == orderItemId &&
+                                     _context.ReturnRequests.Any(r =>
+                                         r.Id == i.ReturnRequestId &&
+                                         openStatuses.Contains(r.Status)),
+                cancellationToken);
+
+        if (requestItem is null)
+        {
+            return null;
+        }
+
+        return await GetByIdWithItemsAsync(requestItem.ReturnRequestId, cancellationToken);
+    }
+
     public async Task AddAsync(ReturnRequest returnRequest, CancellationToken cancellationToken = default)
     {
         await _context.ReturnRequests.AddAsync(returnRequest, cancellationToken);
+
+        // Also add any items
+        foreach (var item in returnRequest.Items)
+        {
+            await _context.ReturnRequestItems.AddAsync(item, cancellationToken);
+        }
     }
 
     public Task UpdateAsync(ReturnRequest returnRequest, CancellationToken cancellationToken = default)

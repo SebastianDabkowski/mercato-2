@@ -16,12 +16,30 @@ public enum ReturnRequestStatus
 }
 
 /// <summary>
+/// Type of return/complaint request.
+/// </summary>
+public enum ReturnRequestType
+{
+    /// <summary>Standard return request (e.g., changed mind, wrong size).</summary>
+    Return,
+    /// <summary>Product issue complaint (e.g., defective, damaged, not as described).</summary>
+    Complaint
+}
+
+/// <summary>
 /// Represents a return request initiated by a buyer for a sub-order (shipment).
 /// A return request can be for the entire sub-order or specific items.
 /// </summary>
 public class ReturnRequest
 {
+    private readonly List<ReturnRequestItem> _items = new();
+
     public Guid Id { get; private set; }
+
+    /// <summary>
+    /// Human-readable unique case number (e.g., "RET-20231215-001" or "CMP-20231215-001").
+    /// </summary>
+    public string CaseNumber { get; private set; } = default!;
 
     /// <summary>
     /// The order this return request is for.
@@ -42,6 +60,11 @@ public class ReturnRequest
     /// The store/seller this return request is for.
     /// </summary>
     public Guid StoreId { get; private set; }
+
+    /// <summary>
+    /// Type of request (Return or Complaint).
+    /// </summary>
+    public ReturnRequestType Type { get; private set; }
 
     /// <summary>
     /// Current status of the return request.
@@ -88,6 +111,11 @@ public class ReturnRequest
     /// </summary>
     public DateTime? CompletedAt { get; private set; }
 
+    /// <summary>
+    /// Items included in this return/complaint request.
+    /// </summary>
+    public IReadOnlyCollection<ReturnRequestItem> Items => _items.AsReadOnly();
+
     private ReturnRequest()
     {
         // EF Core constructor
@@ -101,6 +129,7 @@ public class ReturnRequest
         Guid shipmentId,
         Guid buyerId,
         Guid storeId,
+        ReturnRequestType type,
         string reason,
         string? comments = null)
     {
@@ -134,11 +163,75 @@ public class ReturnRequest
         ShipmentId = shipmentId;
         BuyerId = buyerId;
         StoreId = storeId;
+        Type = type;
         Status = ReturnRequestStatus.Requested;
         Reason = reason.Trim();
         Comments = comments?.Trim();
         CreatedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
+
+        // Generate case number with type prefix
+        var typePrefix = type == ReturnRequestType.Return ? "RET" : "CMP";
+        CaseNumber = $"{typePrefix}-{CreatedAt:yyyyMMdd}-{Id.ToString()[..8].ToUpperInvariant()}";
+    }
+
+    /// <summary>
+    /// Creates a new return request with backwards compatibility (defaults to Return type).
+    /// </summary>
+    public ReturnRequest(
+        Guid orderId,
+        Guid shipmentId,
+        Guid buyerId,
+        Guid storeId,
+        string reason,
+        string? comments = null)
+        : this(orderId, shipmentId, buyerId, storeId, ReturnRequestType.Return, reason, comments)
+    {
+    }
+
+    /// <summary>
+    /// Adds an item to this return/complaint request.
+    /// </summary>
+    /// <param name="orderItemId">The order item ID.</param>
+    /// <param name="productName">The product name at time of request.</param>
+    /// <param name="quantity">The quantity being returned/complained about.</param>
+    /// <returns>The created return request item.</returns>
+    public ReturnRequestItem AddItem(Guid orderItemId, string productName, int quantity)
+    {
+        if (orderItemId == Guid.Empty)
+        {
+            throw new ArgumentException("Order item ID is required.", nameof(orderItemId));
+        }
+
+        if (string.IsNullOrWhiteSpace(productName))
+        {
+            throw new ArgumentException("Product name is required.", nameof(productName));
+        }
+
+        if (quantity <= 0)
+        {
+            throw new ArgumentException("Quantity must be greater than zero.", nameof(quantity));
+        }
+
+        // Check if item already added
+        if (_items.Any(i => i.OrderItemId == orderItemId))
+        {
+            throw new InvalidOperationException($"Order item {orderItemId} is already included in this request.");
+        }
+
+        var item = new ReturnRequestItem(Id, orderItemId, productName, quantity);
+        _items.Add(item);
+        UpdatedAt = DateTime.UtcNow;
+        return item;
+    }
+
+    /// <summary>
+    /// Loads items from persistence.
+    /// </summary>
+    public void LoadItems(IEnumerable<ReturnRequestItem> items)
+    {
+        _items.Clear();
+        _items.AddRange(items);
     }
 
     /// <summary>

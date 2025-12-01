@@ -19,6 +19,21 @@
     }
     else
     {
+        <!-- Success Message (e.g., after submitting return request) -->
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+                <div class="d-flex align-items-start">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-check-circle me-2 flex-shrink-0" viewBox="0 0 16 16">
+                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                        <path d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05"/>
+                    </svg>
+                    <div>@Html.Raw(TempData["Success"])</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
         <!-- Order Header -->
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
@@ -304,6 +319,8 @@
                                 {
                                     <!-- Existing Return Request Status -->
                                     var returnStatusClass = SD.Project.ViewModels.ReturnRequestStatusHelper.GetStatusBadgeClass(existingReturn.Status);
+                                    var statusDisplayName = SD.Project.ViewModels.ReturnRequestStatusHelper.GetStatusDisplayName(existingReturn.Status);
+                                    var typeDisplayName = SD.Project.ViewModels.ReturnRequestStatusHelper.GetTypeDisplayName(existingReturn.Type);
                                     
                                     <div class="alert alert-info py-2 mt-3 mb-0">
                                         <div class="d-flex align-items-center justify-content-between">
@@ -312,21 +329,30 @@
                                                     <path fill-rule="evenodd" d="M14.5 1.5a.5.5 0 0 1 .5.5v4.8a2.5 2.5 0 0 1-2.5 2.5H2.707l3.347 3.346a.5.5 0 0 1-.708.708l-4.2-4.2a.5.5 0 0 1 0-.708l4-4a.5.5 0 1 1 .708.708L2.707 8.3H12.5A1.5 1.5 0 0 0 14 6.8V2a.5.5 0 0 1 .5-.5"/>
                                                 </svg>
                                                 <span>
-                                                    <strong>Return Request:</strong> 
-                                                    <span class="badge @returnStatusClass ms-1">@existingReturn.Status</span>
+                                                    <strong>@typeDisplayName:</strong> 
+                                                    <span class="badge @returnStatusClass ms-1">@statusDisplayName</span>
                                                 </span>
                                             </div>
-                                            <small class="text-muted">Submitted @existingReturn.CreatedAt.ToString("MMM dd, yyyy")</small>
+                                            <small class="text-muted">Case: @existingReturn.CaseNumber</small>
                                         </div>
                                         <div class="mt-2 small">
                                             <strong>Reason:</strong> @existingReturn.Reason
                                         </div>
+                                        @if (existingReturn.Items.Count > 0)
+                                        {
+                                            <div class="mt-1 small">
+                                                <strong>Items:</strong> @string.Join(", ", existingReturn.Items.Select(i => i.ProductName))
+                                            </div>
+                                        }
                                         @if (!string.IsNullOrEmpty(existingReturn.SellerResponse))
                                         {
                                             <div class="mt-1 small">
                                                 <strong>Seller Response:</strong> @existingReturn.SellerResponse
                                             </div>
                                         }
+                                        <div class="mt-1 small text-muted">
+                                            Submitted @existingReturn.CreatedAt.ToString("MMM dd, yyyy")
+                                        </div>
                                     </div>
                                 }
                                 else if (eligibility is not null && eligibility.IsEligible)
@@ -340,7 +366,7 @@
                                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-return-left me-1" viewBox="0 0 16 16">
                                                 <path fill-rule="evenodd" d="M14.5 1.5a.5.5 0 0 1 .5.5v4.8a2.5 2.5 0 0 1-2.5 2.5H2.707l3.347 3.346a.5.5 0 0 1-.708.708l-4.2-4.2a.5.5 0 0 1 0-.708l4-4a.5.5 0 1 1 .708.708L2.707 8.3H12.5A1.5 1.5 0 0 0 14 6.8V2a.5.5 0 0 1 .5-.5"/>
                                             </svg>
-                                            Initiate Return
+                                            Return or Report Issue
                                         </a>
                                         @if (eligibility.ReturnWindowEndsAt.HasValue)
                                         {

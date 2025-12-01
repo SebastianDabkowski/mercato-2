@@ -13,6 +13,16 @@ public interface IReturnRequestRepository
     Task<ReturnRequest?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets a return request by ID with items loaded.
+    /// </summary>
+    Task<ReturnRequest?> GetByIdWithItemsAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets a return request by case number.
+    /// </summary>
+    Task<ReturnRequest?> GetByCaseNumberAsync(string caseNumber, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets a return request by shipment ID.
     /// </summary>
     Task<ReturnRequest?> GetByShipmentIdAsync(Guid shipmentId, CancellationToken cancellationToken = default);
@@ -43,6 +53,17 @@ public interface IReturnRequestRepository
     /// Checks if a return request already exists for the given shipment.
     /// </summary>
     Task<bool> ExistsForShipmentAsync(Guid shipmentId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Checks if an open (non-completed/rejected) return request exists for the given order item.
+    /// Used to prevent duplicate requests for the same item.
+    /// </summary>
+    Task<bool> HasOpenRequestForOrderItemAsync(Guid orderItemId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets any open return requests that include the specified order item.
+    /// </summary>
+    Task<ReturnRequest?> GetOpenRequestForOrderItemAsync(Guid orderItemId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Adds a new return request.

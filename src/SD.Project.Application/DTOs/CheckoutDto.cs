@@ -174,6 +174,7 @@ public sealed record OrderConfirmationDto(
 /// Includes item-level fulfilment status for Phase 2 partial fulfilment.
 /// </summary>
 public sealed record OrderItemDto(
+    Guid ItemId,
     Guid ProductId,
     string ProductName,
     Guid StoreId,

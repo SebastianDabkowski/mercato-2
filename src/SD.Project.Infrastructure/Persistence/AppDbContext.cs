@@ -41,6 +41,7 @@ public class AppDbContext : DbContext
     public DbSet<PromoCode> PromoCodes => Set<PromoCode>();
     public DbSet<PromoCodeUsage> PromoCodeUsages => Set<PromoCodeUsage>();
     public DbSet<ReturnRequest> ReturnRequests => Set<ReturnRequest>();
+    public DbSet<ReturnRequestItem> ReturnRequestItems => Set<ReturnRequestItem>();
     public DbSet<EscrowPayment> EscrowPayments => Set<EscrowPayment>();
     public DbSet<EscrowAllocation> EscrowAllocations => Set<EscrowAllocation>();
     public DbSet<EscrowLedger> EscrowLedgers => Set<EscrowLedger>();

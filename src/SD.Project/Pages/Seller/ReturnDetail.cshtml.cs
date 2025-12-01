@@ -72,11 +72,19 @@ public class ReturnDetailModel : PageModel
             return Page();
         }
 
+        var requestItems = returnRequest.RequestItems.Select(i => new ReturnRequestItemViewModel(
+            i.ItemId,
+            i.OrderItemId,
+            i.ProductName,
+            i.Quantity)).ToList();
+
         ReturnRequest = new SellerReturnRequestDetailsViewModel(
             returnRequest.ReturnRequestId,
             returnRequest.OrderId,
             returnRequest.ShipmentId,
+            returnRequest.CaseNumber,
             returnRequest.OrderNumber,
+            returnRequest.Type,
             returnRequest.Status,
             returnRequest.BuyerName,
             returnRequest.BuyerEmail,
@@ -96,7 +104,8 @@ public class ReturnDetailModel : PageModel
                 i.UnitPrice,
                 i.Quantity,
                 i.LineTotal,
-                i.ShippingMethodName)).ToList().AsReadOnly());
+                i.ShippingMethodName)).ToList().AsReadOnly(),
+            requestItems.AsReadOnly());
 
         return Page();
     }

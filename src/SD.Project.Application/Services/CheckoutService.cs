@@ -803,6 +803,7 @@ public sealed class CheckoutService
             }
 
             return new OrderItemDto(
+                i.Id,
                 i.ProductId,
                 i.ProductName,
                 i.StoreId,

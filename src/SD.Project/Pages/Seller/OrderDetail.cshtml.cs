@@ -147,11 +147,19 @@ public class OrderDetailModel : PageModel
         
         if (returnDetails is not null)
         {
+            var requestItems = returnDetails.RequestItems.Select(i => new ReturnRequestItemViewModel(
+                i.ItemId,
+                i.OrderItemId,
+                i.ProductName,
+                i.Quantity)).ToList();
+
             ReturnRequest = new SellerReturnRequestDetailsViewModel(
                 returnDetails.ReturnRequestId,
                 returnDetails.OrderId,
                 returnDetails.ShipmentId,
+                returnDetails.CaseNumber,
                 returnDetails.OrderNumber,
+                returnDetails.Type,
                 returnDetails.Status,
                 returnDetails.BuyerName,
                 returnDetails.BuyerEmail,
@@ -171,7 +179,8 @@ public class OrderDetailModel : PageModel
                     i.UnitPrice,
                     i.Quantity,
                     i.LineTotal,
-                    i.ShippingMethodName)).ToList().AsReadOnly());
+                    i.ShippingMethodName)).ToList().AsReadOnly(),
+                requestItems.AsReadOnly());
         }
 
         // Load existing shipping label if available

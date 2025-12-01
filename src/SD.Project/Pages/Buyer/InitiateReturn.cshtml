@@ -1,7 +1,7 @@
 @page
 @model SD.Project.Pages.Buyer.InitiateReturnModel
 @{
-    ViewData["Title"] = "Initiate Return";
+    ViewData["Title"] = "Submit Return or Complaint";
 }
 
 <div class="container py-4">
@@ -25,7 +25,7 @@
                 <li class="breadcrumb-item"><a asp-page="/Buyer/Dashboard">Dashboard</a></li>
                 <li class="breadcrumb-item"><a asp-page="/Buyer/Orders">Orders</a></li>
                 <li class="breadcrumb-item"><a asp-page="/Buyer/OrderDetails" asp-route-orderId="@Model.Order.OrderId">@Model.Order.OrderNumber</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Initiate Return</li>
+                <li class="breadcrumb-item active" aria-current="page">Submit Request</li>
             </ol>
         </nav>
 
@@ -37,7 +37,7 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-arrow-return-left me-2" viewBox="0 0 16 16">
                                 <path fill-rule="evenodd" d="M14.5 1.5a.5.5 0 0 1 .5.5v4.8a2.5 2.5 0 0 1-2.5 2.5H2.707l3.347 3.346a.5.5 0 0 1-.708.708l-4.2-4.2a.5.5 0 0 1 0-.708l4-4a.5.5 0 1 1 .708.708L2.707 8.3H12.5A1.5 1.5 0 0 0 14 6.8V2a.5.5 0 0 1 .5-.5"/>
                             </svg>
-                            Initiate Return Request
+                            Submit Return or Complaint Request
                         </h4>
                     </div>
                     <div class="card-body">
@@ -55,8 +55,8 @@
                                     <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
                                 </svg>
                                 <div>
-                                    <strong>Return Policy</strong>
-                                    <p class="mb-0 mt-1">You can return items within 30 days of delivery. Once you submit your return request, the seller will review it and respond.</p>
+                                    <strong>How it works</strong>
+                                    <p class="mb-0 mt-1">Select the items you want to return or report an issue with. Choose whether this is a standard return or a product issue complaint. Once submitted, you'll receive a unique case ID and the seller will review your request.</p>
                                     @if (Model.Eligibility?.ReturnWindowEndsAt.HasValue == true)
                                     {
                                         <p class="mb-0 mt-1"><strong>Return window ends:</strong> @Model.Eligibility.ReturnWindowEndsAt.Value.ToString("MMMM dd, yyyy")</p>
@@ -65,59 +65,113 @@
                             </div>
                         </div>
 
-                        <!-- Sub-order Summary -->
-                        <div class="mb-4">
-                            <h5>Items to Return</h5>
-                            <div class="table-responsive">
-                                <table class="table table-sm">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Product</th>
-                                            <th class="text-center">Qty</th>
-                                            <th class="text-end">Total</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach (var item in Model.SubOrder.Items)
-                                        {
-                                            <tr>
-                                                <td>@item.ProductName</td>
-                                                <td class="text-center">@item.Quantity</td>
-                                                <td class="text-end">@Model.Order.Currency @item.LineTotal.ToString("N2")</td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                    <tfoot class="table-light">
-                                        <tr>
-                                            <td colspan="2" class="text-end fw-bold">Total:</td>
-                                            <td class="text-end fw-bold">@Model.Order.Currency @Model.SubOrder.Total.ToString("N2")</td>
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            </div>
-                        </div>
-
-                        <!-- Return Form -->
+                        <!-- Return/Complaint Form -->
                         <form method="post" asp-route-orderId="@Model.Order.OrderId" asp-route-shipmentId="@Model.SubOrder.SubOrderId">
+                            <!-- Request Type Selection -->
                             <div class="mb-4">
-                                <label class="form-label fw-bold">Reason for Return <span class="text-danger">*</span></label>
+                                <label class="form-label fw-bold">Request Type <span class="text-danger">*</span></label>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="form-check card p-3 h-100 @(Model.RequestType == "Return" ? "border-primary bg-light" : "")">
+                                            <input class="form-check-input" type="radio" name="RequestType" id="typeReturn" value="Return" @(Model.RequestType == "Return" ? "checked" : "")>
+                                            <label class="form-check-label w-100" for="typeReturn">
+                                                <div class="d-flex align-items-center">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-arrow-return-left me-2 text-primary" viewBox="0 0 16 16">
+                                                        <path fill-rule="evenodd" d="M14.5 1.5a.5.5 0 0 1 .5.5v4.8a2.5 2.5 0 0 1-2.5 2.5H2.707l3.347 3.346a.5.5 0 0 1-.708.708l-4.2-4.2a.5.5 0 0 1 0-.708l4-4a.5.5 0 1 1 .708.708L2.707 8.3H12.5A1.5 1.5 0 0 0 14 6.8V2a.5.5 0 0 1 .5-.5"/>
+                                                    </svg>
+                                                    <div>
+                                                        <strong>Standard Return</strong>
+                                                        <small class="text-muted d-block">Changed my mind, wrong size, etc.</small>
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check card p-3 h-100 @(Model.RequestType == "Complaint" ? "border-danger bg-light" : "")">
+                                            <input class="form-check-input" type="radio" name="RequestType" id="typeComplaint" value="Complaint" @(Model.RequestType == "Complaint" ? "checked" : "")>
+                                            <label class="form-check-label w-100" for="typeComplaint">
+                                                <div class="d-flex align-items-center">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-exclamation-triangle me-2 text-danger" viewBox="0 0 16 16">
+                                                        <path d="M7.938 2.016A.13.13 0 0 1 8.002 2a.13.13 0 0 1 .063.016.15.15 0 0 1 .054.057l6.857 11.667c.036.06.035.124.002.183a.2.2 0 0 1-.054.06.1.1 0 0 1-.066.017H1.146a.1.1 0 0 1-.066-.017.2.2 0 0 1-.054-.06.18.18 0 0 1 .002-.183L7.884 2.073a.15.15 0 0 1 .054-.057m1.044-.45a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767z"/>
+                                                        <path d="M7.002 12a1 1 0 1 1 2 0 1 1 0 0 1-2 0M7.1 5.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0z"/>
+                                                    </svg>
+                                                    <div>
+                                                        <strong>Product Issue</strong>
+                                                        <small class="text-muted d-block">Defective, damaged, or not as described</small>
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <span asp-validation-for="RequestType" class="text-danger"></span>
+                            </div>
+
+                            <!-- Item Selection -->
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Select Item(s) <span class="text-danger">*</span></label>
+                                <p class="text-muted small mb-2">Choose which items you want to include in this request.</p>
+                                
+                                @if (ModelState["SelectedItemIds"]?.Errors.Count > 0)
+                                {
+                                    <div class="alert alert-danger py-2 mb-2">
+                                        <span asp-validation-for="SelectedItemIds"></span>
+                                    </div>
+                                }
+
+                                <div class="list-group">
+                                    @foreach (var item in Model.SelectableItems)
+                                    {
+                                        var isDisabled = item.HasOpenCase;
+                                        <label class="list-group-item list-group-item-action d-flex align-items-center @(isDisabled ? "disabled bg-light" : "")">
+                                            <input type="checkbox" 
+                                                   name="SelectedItemIds" 
+                                                   value="@item.ItemId" 
+                                                   class="form-check-input me-3"
+                                                   @(isDisabled ? "disabled" : "")
+                                                   @(Model.SelectedItemIds.Contains(item.ItemId) ? "checked" : "")>
+                                            <div class="flex-grow-1">
+                                                <div class="fw-medium">@item.ProductName</div>
+                                                <small class="text-muted">Qty: @item.Quantity</small>
+                                                @if (item.HasOpenCase)
+                                                {
+                                                    <span class="badge bg-warning ms-2">Open case: @item.OpenCaseNumber</span>
+                                                }
+                                            </div>
+                                            <span class="text-muted">@Model.Order.Currency @item.LineTotal.ToString("N2")</span>
+                                        </label>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Reason Selection -->
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Reason <span class="text-danger">*</span></label>
                                 <select class="form-select @(ModelState["Reason"]?.Errors.Count > 0 ? "is-invalid" : "")" asp-for="Reason">
                                     <option value="">Select a reason...</option>
-                                    <option value="Item not as described">Item not as described</option>
-                                    <option value="Received wrong item">Received wrong item</option>
-                                    <option value="Item damaged or defective">Item damaged or defective</option>
-                                    <option value="Item arrived too late">Item arrived too late</option>
-                                    <option value="Changed my mind">Changed my mind</option>
-                                    <option value="Better price found elsewhere">Better price found elsewhere</option>
+                                    <optgroup label="Return Reasons">
+                                        <option value="Changed my mind">Changed my mind</option>
+                                        <option value="Better price found elsewhere">Better price found elsewhere</option>
+                                        <option value="Ordered by mistake">Ordered by mistake</option>
+                                    </optgroup>
+                                    <optgroup label="Product Issues">
+                                        <option value="Item not as described">Item not as described</option>
+                                        <option value="Received wrong item">Received wrong item</option>
+                                        <option value="Item damaged or defective">Item damaged or defective</option>
+                                        <option value="Item arrived too late">Item arrived too late</option>
+                                        <option value="Missing parts or accessories">Missing parts or accessories</option>
+                                    </optgroup>
                                     <option value="Other">Other</option>
                                 </select>
                                 <span asp-validation-for="Reason" class="invalid-feedback"></span>
                             </div>
 
+                            <!-- Description -->
                             <div class="mb-4">
-                                <label asp-for="Comments" class="form-label fw-bold">Additional Comments <span class="text-muted fw-normal">(optional)</span></label>
-                                <textarea class="form-control" asp-for="Comments" rows="4" placeholder="Please provide any additional details about your return request..."></textarea>
-                                <span asp-validation-for="Comments" class="invalid-feedback"></span>
+                                <label asp-for="Description" class="form-label fw-bold">Description <span class="text-muted fw-normal">(optional but recommended)</span></label>
+                                <textarea class="form-control" asp-for="Description" rows="4" placeholder="Please provide any additional details about your request. This helps the seller understand and respond to your case..."></textarea>
+                                <span asp-validation-for="Description" class="invalid-feedback"></span>
                                 <small class="text-muted">Maximum 1000 characters</small>
                             </div>
 
@@ -132,7 +186,7 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-send me-2" viewBox="0 0 16 16">
                                         <path d="M15.854.146a.5.5 0 0 1 .11.54l-5.819 14.547a.75.75 0 0 1-1.329.124l-3.178-4.995L.643 7.184a.75.75 0 0 1 .124-1.33L15.314.037a.5.5 0 0 1 .54.11ZM6.636 10.07l2.761 4.338L14.13 2.576zm6.787-8.201L1.591 6.602l4.339 2.76z"/>
                                     </svg>
-                                    Submit Return Request
+                                    Submit Request
                                 </button>
                             </div>
                         </form>
@@ -173,6 +227,21 @@
                             <span class="fw-bold">Sub-Order Total</span>
                             <span class="fw-bold text-primary">@Model.Order.Currency @Model.SubOrder.Total.ToString("N2")</span>
                         </div>
+                    </div>
+                </div>
+
+                <!-- What happens next -->
+                <div class="card mt-3">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">What happens next?</h5>
+                    </div>
+                    <div class="card-body">
+                        <ol class="mb-0 ps-3">
+                            <li class="mb-2">You'll receive a unique case ID for tracking</li>
+                            <li class="mb-2">The seller will review your request</li>
+                            <li class="mb-2">You'll be notified of their decision</li>
+                            <li>If approved, follow the return instructions</li>
+                        </ol>
                     </div>
                 </div>
             </div>
