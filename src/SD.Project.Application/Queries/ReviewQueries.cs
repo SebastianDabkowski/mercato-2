@@ -1,9 +1,20 @@
+using SD.Project.Domain.Repositories;
+
 namespace SD.Project.Application.Queries;
 
 /// <summary>
 /// Query to get reviews for a product.
 /// </summary>
 public record GetProductReviewsQuery(Guid ProductId);
+
+/// <summary>
+/// Query to get paginated reviews for a product with sorting.
+/// </summary>
+public record GetProductReviewsPagedQuery(
+    Guid ProductId,
+    ReviewSortOrder SortOrder = ReviewSortOrder.Newest,
+    int PageNumber = 1,
+    int PageSize = 10);
 
 /// <summary>
 /// Query to get reviews for a store.

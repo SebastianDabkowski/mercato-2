@@ -182,6 +182,31 @@ public sealed class ReviewService
     }
 
     /// <summary>
+    /// Gets paginated approved reviews for a product with sorting.
+    /// </summary>
+    public async Task<PagedResultDto<ReviewDto>> HandleAsync(
+        GetProductReviewsPagedQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var (reviews, totalCount) = await _reviewRepository.GetByProductIdPagedAsync(
+            query.ProductId,
+            query.SortOrder,
+            query.PageNumber,
+            query.PageSize,
+            cancellationToken);
+
+        var reviewDtos = await MapReviewsToDtosAsync(reviews, cancellationToken);
+
+        return PagedResultDto<ReviewDto>.Create(
+            reviewDtos.ToList().AsReadOnly(),
+            query.PageNumber,
+            query.PageSize,
+            totalCount);
+    }
+
+    /// <summary>
     /// Gets approved reviews for a store.
     /// </summary>
     public async Task<IReadOnlyList<ReviewDto>> HandleAsync(
