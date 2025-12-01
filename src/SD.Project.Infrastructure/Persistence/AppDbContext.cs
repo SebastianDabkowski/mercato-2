@@ -81,6 +81,7 @@ public class AppDbContext : DbContext
     public DbSet<DataProcessingActivity> DataProcessingActivities => Set<DataProcessingActivity>();
     public DbSet<DataProcessingActivityAuditLog> DataProcessingActivityAuditLogs => Set<DataProcessingActivityAuditLog>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
+    public DbSet<SensitiveAccessAuditLog> SensitiveAccessAuditLogs => Set<SensitiveAccessAuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

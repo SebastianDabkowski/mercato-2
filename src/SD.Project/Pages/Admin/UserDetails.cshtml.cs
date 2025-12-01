@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using SD.Project.Application.Commands;
+using SD.Project.Application.Interfaces;
 using SD.Project.Application.Queries;
 using SD.Project.Application.Services;
 using SD.Project.Domain.Entities;
@@ -15,6 +16,8 @@ public class UserDetailsModel : PageModel
 {
     private readonly ILogger<UserDetailsModel> _logger;
     private readonly UserAdminService _userAdminService;
+    private readonly IAuditLoggingService _auditLoggingService;
+    private readonly IAuthorizationService _authorizationService;
 
     public AdminUserDetailViewModel? UserDetail { get; private set; }
     public IReadOnlyList<UserBlockHistoryViewModel> BlockHistory { get; private set; } = Array.Empty<UserBlockHistoryViewModel>();
@@ -29,10 +32,14 @@ public class UserDetailsModel : PageModel
 
     public UserDetailsModel(
         ILogger<UserDetailsModel> logger,
-        UserAdminService userAdminService)
+        UserAdminService userAdminService,
+        IAuditLoggingService auditLoggingService,
+        IAuthorizationService authorizationService)
     {
         _logger = logger;
         _userAdminService = userAdminService;
+        _auditLoggingService = auditLoggingService;
+        _authorizationService = authorizationService;
     }
 
     public async Task<IActionResult> OnGetAsync()
@@ -57,6 +64,9 @@ public class UserDetailsModel : PageModel
             _logger.LogInformation("Admin {AdminId} viewed user details for {UserId}",
                 GetAdminId(),
                 Id);
+
+            // Log sensitive data access for audit compliance
+            await LogSensitiveAccessAsync(SensitiveAccessAction.View);
         }
 
         return Page();
@@ -92,10 +102,34 @@ public class UserDetailsModel : PageModel
             _logger.LogInformation("Admin {AdminId} reactivated user {UserId}",
                 adminId,
                 Id);
+
+            // Log sensitive data modification for audit compliance
+            await LogSensitiveAccessAsync(SensitiveAccessAction.Modify);
         }
 
         await LoadUserDetailsAsync();
         return Page();
+    }
+
+    private async Task LogSensitiveAccessAsync(SensitiveAccessAction action)
+    {
+        var adminId = GetAdminIdGuid();
+        var userRole = GetUserRole();
+
+        // Check if audit logging is required for this user role accessing customer profile
+        if (_authorizationService.RequiresAuditLogging(userRole, SensitiveResourceType.CustomerProfile))
+        {
+            await _auditLoggingService.LogSensitiveAccessAsync(
+                adminId,
+                userRole,
+                SensitiveResourceType.CustomerProfile,
+                Id,
+                action,
+                Id, // Resource owner is the user being viewed
+                null, // No specific reason provided
+                HttpContext.Connection.RemoteIpAddress?.ToString(),
+                Request.Headers.UserAgent.ToString());
+        }
     }
 
     private async Task LoadUserDetailsAsync()
@@ -166,5 +200,11 @@ public class UserDetailsModel : PageModel
     {
         var adminIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         return Guid.TryParse(adminIdClaim, out var adminId) ? adminId : Guid.Empty;
+    }
+
+    private UserRole GetUserRole()
+    {
+        var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value;
+        return Enum.TryParse<UserRole>(roleClaim, out var role) ? role : UserRole.Buyer;
     }
 }
