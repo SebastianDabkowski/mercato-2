@@ -1,0 +1,172 @@
+@page
+@model SD.Project.Pages.Admin.VatHistoryModel
+@{
+    ViewData["Title"] = Model.SelectedRule != null
+        ? $"VAT History - {Model.SelectedRule.Name}"
+        : "VAT Change History";
+}
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            @if (Model.SelectedRule != null)
+            {
+                <h1>VAT Rule History</h1>
+                <p class="text-muted mb-0">
+                    Change history for <strong>@Model.SelectedRule.Name</strong> (@Model.SelectedRule.FormattedRate)
+                    in @Model.SelectedRule.CountryName
+                </p>
+            }
+            else
+            {
+                <h1>VAT Change History</h1>
+                <p class="text-muted mb-0">Audit trail of all VAT rule changes with timestamps and author information.</p>
+            }
+        </div>
+        <div>
+            @if (Model.RuleIdFilter.HasValue)
+            {
+                <a asp-page="/Admin/VatHistory" class="btn btn-outline-secondary me-2">
+                    <i class="bi bi-list me-1"></i> View All History
+                </a>
+            }
+            <a asp-page="/Admin/VatConfiguration" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Back to VAT Configuration
+            </a>
+        </div>
+    </div>
+
+    @if (Model.SelectedRule != null)
+    {
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Current Rule Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <strong>Name:</strong>
+                        <p>@Model.SelectedRule.Name</p>
+                    </div>
+                    <div class="col-md-2">
+                        <strong>Tax Rate:</strong>
+                        <p><span class="badge bg-primary fs-6">@Model.SelectedRule.FormattedRate</span></p>
+                    </div>
+                    <div class="col-md-2">
+                        <strong>Country:</strong>
+                        <p>@Model.SelectedRule.CountryName</p>
+                    </div>
+                    <div class="col-md-2">
+                        <strong>Category:</strong>
+                        <p>@(Model.SelectedRule.CategoryName ?? "All categories")</p>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Status:</strong>
+                        <p><span class="badge @Model.SelectedRule.StatusBadgeClass">@Model.SelectedRule.StatusDisplay</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (Model.HistoryEntries.Count == 0)
+    {
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <h4 class="text-muted">No history entries found</h4>
+                <p class="text-muted">
+                    @if (Model.RuleIdFilter.HasValue)
+                    {
+                        <text>This VAT rule has no recorded change history yet.</text>
+                    }
+                    else
+                    {
+                        <text>No VAT rule changes have been recorded yet.</text>
+                    }
+                </p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-clock-history me-2"></i>Change History
+                    <span class="badge bg-secondary ms-2">@Model.HistoryEntries.Count entries</span>
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date & Time</th>
+                                <th>Change Type</th>
+                                <th>Rule Details</th>
+                                <th>Tax Rate</th>
+                                <th>Effective Period</th>
+                                <th>Changed By</th>
+                                <th>Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var entry in Model.HistoryEntries)
+                            {
+                                <tr>
+                                    <td>
+                                        <span title="@entry.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss") UTC">
+                                            @entry.CreatedAt.ToString("MMM d, yyyy")
+                                            <br />
+                                            <small class="text-muted">@entry.CreatedAt.ToString("h:mm tt")</small>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge @entry.ChangeTypeBadgeClass">@entry.ChangeTypeDisplay</span>
+                                    </td>
+                                    <td>
+                                        <strong>@entry.Name</strong>
+                                        <br />
+                                        <small class="text-muted">
+                                            @entry.CountryName
+                                            @if (entry.CategoryId.HasValue)
+                                            {
+                                                <text> - @entry.CategoryName</text>
+                                            }
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">@entry.FormattedRate</span>
+                                    </td>
+                                    <td>
+                                        <small>@entry.EffectiveDateRangeDisplay</small>
+                                    </td>
+                                    <td>
+                                        <i class="bi bi-person me-1"></i>@entry.ChangedByUserName
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(entry.ChangeReason))
+                                        {
+                                            <small class="text-muted" title="@entry.ChangeReason">
+                                                @(entry.ChangeReason.Length > 50 ? entry.ChangeReason.Substring(0, 47) + "..." : entry.ChangeReason)
+                                            </small>
+                                        }
+                                        else
+                                        {
+                                            <small class="text-muted">-</small>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="mt-4">
+        <a asp-page="/Admin/VatConfiguration" class="btn btn-outline-secondary">Back to VAT Configuration</a>
+        <a asp-page="/Admin/Dashboard" class="btn btn-outline-secondary ms-2">Back to Dashboard</a>
+    </div>
+</div>
