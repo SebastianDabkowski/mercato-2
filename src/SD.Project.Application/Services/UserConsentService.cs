@@ -245,11 +245,34 @@ public sealed class UserConsentService
                     "Consent is already active.");
             }
 
-            // Withdraw existing consent before recording new one
+            // If not granting (withdrawing), withdraw existing consent
+            if (!command.IsGranted)
+            {
+                existingConsent.Withdraw();
+                _repository.Update(existingConsent);
+
+                var withdrawalLog = new UserConsentAuditLog(
+                    existingConsent.Id,
+                    command.UserId,
+                    UserConsentAuditAction.Withdrawn,
+                    existingConsent.ConsentVersionId,
+                    command.Source,
+                    command.IpAddress,
+                    command.UserAgent);
+
+                await _repository.AddAuditLogAsync(withdrawalLog, cancellationToken);
+                await _repository.SaveChangesAsync(cancellationToken);
+
+                return UserConsentResultDto.Succeeded(
+                    MapToUserConsentDto(existingConsent, consentType, currentVersion),
+                    "Consent withdrawn successfully.");
+            }
+
+            // Withdraw existing consent before recording a renewed one (e.g., new version)
             existingConsent.Withdraw();
             _repository.Update(existingConsent);
 
-            var withdrawalLog = new UserConsentAuditLog(
+            var existingWithdrawalLog = new UserConsentAuditLog(
                 existingConsent.Id,
                 command.UserId,
                 UserConsentAuditAction.Withdrawn,
@@ -258,15 +281,24 @@ public sealed class UserConsentService
                 command.IpAddress,
                 command.UserAgent);
 
-            await _repository.AddAuditLogAsync(withdrawalLog, cancellationToken);
+            await _repository.AddAuditLogAsync(existingWithdrawalLog, cancellationToken);
         }
 
-        // Create new consent record
+        // Only create new consent record if granting
+        if (!command.IsGranted)
+        {
+            // No existing consent and not granting - nothing to do
+            return UserConsentResultDto.Succeeded(
+                null!,
+                "Consent decision recorded (not granted).");
+        }
+
+        // Create new consent record for granted consent
         var consent = new UserConsent(
             command.UserId,
             command.ConsentTypeId,
             currentVersion.Id,
-            command.IsGranted,
+            true, // IsGranted is always true when creating a new record
             command.Source,
             command.IpAddress,
             command.UserAgent);
@@ -276,11 +308,6 @@ public sealed class UserConsentService
         var auditAction = existingConsent?.IsActive == true 
             ? UserConsentAuditAction.Renewed 
             : UserConsentAuditAction.Granted;
-
-        if (!command.IsGranted)
-        {
-            auditAction = UserConsentAuditAction.Withdrawn;
-        }
 
         var auditLog = new UserConsentAuditLog(
             consent.Id,
@@ -296,7 +323,7 @@ public sealed class UserConsentService
 
         return UserConsentResultDto.Succeeded(
             MapToUserConsentDto(consent, consentType, currentVersion),
-            command.IsGranted ? "Consent granted successfully." : "Consent decision recorded.");
+            "Consent granted successfully.");
     }
 
     /// <summary>

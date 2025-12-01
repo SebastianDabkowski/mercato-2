@@ -131,10 +131,10 @@ public sealed class RegistrationService
         await _userRepository.AddAsync(user, cancellationToken);
         await _userRepository.SaveChangesAsync(cancellationToken);
 
-        // Record consent decisions if provided
+        // Record consent decisions if provided (only create records for granted consents)
         if (command.ConsentDecisions is not null && command.ConsentDecisions.Count > 0)
         {
-            foreach (var decision in command.ConsentDecisions)
+            foreach (var decision in command.ConsentDecisions.Where(d => d.IsGranted))
             {
                 var consentType = await _userConsentRepository.GetConsentTypeByIdAsync(
                     decision.ConsentTypeId, cancellationToken);
@@ -156,7 +156,7 @@ public sealed class RegistrationService
                     user.Id,
                     decision.ConsentTypeId,
                     currentVersion.Id,
-                    decision.IsGranted,
+                    true, // Only granted consents are recorded
                     "registration",
                     command.IpAddress,
                     command.UserAgent);
@@ -166,7 +166,7 @@ public sealed class RegistrationService
                 var auditLog = new UserConsentAuditLog(
                     consent.Id,
                     user.Id,
-                    decision.IsGranted ? UserConsentAuditAction.Granted : UserConsentAuditAction.Withdrawn,
+                    UserConsentAuditAction.Granted,
                     currentVersion.Id,
                     "registration",
                     command.IpAddress,
