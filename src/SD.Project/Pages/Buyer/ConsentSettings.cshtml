@@ -1,0 +1,226 @@
+@page
+@model SD.Project.Pages.Buyer.ConsentSettingsModel
+@{
+    ViewData["Title"] = "Privacy & Consent Settings";
+}
+
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-page="/Buyer/Dashboard">Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Privacy & Consent</li>
+        </ol>
+    </nav>
+
+    <h1 class="mb-4">Privacy & Consent Settings</h1>
+    <p class="text-muted mb-4">
+        Manage your data processing consents. Your privacy matters to us. Here you can view and control 
+        how we use your data and what communications you receive.
+    </p>
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Active Consents Section -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-shield-check me-2"></i>Your Consents
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.ConsentTypes.Any())
+                    {
+                        <div class="list-group list-group-flush">
+                            @foreach (var consentType in Model.ConsentTypes)
+                            {
+                                var userConsent = Model.UserConsents
+                                    .FirstOrDefault(c => c.ConsentType.Id == consentType.Id && c.IsActive);
+                                var isGranted = userConsent?.IsActive == true;
+                                
+                                <div class="list-group-item px-0">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1">
+                                                @consentType.Name
+                                                @if (consentType.IsRequired)
+                                                {
+                                                    <span class="badge bg-secondary ms-2">Required</span>
+                                                }
+                                            </h6>
+                                            <p class="text-muted small mb-2">@consentType.Description</p>
+                                            
+                                            @if (isGranted && userConsent is not null)
+                                            {
+                                                <div class="small text-success mb-2">
+                                                    <i class="bi bi-check-circle me-1"></i>
+                                                    Consented on @userConsent.ConsentedAt.ToString("MMM dd, yyyy HH:mm")
+                                                    <span class="text-muted">(Version: @userConsent.ConsentVersion.Version)</span>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="small text-muted mb-2">
+                                                    <i class="bi bi-circle me-1"></i>
+                                                    Not consented
+                                                </div>
+                                            }
+
+                                            @if (consentType.CurrentVersion is not null)
+                                            {
+                                                <details class="mt-2">
+                                                    <summary class="small text-primary" style="cursor: pointer;">
+                                                        <i class="bi bi-file-text me-1"></i>View consent text
+                                                    </summary>
+                                                    <div class="mt-2 p-3 bg-light rounded small">
+                                                        <p class="mb-0">@consentType.CurrentVersion.ConsentText</p>
+                                                        <hr class="my-2">
+                                                        <span class="text-muted">
+                                                            Version @consentType.CurrentVersion.Version, 
+                                                            effective from @consentType.CurrentVersion.EffectiveFrom.ToString("MMM dd, yyyy")
+                                                        </span>
+                                                    </div>
+                                                </details>
+                                            }
+                                        </div>
+                                        
+                                        <div class="ms-3">
+                                            @if (isGranted)
+                                            {
+                                                @if (!consentType.IsRequired)
+                                                {
+                                                    <form method="post" asp-page-handler="Withdraw" class="d-inline">
+                                                        <input type="hidden" name="consentTypeId" value="@consentType.Id" />
+                                                        <button type="submit" class="btn btn-outline-danger btn-sm" 
+                                                                onclick="return confirm('Are you sure you want to withdraw this consent?');">
+                                                            <i class="bi bi-x-circle me-1"></i>Withdraw
+                                                        </button>
+                                                    </form>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-success">
+                                                        <i class="bi bi-check-circle me-1"></i>Active
+                                                    </span>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <form method="post" asp-page-handler="Grant" class="d-inline">
+                                                    <input type="hidden" name="consentTypeId" value="@consentType.Id" />
+                                                    <button type="submit" class="btn btn-primary btn-sm">
+                                                        <i class="bi bi-check2 me-1"></i>Grant Consent
+                                                    </button>
+                                                </form>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">No consent options are currently available.</p>
+                    }
+                </div>
+            </div>
+
+            <!-- Consent History Section -->
+            @if (Model.AuditLogs.Any())
+            {
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="bi bi-clock-history me-2"></i>Consent History
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-3">
+                            A record of all your consent decisions for audit purposes.
+                        </p>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Date & Time</th>
+                                        <th>Action</th>
+                                        <th>Version</th>
+                                        <th>Source</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var log in Model.AuditLogs.Take(20))
+                                    {
+                                        var badgeClass = log.Action switch
+                                        {
+                                            "Granted" => "bg-success",
+                                            "Withdrawn" => "bg-danger",
+                                            "Renewed" => "bg-info",
+                                            _ => "bg-secondary"
+                                        };
+                                        
+                                        <tr>
+                                            <td>@log.CreatedAt.ToString("MMM dd, yyyy HH:mm")</td>
+                                            <td><span class="badge @badgeClass">@log.Action</span></td>
+                                            <td>@log.ConsentVersion</td>
+                                            <td><span class="text-capitalize">@log.Source</span></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Help Section -->
+        <div class="col-md-4">
+            <div class="card bg-light mb-4">
+                <div class="card-body">
+                    <h6><i class="bi bi-info-circle me-2"></i>About Your Consents</h6>
+                    <p class="small text-muted mb-2">
+                        We are committed to protecting your privacy. Your consents determine how we can 
+                        use your personal data and communicate with you.
+                    </p>
+                    <ul class="small text-muted mb-0">
+                        <li><strong>Required consents</strong> are necessary for the service to function properly.</li>
+                        <li><strong>Optional consents</strong> can be granted or withdrawn at any time.</li>
+                        <li>All consent changes are recorded for audit purposes.</li>
+                        <li>We will only process your data as you have consented.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h6><i class="bi bi-question-circle me-2"></i>Need Help?</h6>
+                    <p class="small text-muted mb-2">
+                        If you have questions about how we use your data or your privacy rights, please:
+                    </p>
+                    <ul class="small text-muted mb-0">
+                        <li>Review our <a asp-page="/Privacy">Privacy Policy</a></li>
+                        <li>Contact our Data Protection Officer</li>
+                        <li>Submit a data access or deletion request</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

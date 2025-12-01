@@ -82,6 +82,10 @@ public class AppDbContext : DbContext
     public DbSet<DataProcessingActivityAuditLog> DataProcessingActivityAuditLogs => Set<DataProcessingActivityAuditLog>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
     public DbSet<SensitiveAccessAuditLog> SensitiveAccessAuditLogs => Set<SensitiveAccessAuditLog>();
+    public DbSet<ConsentType> ConsentTypes => Set<ConsentType>();
+    public DbSet<ConsentVersion> ConsentVersions => Set<ConsentVersion>();
+    public DbSet<UserConsent> UserConsents => Set<UserConsent>();
+    public DbSet<UserConsentAuditLog> UserConsentAuditLogs => Set<UserConsentAuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

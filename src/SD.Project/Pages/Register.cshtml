@@ -162,6 +162,40 @@
                 </div>
             </div>
 
+            @if (Model.ConsentTypes.Any())
+            {
+                <fieldset class="mb-4">
+                    <legend class="h5">Communication Preferences</legend>
+                    <p class="text-muted small mb-3">
+                        Please review and select your data processing preferences. You can change these settings at any time in your account.
+                    </p>
+                    @foreach (var consent in Model.ConsentTypes)
+                    {
+                        var checkboxId = $"consent_{consent.Id}";
+                        var isChecked = consent.AllowPreselection || consent.IsRequired;
+                        <div class="form-check mb-2">
+                            <input type="checkbox" class="form-check-input" id="@checkboxId" 
+                                   name="Input.ConsentDecisions[@consent.Id]" 
+                                   value="true"
+                                   @(isChecked ? "checked" : "")
+                                   @(consent.IsRequired ? "disabled" : "")>
+                            @if (consent.IsRequired)
+                            {
+                                <input type="hidden" name="Input.ConsentDecisions[@consent.Id]" value="true" />
+                            }
+                            <label class="form-check-label" for="@checkboxId">
+                                <strong>@consent.Name</strong>
+                                @if (consent.IsRequired)
+                                {
+                                    <span class="badge bg-secondary ms-1">Required</span>
+                                }
+                            </label>
+                            <div class="form-text">@consent.Description</div>
+                        </div>
+                    }
+                </fieldset>
+            }
+
             <div class="d-grid">
                 <button type="submit" class="btn btn-primary btn-lg">Create Account</button>
             </div>
