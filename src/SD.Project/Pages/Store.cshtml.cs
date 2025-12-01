@@ -76,10 +76,18 @@ namespace SD.Project.Pages
             // Load products for the store
             Products = await _productService.HandleAsync(new GetProductsByStoreIdQuery(Store.Id));
 
-            // Load seller rating stats
-            var ratingStats = await _sellerRatingService.HandleAsync(new GetSellerRatingStatsQuery(Store.Id));
-            AverageRating = ratingStats.AverageRating;
-            RatingCount = ratingStats.RatingCount;
+            // Load seller rating stats (non-critical - page works without ratings)
+            try
+            {
+                var ratingStats = await _sellerRatingService.HandleAsync(new GetSellerRatingStatsQuery(Store.Id));
+                AverageRating = ratingStats.AverageRating;
+                RatingCount = ratingStats.RatingCount;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to load seller rating stats for store: {StoreId}", Store.Id);
+                // AverageRating and RatingCount remain at default values (0)
+            }
 
             return Page();
         }
