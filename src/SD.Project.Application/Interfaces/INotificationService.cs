@@ -95,6 +95,27 @@ public interface INotificationService
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Sends a notification to the seller when a new order is placed for their products.
+    /// </summary>
+    /// <param name="orderId">The ID of the order.</param>
+    /// <param name="shipmentId">The ID of the seller's shipment within the order.</param>
+    /// <param name="sellerEmail">The seller's email address.</param>
+    /// <param name="orderNumber">The order number for display.</param>
+    /// <param name="itemCount">Number of items in this seller's portion of the order.</param>
+    /// <param name="subtotal">The subtotal for this seller's items.</param>
+    /// <param name="currency">The currency code.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendNewOrderNotificationToSellerAsync(
+        Guid orderId,
+        Guid shipmentId,
+        string sellerEmail,
+        string orderNumber,
+        int itemCount,
+        decimal subtotal,
+        string currency,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Sends a notification when a shipment status changes.
     /// </summary>
     /// <param name="shipmentId">The ID of the shipment.</param>
@@ -297,6 +318,7 @@ public interface INotificationService
     /// Sends a notification when a payout is scheduled.
     /// </summary>
     /// <param name="sellerId">The seller's user ID.</param>
+    /// <param name="sellerEmail">The seller's email address.</param>
     /// <param name="payoutId">The ID of the payout.</param>
     /// <param name="amount">The payout amount.</param>
     /// <param name="currency">The currency code.</param>
@@ -304,6 +326,7 @@ public interface INotificationService
     /// <param name="cancellationToken">Cancellation token.</param>
     Task SendPayoutScheduledNotificationAsync(
         Guid sellerId,
+        string sellerEmail,
         Guid payoutId,
         decimal amount,
         string currency,
@@ -314,6 +337,7 @@ public interface INotificationService
     /// Sends a notification when a payout is successfully completed.
     /// </summary>
     /// <param name="sellerId">The seller's user ID.</param>
+    /// <param name="sellerEmail">The seller's email address.</param>
     /// <param name="payoutId">The ID of the payout.</param>
     /// <param name="amount">The payout amount.</param>
     /// <param name="currency">The currency code.</param>
@@ -321,6 +345,7 @@ public interface INotificationService
     /// <param name="cancellationToken">Cancellation token.</param>
     Task SendPayoutCompletedNotificationAsync(
         Guid sellerId,
+        string sellerEmail,
         Guid payoutId,
         decimal amount,
         string currency,
@@ -331,6 +356,7 @@ public interface INotificationService
     /// Sends a notification when a payout fails.
     /// </summary>
     /// <param name="sellerId">The seller's user ID.</param>
+    /// <param name="sellerEmail">The seller's email address.</param>
     /// <param name="payoutId">The ID of the payout.</param>
     /// <param name="amount">The payout amount.</param>
     /// <param name="currency">The currency code.</param>
@@ -339,6 +365,7 @@ public interface INotificationService
     /// <param name="cancellationToken">Cancellation token.</param>
     Task SendPayoutFailedNotificationAsync(
         Guid sellerId,
+        string sellerEmail,
         Guid payoutId,
         decimal amount,
         string currency,
