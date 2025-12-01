@@ -60,9 +60,11 @@ public static class DependencyInjection
         services.AddScoped<ICreditNoteRepository, CreditNoteRepository>();
         services.AddScoped<IShipmentStatusHistoryRepository, ShipmentStatusHistoryRepository>();
         services.AddScoped<IShippingProviderRepository, ShippingProviderRepository>();
+        services.AddScoped<IShippingLabelRepository, ShippingLabelRepository>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IPaymentProviderService, PaymentProviderService>();
         services.AddScoped<IShippingProviderService, ShippingProviderService>();
+        services.AddScoped<IShippingLabelStorageService, ShippingLabelStorageService>();
         services.AddScoped<IRefundProviderService, RefundProviderService>();
         services.AddScoped<IPdfGeneratorService, HtmlPdfGeneratorService>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();

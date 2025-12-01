@@ -207,3 +207,19 @@ public sealed record ShipmentStatusHistoryViewModel(
     string? TrackingNumber,
     string? TrackingUrl,
     string? Notes);
+
+/// <summary>
+/// View model for a shipping label.
+/// </summary>
+public sealed record ShippingLabelViewModel(
+    Guid LabelId,
+    Guid ShipmentId,
+    string Format,
+    string? LabelSize,
+    string? TrackingNumber,
+    string? CarrierName,
+    DateTime GeneratedAt,
+    DateTime? ExpiresAt,
+    bool IsValid,
+    bool IsVoided,
+    int AccessCount);

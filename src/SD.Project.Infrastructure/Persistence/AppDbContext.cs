@@ -57,6 +57,7 @@ public class AppDbContext : DbContext
     public DbSet<Refund> Refunds => Set<Refund>();
     public DbSet<ShipmentStatusHistory> ShipmentStatusHistories => Set<ShipmentStatusHistory>();
     public DbSet<ShippingProvider> ShippingProviders => Set<ShippingProvider>();
+    public DbSet<ShippingLabel> ShippingLabels => Set<ShippingLabel>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

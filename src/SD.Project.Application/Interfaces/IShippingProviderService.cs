@@ -79,6 +79,30 @@ public sealed record PackageInfo(
     string? PackageType);
 
 /// <summary>
+/// Represents the result of generating a shipping label.
+/// </summary>
+public sealed record GenerateLabelResult(
+    bool IsSuccess,
+    byte[]? LabelData,
+    string? Format,
+    string? LabelSize,
+    string? ProviderLabelId,
+    string? TrackingNumber,
+    string? CarrierName,
+    string? ExternalUrl,
+    DateTime? ExpiresAt,
+    string? ErrorMessage,
+    string? ErrorCode);
+
+/// <summary>
+/// Options for generating a shipping label.
+/// </summary>
+public sealed record LabelOptions(
+    string? Format = "PDF",
+    string? LabelSize = "4x6",
+    bool IncludeReturnLabel = false);
+
+/// <summary>
 /// Abstraction for integrating with shipping providers (e.g., DHL, UPS, FedEx, InPost).
 /// Provides methods for creating shipments, fetching tracking updates, and getting rates.
 /// </summary>
@@ -146,4 +170,25 @@ public interface IShippingProviderService
     /// <param name="providerType">The provider type.</param>
     /// <returns>The carrier name.</returns>
     string GetCarrierName(ShippingProviderType providerType);
+
+    /// <summary>
+    /// Generates a shipping label for a shipment.
+    /// </summary>
+    /// <param name="providerId">The shipping provider configuration ID.</param>
+    /// <param name="providerShipmentId">The provider's shipment ID (from CreateShipmentAsync).</param>
+    /// <param name="options">Label generation options (format, size, etc.).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Result containing label data or error details.</returns>
+    Task<GenerateLabelResult> GenerateLabelAsync(
+        Guid providerId,
+        string providerShipmentId,
+        LabelOptions? options = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Checks if a provider supports label generation.
+    /// </summary>
+    /// <param name="providerType">The provider type.</param>
+    /// <returns>True if the provider supports label generation.</returns>
+    bool SupportsLabelGeneration(ShippingProviderType providerType);
 }

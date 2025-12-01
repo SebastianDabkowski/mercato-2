@@ -21,6 +21,7 @@ public class OrderDetailModel : PageModel
     private readonly OrderService _orderService;
     private readonly StoreService _storeService;
     private readonly ReturnRequestService _returnRequestService;
+    private readonly ShippingLabelService _shippingLabelService;
 
     public SellerSubOrderDetailsViewModel? SubOrder { get; private set; }
     public string? StoreName { get; private set; }
@@ -30,6 +31,16 @@ public class OrderDetailModel : PageModel
     /// Return request for this sub-order, if one exists.
     /// </summary>
     public SellerReturnRequestDetailsViewModel? ReturnRequest { get; private set; }
+
+    /// <summary>
+    /// Shipping label for this sub-order, if one exists.
+    /// </summary>
+    public ShippingLabelViewModel? ShippingLabel { get; private set; }
+
+    /// <summary>
+    /// Whether label generation is available for this shipment.
+    /// </summary>
+    public bool CanGenerateLabel { get; private set; }
 
     // Properties for update tracking form
     [BindProperty]
@@ -45,12 +56,14 @@ public class OrderDetailModel : PageModel
         ILogger<OrderDetailModel> logger,
         OrderService orderService,
         StoreService storeService,
-        ReturnRequestService returnRequestService)
+        ReturnRequestService returnRequestService,
+        ShippingLabelService shippingLabelService)
     {
         _logger = logger;
         _orderService = orderService;
         _storeService = storeService;
         _returnRequestService = returnRequestService;
+        _shippingLabelService = shippingLabelService;
     }
 
     public async Task<IActionResult> OnGetAsync(Guid subOrderId, CancellationToken cancellationToken = default)
@@ -160,6 +173,33 @@ public class OrderDetailModel : PageModel
                     i.LineTotal,
                     i.ShippingMethodName)).ToList().AsReadOnly());
         }
+
+        // Load existing shipping label if available
+        var labelDto = await _shippingLabelService.HandleAsync(
+            new GetShippingLabelByShipmentQuery(store.Id, subOrderId),
+            cancellationToken);
+
+        if (labelDto is not null)
+        {
+            ShippingLabel = new ShippingLabelViewModel(
+                labelDto.LabelId,
+                labelDto.ShipmentId,
+                labelDto.Format,
+                labelDto.LabelSize,
+                labelDto.TrackingNumber,
+                labelDto.CarrierName,
+                labelDto.GeneratedAt,
+                labelDto.ExpiresAt,
+                labelDto.IsValid,
+                labelDto.IsVoided,
+                labelDto.AccessCount);
+        }
+
+        // Determine if label generation is available
+        // Label can be generated for shipped orders that have a provider shipment ID
+        CanGenerateLabel = SubOrder.Status == "Shipped" && 
+                          !string.IsNullOrEmpty(SubOrder.CarrierName) &&
+                          ShippingLabel is null;
 
         _logger.LogInformation("Seller order detail page accessed for order {OrderNumber}, sub-order {SubOrderId}",
             SubOrder.OrderNumber, SubOrder.SubOrderId);
@@ -342,5 +382,77 @@ public class OrderDetailModel : PageModel
         }
 
         return RedirectToPage(new { subOrderId });
+    }
+
+    /// <summary>
+    /// Handles generating a shipping label for the shipment.
+    /// </summary>
+    public async Task<IActionResult> OnPostGenerateLabelAsync(Guid subOrderId, CancellationToken cancellationToken = default)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(userIdClaim, out var userId))
+        {
+            return RedirectToPage("/Login");
+        }
+
+        var store = await _storeService.HandleAsync(new GetStoreBySellerIdQuery(userId), cancellationToken);
+        if (store is null)
+        {
+            TempData["Error"] = "Store not found.";
+            return RedirectToPage(new { subOrderId });
+        }
+
+        var command = new GenerateShippingLabelCommand(store.Id, subOrderId, userId);
+        var result = await _shippingLabelService.HandleAsync(command, cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            TempData["Error"] = result.ErrorMessage ?? "Failed to generate shipping label.";
+            _logger.LogWarning("Failed to generate label for sub-order {SubOrderId}: {Error}",
+                subOrderId, result.ErrorMessage);
+        }
+        else
+        {
+            TempData["Success"] = "Shipping label generated successfully. Click Download to get the label.";
+            _logger.LogInformation("Shipping label {LabelId} generated for sub-order {SubOrderId} by seller {UserId}",
+                result.Label?.LabelId, subOrderId, userId);
+        }
+
+        return RedirectToPage(new { subOrderId });
+    }
+
+    /// <summary>
+    /// Handles downloading a shipping label.
+    /// </summary>
+    public async Task<IActionResult> OnGetDownloadLabelAsync(Guid subOrderId, Guid labelId, CancellationToken cancellationToken = default)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(userIdClaim, out var userId))
+        {
+            return RedirectToPage("/Login");
+        }
+
+        var store = await _storeService.HandleAsync(new GetStoreBySellerIdQuery(userId), cancellationToken);
+        if (store is null)
+        {
+            TempData["Error"] = "Store not found.";
+            return RedirectToPage(new { subOrderId });
+        }
+
+        var query = new DownloadShippingLabelQuery(store.Id, labelId);
+        var result = await _shippingLabelService.HandleAsync(query, cancellationToken);
+
+        if (!result.IsSuccess || result.Data is null)
+        {
+            TempData["Error"] = result.ErrorMessage ?? "Failed to download shipping label.";
+            _logger.LogWarning("Failed to download label {LabelId} for sub-order {SubOrderId}: {Error}",
+                labelId, subOrderId, result.ErrorMessage);
+            return RedirectToPage(new { subOrderId });
+        }
+
+        _logger.LogInformation("Shipping label {LabelId} downloaded for sub-order {SubOrderId} by seller {UserId}",
+            labelId, subOrderId, userId);
+
+        return File(result.Data, result.ContentType ?? "application/pdf", result.FileName ?? "shipping-label.pdf");
     }
 }
