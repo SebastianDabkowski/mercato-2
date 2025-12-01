@@ -1,0 +1,543 @@
+@page "{id:guid}"
+@model SD.Project.Pages.Admin.CaseDetailsModel
+@using SD.Project.ViewModels
+@{
+    ViewData["Title"] = $"Case {Model.CaseDetails?.CaseNumber ?? "Details"}";
+}
+
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-page="/Admin/Dashboard">Admin</a></li>
+            <li class="breadcrumb-item"><a asp-page="/Admin/ReturnsDisputes">Returns & Disputes</a></li>
+            <li class="breadcrumb-item active" aria-current="page">@Model.CaseDetails?.CaseNumber</li>
+        </ol>
+    </nav>
+
+    @if (Model.CaseDetails is null)
+    {
+        <div class="alert alert-danger">Case not found.</div>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @Model.SuccessMessage
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @Model.ErrorMessage
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <!-- Case Header -->
+        <div class="d-flex justify-content-between align-items-start mb-4">
+            <div>
+                <h1 class="h3 mb-1">
+                    @Model.CaseDetails.CaseNumber
+                    <span class="badge @ReturnRequestStatusHelper.GetStatusBadgeClass(Model.CaseDetails.Status) ms-2">
+                        @ReturnRequestStatusHelper.GetStatusDisplayName(Model.CaseDetails.Status)
+                    </span>
+                </h1>
+                <p class="text-muted mb-0">
+                    @ReturnRequestStatusHelper.GetTypeDisplayName(Model.CaseDetails.Type) for Order @Model.CaseDetails.OrderNumber
+                </p>
+            </div>
+            <div class="btn-group">
+                @if (Model.CaseDetails.CanEscalate)
+                {
+                    <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#escalateModal">
+                        <i class="bi bi-arrow-up-circle me-1"></i> Escalate
+                    </button>
+                }
+                @if (Model.CaseDetails.CanRecordDecision)
+                {
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#decisionModal">
+                        <i class="bi bi-check-circle me-1"></i> Record Decision
+                    </button>
+                }
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Left Column: Case Details -->
+            <div class="col-lg-8">
+                <!-- Case Information -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Case Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <dl class="row mb-0">
+                                    <dt class="col-sm-4">Case Number</dt>
+                                    <dd class="col-sm-8">@Model.CaseDetails.CaseNumber</dd>
+
+                                    <dt class="col-sm-4">Type</dt>
+                                    <dd class="col-sm-8">
+                                        <span class="badge @(Model.CaseDetails.Type == "Return" ? "bg-info" : "bg-warning")">
+                                            @ReturnRequestStatusHelper.GetTypeDisplayName(Model.CaseDetails.Type)
+                                        </span>
+                                    </dd>
+
+                                    <dt class="col-sm-4">Status</dt>
+                                    <dd class="col-sm-8">
+                                        <span class="badge @ReturnRequestStatusHelper.GetStatusBadgeClass(Model.CaseDetails.Status)">
+                                            @ReturnRequestStatusHelper.GetStatusDisplayName(Model.CaseDetails.Status)
+                                        </span>
+                                    </dd>
+
+                                    <dt class="col-sm-4">Created</dt>
+                                    <dd class="col-sm-8">@Model.CaseDetails.CreatedAt.ToString("MMM dd, yyyy HH:mm")</dd>
+
+                                    <dt class="col-sm-4">Order Number</dt>
+                                    <dd class="col-sm-8">
+                                        <a asp-page="/Admin/OrderDetails" asp-route-id="@Model.CaseDetails.OrderId">
+                                            @Model.CaseDetails.OrderNumber
+                                        </a>
+                                    </dd>
+                                </dl>
+                            </div>
+                            <div class="col-md-6">
+                                <dl class="row mb-0">
+                                    <dt class="col-sm-4">Seller</dt>
+                                    <dd class="col-sm-8">
+                                        @Model.CaseDetails.SellerName
+                                        @if (!string.IsNullOrEmpty(Model.CaseDetails.SellerEmail))
+                                        {
+                                            <br /><small class="text-muted">@Model.CaseDetails.SellerEmail</small>
+                                        }
+                                    </dd>
+
+                                    <dt class="col-sm-4">Buyer</dt>
+                                    <dd class="col-sm-8">
+                                        @Model.CaseDetails.BuyerName
+                                        @if (!string.IsNullOrEmpty(Model.CaseDetails.BuyerEmail))
+                                        {
+                                            <br /><small class="text-muted">@Model.CaseDetails.BuyerEmail</small>
+                                        }
+                                    </dd>
+
+                                    <dt class="col-sm-4">Amount</dt>
+                                    <dd class="col-sm-8 fw-bold">@Model.CaseDetails.Currency @Model.CaseDetails.SubOrderTotal.ToString("N2")</dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reason and Comments -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Reason & Comments</h5>
+                    </div>
+                    <div class="card-body">
+                        <h6 class="text-muted">Buyer's Reason</h6>
+                        <p>@Model.CaseDetails.Reason</p>
+
+                        @if (!string.IsNullOrEmpty(Model.CaseDetails.Comments))
+                        {
+                            <h6 class="text-muted">Additional Comments</h6>
+                            <p>@Model.CaseDetails.Comments</p>
+                        }
+
+                        @if (!string.IsNullOrEmpty(Model.CaseDetails.SellerResponse))
+                        {
+                            <h6 class="text-muted">Seller's Response</h6>
+                            <p>@Model.CaseDetails.SellerResponse</p>
+                        }
+                    </div>
+                </div>
+
+                <!-- Escalation Information -->
+                @if (Model.CaseDetails.IsEscalated)
+                {
+                    <div class="card mb-4 border-warning">
+                        <div class="card-header bg-warning bg-opacity-25">
+                            <h5 class="card-title mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Escalation Details</h5>
+                        </div>
+                        <div class="card-body">
+                            <dl class="row mb-0">
+                                <dt class="col-sm-3">Escalated At</dt>
+                                <dd class="col-sm-9">@Model.CaseDetails.EscalatedAt?.ToString("MMM dd, yyyy HH:mm")</dd>
+
+                                <dt class="col-sm-3">Reason</dt>
+                                <dd class="col-sm-9">
+                                    <span class="badge @ReturnRequestStatusHelper.GetEscalationReasonBadgeClass(Model.CaseDetails.EscalationReason)">
+                                        @ReturnRequestStatusHelper.GetEscalationReasonDisplayName(Model.CaseDetails.EscalationReason)
+                                    </span>
+                                </dd>
+
+                                @if (!string.IsNullOrEmpty(Model.CaseDetails.EscalationNotes))
+                                {
+                                    <dt class="col-sm-3">Notes</dt>
+                                    <dd class="col-sm-9">@Model.CaseDetails.EscalationNotes</dd>
+                                }
+                            </dl>
+                        </div>
+                    </div>
+                }
+
+                <!-- Admin Decision -->
+                @if (Model.CaseDetails.HasAdminDecision)
+                {
+                    <div class="card mb-4 border-primary">
+                        <div class="card-header bg-primary bg-opacity-25">
+                            <h5 class="card-title mb-0"><i class="bi bi-shield-check me-2"></i>Admin Decision</h5>
+                        </div>
+                        <div class="card-body">
+                            <dl class="row mb-0">
+                                <dt class="col-sm-3">Decision</dt>
+                                <dd class="col-sm-9">
+                                    <span class="badge @ReturnRequestStatusHelper.GetAdminDecisionBadgeClass(Model.CaseDetails.AdminDecision)">
+                                        @ReturnRequestStatusHelper.GetAdminDecisionDisplayName(Model.CaseDetails.AdminDecision)
+                                    </span>
+                                </dd>
+
+                                <dt class="col-sm-3">Decision At</dt>
+                                <dd class="col-sm-9">@Model.CaseDetails.AdminDecisionAt?.ToString("MMM dd, yyyy HH:mm")</dd>
+
+                                @if (!string.IsNullOrEmpty(Model.CaseDetails.AdminDecisionNotes))
+                                {
+                                    <dt class="col-sm-3">Notes</dt>
+                                    <dd class="col-sm-9">@Model.CaseDetails.AdminDecisionNotes</dd>
+                                }
+                            </dl>
+                        </div>
+                    </div>
+                }
+
+                <!-- Resolution & Refund -->
+                @if (Model.CaseDetails.ResolutionType is not null)
+                {
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Resolution & Refund</h5>
+                        </div>
+                        <div class="card-body">
+                            <dl class="row mb-0">
+                                <dt class="col-sm-3">Resolution</dt>
+                                <dd class="col-sm-9">
+                                    <span class="badge @ReturnRequestStatusHelper.GetResolutionTypeBadgeClass(Model.CaseDetails.ResolutionType)">
+                                        @ReturnRequestStatusHelper.GetResolutionTypeDisplayName(Model.CaseDetails.ResolutionType)
+                                    </span>
+                                </dd>
+
+                                @if (Model.CaseDetails.PartialRefundAmount.HasValue)
+                                {
+                                    <dt class="col-sm-3">Refund Amount</dt>
+                                    <dd class="col-sm-9">@Model.CaseDetails.Currency @Model.CaseDetails.PartialRefundAmount.Value.ToString("N2")</dd>
+                                }
+
+                                @if (!string.IsNullOrEmpty(Model.CaseDetails.ResolutionNotes))
+                                {
+                                    <dt class="col-sm-3">Notes</dt>
+                                    <dd class="col-sm-9">@Model.CaseDetails.ResolutionNotes</dd>
+                                }
+
+                                @if (Model.CaseDetails.ResolvedAt.HasValue)
+                                {
+                                    <dt class="col-sm-3">Resolved At</dt>
+                                    <dd class="col-sm-9">@Model.CaseDetails.ResolvedAt.Value.ToString("MMM dd, yyyy HH:mm")</dd>
+                                }
+
+                                @if (Model.CaseDetails.LinkedRefund is not null)
+                                {
+                                    <dt class="col-sm-3">Refund Status</dt>
+                                    <dd class="col-sm-9">
+                                        <span class="badge @ReturnRequestStatusHelper.GetRefundStatusBadgeClass(Model.CaseDetails.LinkedRefund.Status)">
+                                            @Model.CaseDetails.LinkedRefund.Status
+                                        </span>
+                                        <span class="ms-2">@Model.CaseDetails.LinkedRefund.Currency @Model.CaseDetails.LinkedRefund.Amount.ToString("N2")</span>
+                                    </dd>
+                                }
+                            </dl>
+                        </div>
+                    </div>
+                }
+
+                <!-- Items -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Items Involved</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Qty</th>
+                                        <th>Unit Price</th>
+                                        <th>Total</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in Model.CaseDetails.Items)
+                                    {
+                                        var isInRequest = Model.CaseDetails.RequestItems.Any(ri => ri.OrderItemId == item.ItemId);
+                                        <tr class="@(isInRequest ? "table-warning" : "")">
+                                            <td>
+                                                @item.ProductName
+                                                @if (isInRequest)
+                                                {
+                                                    <span class="badge bg-warning ms-1">In Request</span>
+                                                }
+                                            </td>
+                                            <td>@item.Quantity</td>
+                                            <td>@item.UnitPrice.ToString("N2")</td>
+                                            <td>@item.LineTotal.ToString("N2")</td>
+                                            <td>@item.Status</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status History Timeline -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Status History</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span><i class="bi bi-circle-fill text-primary me-2"></i> Case Created</span>
+                                <small class="text-muted">@Model.CaseDetails.CreatedAt.ToString("MMM dd, yyyy HH:mm")</small>
+                            </li>
+                            @if (Model.CaseDetails.ApprovedAt.HasValue)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-circle-fill text-success me-2"></i> Approved by Seller</span>
+                                    <small class="text-muted">@Model.CaseDetails.ApprovedAt.Value.ToString("MMM dd, yyyy HH:mm")</small>
+                                </li>
+                            }
+                            @if (Model.CaseDetails.RejectedAt.HasValue)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-circle-fill text-danger me-2"></i> Rejected by Seller</span>
+                                    <small class="text-muted">@Model.CaseDetails.RejectedAt.Value.ToString("MMM dd, yyyy HH:mm")</small>
+                                </li>
+                            }
+                            @if (Model.CaseDetails.EscalatedAt.HasValue)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-circle-fill text-warning me-2"></i> Escalated to Admin</span>
+                                    <small class="text-muted">@Model.CaseDetails.EscalatedAt.Value.ToString("MMM dd, yyyy HH:mm")</small>
+                                </li>
+                            }
+                            @if (Model.CaseDetails.AdminDecisionAt.HasValue)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-circle-fill text-info me-2"></i> Admin Decision Recorded</span>
+                                    <small class="text-muted">@Model.CaseDetails.AdminDecisionAt.Value.ToString("MMM dd, yyyy HH:mm")</small>
+                                </li>
+                            }
+                            @if (Model.CaseDetails.CompletedAt.HasValue)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-circle-fill text-secondary me-2"></i> Case Completed</span>
+                                    <small class="text-muted">@Model.CaseDetails.CompletedAt.Value.ToString("MMM dd, yyyy HH:mm")</small>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Messages -->
+            <div class="col-lg-4">
+                <div class="card" style="max-height: 800px;">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Messages</h5>
+                    </div>
+                    <div class="card-body overflow-auto" style="max-height: 500px;" id="messageContainer">
+                        @if (Model.MessageThread is null || Model.MessageThread.Messages.Count == 0)
+                        {
+                            <p class="text-muted text-center">No messages yet.</p>
+                        }
+                        else
+                        {
+                            @foreach (var message in Model.MessageThread.Messages)
+                            {
+                                <div class="mb-3 @(message.SenderRole == "Admin" ? "text-end" : "")">
+                                    <div class="d-inline-block p-2 rounded @(message.SenderRole == "Admin" ? "bg-primary text-white" : "bg-light")" style="max-width: 85%;">
+                                        <div class="small mb-1">
+                                            <span class="fw-bold">@message.SenderName</span>
+                                            <span class="badge @ReturnRequestStatusHelper.GetSenderRoleBadgeClass(message.SenderRole) ms-1">
+                                                @message.SenderRole
+                                            </span>
+                                        </div>
+                                        <p class="mb-1">@message.Content</p>
+                                        <div class="small @(message.SenderRole == "Admin" ? "text-white-50" : "text-muted")">
+                                            @message.SentAt.ToString("MMM dd, HH:mm")
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </div>
+                    <div class="card-footer">
+                        <form method="post" asp-page-handler="SendMessage" asp-route-id="@Model.CaseDetails.ReturnRequestId">
+                            <div class="input-group">
+                                <textarea class="form-control" name="NewMessage" rows="2" 
+                                          placeholder="Type your message..." required></textarea>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-send"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Escalate Modal -->
+        <div class="modal fade" id="escalateModal" tabindex="-1" aria-labelledby="escalateModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form method="post" asp-page-handler="Escalate" asp-route-id="@Model.CaseDetails.ReturnRequestId">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="escalateModalLabel">Escalate Case</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>You are about to escalate case <strong>@Model.CaseDetails.CaseNumber</strong> to admin review.</p>
+                            
+                            <div class="mb-3">
+                                <label for="escalateReason" class="form-label">Escalation Reason</label>
+                                <select class="form-select" asp-for="EscalateInput.Reason" asp-items="Model.EscalationReasonOptions" required>
+                                    <option value="">Select reason...</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="escalateNotes" class="form-label">Notes (optional)</label>
+                                <textarea class="form-control" asp-for="EscalateInput.Notes" rows="3" 
+                                          placeholder="Additional context for the escalation..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-warning">Escalate Case</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Decision Modal -->
+        <div class="modal fade" id="decisionModal" tabindex="-1" aria-labelledby="decisionModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <form method="post" asp-page-handler="RecordDecision" asp-route-id="@Model.CaseDetails.ReturnRequestId">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="decisionModalLabel">Record Admin Decision</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>You are recording a decision for case <strong>@Model.CaseDetails.CaseNumber</strong>.</p>
+                            
+                            <div class="mb-3">
+                                <label for="DecisionType" class="form-label">Decision Type</label>
+                                <select class="form-select" asp-for="DecisionInput.DecisionType" asp-items="Model.DecisionTypeOptions" 
+                                        id="decisionTypeSelect" required>
+                                    <option value="">Select decision...</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="DecisionNotes" class="form-label">Decision Notes</label>
+                                <textarea class="form-control" asp-for="DecisionInput.DecisionNotes" rows="3" 
+                                          placeholder="Explain your decision..." required></textarea>
+                            </div>
+
+                            <div id="refundOptions" style="display: none;">
+                                <hr />
+                                <h6>Refund Options</h6>
+                                
+                                <div class="mb-3">
+                                    <label for="ResolutionType" class="form-label">Resolution Type</label>
+                                    <select class="form-select" asp-for="DecisionInput.ResolutionType" asp-items="Model.ResolutionTypeOptions"
+                                            id="resolutionTypeSelect">
+                                        <option value="">Select resolution...</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-3" id="partialRefundAmountDiv" style="display: none;">
+                                    <label for="PartialRefundAmount" class="form-label">Partial Refund Amount</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">@Model.CaseDetails.Currency</span>
+                                        <input type="number" class="form-control" asp-for="DecisionInput.PartialRefundAmount" 
+                                               step="0.01" min="0.01" max="@Model.CaseDetails.SubOrderTotal" />
+                                    </div>
+                                    <small class="text-muted">Max: @Model.CaseDetails.Currency @Model.CaseDetails.SubOrderTotal.ToString("N2")</small>
+                                </div>
+
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" asp-for="DecisionInput.InitiateRefund" id="initiateRefund">
+                                    <label class="form-check-label" for="initiateRefund">
+                                        Initiate refund automatically
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Record Decision</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Scroll to bottom of messages
+            var messageContainer = document.getElementById('messageContainer');
+            if (messageContainer) {
+                messageContainer.scrollTop = messageContainer.scrollHeight;
+            }
+
+            // Show/hide refund options based on decision type
+            var decisionTypeSelect = document.getElementById('decisionTypeSelect');
+            var refundOptions = document.getElementById('refundOptions');
+            var resolutionTypeSelect = document.getElementById('resolutionTypeSelect');
+            var partialRefundAmountDiv = document.getElementById('partialRefundAmountDiv');
+
+            if (decisionTypeSelect && refundOptions) {
+                decisionTypeSelect.addEventListener('change', function() {
+                    if (this.value === 'EnforceRefund') {
+                        refundOptions.style.display = 'block';
+                    } else {
+                        refundOptions.style.display = 'none';
+                    }
+                });
+            }
+
+            if (resolutionTypeSelect && partialRefundAmountDiv) {
+                resolutionTypeSelect.addEventListener('change', function() {
+                    if (this.value === 'PartialRefund') {
+                        partialRefundAmountDiv.style.display = 'block';
+                    } else {
+                        partialRefundAmountDiv.style.display = 'none';
+                    }
+                });
+            }
+        });
+    </script>
+}

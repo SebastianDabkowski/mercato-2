@@ -12,7 +12,35 @@ public enum ReturnRequestStatus
     /// <summary>Return request rejected by seller.</summary>
     Rejected,
     /// <summary>Return completed (item received and refund processed).</summary>
-    Completed
+    Completed,
+    /// <summary>Case escalated to admin for review.</summary>
+    UnderAdminReview
+}
+
+/// <summary>
+/// Reason for escalating a case to admin review.
+/// </summary>
+public enum EscalationReason
+{
+    /// <summary>Buyer requested escalation after disagreeing with seller resolution.</summary>
+    BuyerRequested,
+    /// <summary>System automatically escalated due to SLA breach.</summary>
+    SLABreach,
+    /// <summary>Admin manually flagged the case for review.</summary>
+    AdminFlagged
+}
+
+/// <summary>
+/// Admin decision type for escalated cases.
+/// </summary>
+public enum AdminDecisionType
+{
+    /// <summary>Admin overrode seller's decision in favor of the buyer.</summary>
+    OverrideSeller,
+    /// <summary>Admin enforced a refund to the buyer.</summary>
+    EnforceRefund,
+    /// <summary>Admin closed the case without further action, upholding seller decision.</summary>
+    CloseWithoutAction
 }
 
 /// <summary>
@@ -152,6 +180,46 @@ public class ReturnRequest
     /// Partial refund amount if resolution is PartialRefund.
     /// </summary>
     public decimal? PartialRefundAmount { get; private set; }
+
+    /// <summary>
+    /// When the case was escalated to admin review.
+    /// </summary>
+    public DateTime? EscalatedAt { get; private set; }
+
+    /// <summary>
+    /// The ID of the user who escalated the case (buyer or admin).
+    /// </summary>
+    public Guid? EscalatedByUserId { get; private set; }
+
+    /// <summary>
+    /// The reason for escalation.
+    /// </summary>
+    public EscalationReason? EscalationReasonType { get; private set; }
+
+    /// <summary>
+    /// Additional notes provided when escalating the case.
+    /// </summary>
+    public string? EscalationNotes { get; private set; }
+
+    /// <summary>
+    /// The ID of the admin who made the decision (if escalated).
+    /// </summary>
+    public Guid? AdminDecisionByUserId { get; private set; }
+
+    /// <summary>
+    /// The admin's decision type.
+    /// </summary>
+    public AdminDecisionType? AdminDecision { get; private set; }
+
+    /// <summary>
+    /// Notes from the admin explaining their decision.
+    /// </summary>
+    public string? AdminDecisionNotes { get; private set; }
+
+    /// <summary>
+    /// When the admin made their decision.
+    /// </summary>
+    public DateTime? AdminDecisionAt { get; private set; }
 
     /// <summary>
     /// Items included in this return/complaint request.
@@ -340,7 +408,8 @@ public class ReturnRequest
             ReturnRequestStatus.Requested => false, // Cannot go back to requested
             ReturnRequestStatus.Approved => Status == ReturnRequestStatus.Requested,
             ReturnRequestStatus.Rejected => Status == ReturnRequestStatus.Requested,
-            ReturnRequestStatus.Completed => Status == ReturnRequestStatus.Approved,
+            ReturnRequestStatus.Completed => Status == ReturnRequestStatus.Approved || Status == ReturnRequestStatus.UnderAdminReview,
+            ReturnRequestStatus.UnderAdminReview => Status == ReturnRequestStatus.Requested || Status == ReturnRequestStatus.Rejected,
             _ => false
         };
     }
@@ -409,4 +478,109 @@ public class ReturnRequest
     {
         return ResolutionType == CaseResolutionType.FullRefund || ResolutionType == CaseResolutionType.PartialRefund;
     }
+
+    /// <summary>
+    /// Escalates the case to admin review.
+    /// </summary>
+    /// <param name="escalatedByUserId">The ID of the user initiating the escalation.</param>
+    /// <param name="reason">The reason for escalation.</param>
+    /// <param name="notes">Optional notes explaining the escalation.</param>
+    public void Escalate(Guid escalatedByUserId, EscalationReason reason, string? notes = null)
+    {
+        if (escalatedByUserId == Guid.Empty)
+        {
+            throw new ArgumentException("Escalated by user ID is required.", nameof(escalatedByUserId));
+        }
+
+        if (Status != ReturnRequestStatus.Requested && Status != ReturnRequestStatus.Rejected)
+        {
+            throw new InvalidOperationException($"Cannot escalate case in status {Status}. Must be in Requested or Rejected status.");
+        }
+
+        Status = ReturnRequestStatus.UnderAdminReview;
+        EscalatedAt = DateTime.UtcNow;
+        EscalatedByUserId = escalatedByUserId;
+        EscalationReasonType = reason;
+        EscalationNotes = notes?.Trim();
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Records an admin decision for an escalated case.
+    /// </summary>
+    /// <param name="adminUserId">The ID of the admin making the decision.</param>
+    /// <param name="decision">The admin's decision.</param>
+    /// <param name="decisionNotes">Notes explaining the decision.</param>
+    /// <param name="resolutionType">Optional resolution type if the admin is enforcing a specific resolution.</param>
+    /// <param name="partialRefundAmount">Optional partial refund amount if resolution is PartialRefund.</param>
+    public void RecordAdminDecision(
+        Guid adminUserId,
+        AdminDecisionType decision,
+        string? decisionNotes,
+        CaseResolutionType? resolutionType = null,
+        decimal? partialRefundAmount = null)
+    {
+        if (adminUserId == Guid.Empty)
+        {
+            throw new ArgumentException("Admin user ID is required.", nameof(adminUserId));
+        }
+
+        if (Status != ReturnRequestStatus.UnderAdminReview)
+        {
+            throw new InvalidOperationException($"Cannot record admin decision for case in status {Status}. Must be under admin review.");
+        }
+
+        if (string.IsNullOrWhiteSpace(decisionNotes))
+        {
+            throw new ArgumentException("Decision notes are required.", nameof(decisionNotes));
+        }
+
+        // Validate refund-related decisions
+        if (decision == AdminDecisionType.EnforceRefund && !resolutionType.HasValue)
+        {
+            throw new ArgumentException("Resolution type is required when enforcing a refund.", nameof(resolutionType));
+        }
+
+        if (resolutionType == CaseResolutionType.PartialRefund && (!partialRefundAmount.HasValue || partialRefundAmount.Value <= 0))
+        {
+            throw new ArgumentException("Partial refund amount is required and must be greater than zero.", nameof(partialRefundAmount));
+        }
+
+        AdminDecisionByUserId = adminUserId;
+        AdminDecision = decision;
+        AdminDecisionNotes = decisionNotes.Trim();
+        AdminDecisionAt = DateTime.UtcNow;
+
+        // Set resolution if provided
+        if (resolutionType.HasValue)
+        {
+            ResolutionType = resolutionType.Value;
+            ResolutionNotes = decisionNotes.Trim();
+            PartialRefundAmount = resolutionType == CaseResolutionType.PartialRefund ? partialRefundAmount : null;
+            ResolvedAt = DateTime.UtcNow;
+        }
+
+        // Complete the case after admin decision
+        Status = ReturnRequestStatus.Completed;
+        CompletedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Checks if the case can be escalated to admin review.
+    /// </summary>
+    public bool CanEscalate()
+    {
+        return Status == ReturnRequestStatus.Requested || Status == ReturnRequestStatus.Rejected;
+    }
+
+    /// <summary>
+    /// Checks if the case is currently escalated and awaiting admin decision.
+    /// </summary>
+    public bool IsEscalated => Status == ReturnRequestStatus.UnderAdminReview;
+
+    /// <summary>
+    /// Checks if the case has an admin decision recorded.
+    /// </summary>
+    public bool HasAdminDecision => AdminDecision.HasValue;
 }

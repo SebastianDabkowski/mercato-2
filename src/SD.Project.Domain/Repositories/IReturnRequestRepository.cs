@@ -51,6 +51,19 @@ public interface IReturnRequestRepository
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets filtered and paginated return requests for admin view across all stores.
+    /// </summary>
+    Task<(IReadOnlyList<ReturnRequest> Requests, int TotalCount)> GetFilteredForAdminAsync(
+        ReturnRequestStatus? status,
+        ReturnRequestType? type,
+        string? searchTerm,
+        DateTime? fromDate,
+        DateTime? toDate,
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Checks if a return request already exists for the given shipment.
     /// </summary>
     Task<bool> ExistsForShipmentAsync(Guid shipmentId, CancellationToken cancellationToken = default);

@@ -53,3 +53,21 @@ public sealed record GetSellerReturnRequestDetailsQuery(
 public sealed record GetSellerReturnRequestByShipmentQuery(
     Guid StoreId,
     Guid ShipmentId);
+
+/// <summary>
+/// Query to get all return requests for admin view across the platform.
+/// </summary>
+public sealed record GetAdminReturnRequestsQuery(
+    string? Status = null,
+    string? Type = null,
+    string? SearchTerm = null,
+    DateTime? FromDate = null,
+    DateTime? ToDate = null,
+    int PageNumber = 1,
+    int PageSize = 20);
+
+/// <summary>
+/// Query to get a specific return request for admin view with full details.
+/// </summary>
+public sealed record GetAdminReturnRequestDetailsQuery(
+    Guid ReturnRequestId);

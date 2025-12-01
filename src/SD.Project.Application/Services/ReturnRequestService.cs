@@ -987,4 +987,403 @@ public sealed class ReturnRequestService
 
         return new LinkRefundResultDto(true, null);
     }
+
+    /// <summary>
+    /// Gets filtered return requests for admin view across all stores.
+    /// </summary>
+    public async Task<PagedResultDto<AdminReturnRequestSummaryDto>> HandleAsync(
+        GetAdminReturnRequestsQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var pageNumber = Math.Max(1, query.PageNumber);
+        var pageSize = Math.Clamp(query.PageSize, 1, 100);
+        var skip = (pageNumber - 1) * pageSize;
+
+        // Parse status filter
+        ReturnRequestStatus? statusFilter = null;
+        if (!string.IsNullOrWhiteSpace(query.Status) &&
+            Enum.TryParse<ReturnRequestStatus>(query.Status, ignoreCase: true, out var parsedStatus))
+        {
+            statusFilter = parsedStatus;
+        }
+
+        // Parse type filter
+        ReturnRequestType? typeFilter = null;
+        if (!string.IsNullOrWhiteSpace(query.Type) &&
+            Enum.TryParse<ReturnRequestType>(query.Type, ignoreCase: true, out var parsedType))
+        {
+            typeFilter = parsedType;
+        }
+
+        var (requests, totalCount) = await _returnRequestRepository.GetFilteredForAdminAsync(
+            statusFilter,
+            typeFilter,
+            query.SearchTerm,
+            query.FromDate,
+            query.ToDate,
+            skip,
+            pageSize,
+            cancellationToken);
+
+        if (requests.Count == 0)
+        {
+            return PagedResultDto<AdminReturnRequestSummaryDto>.Create(
+                Array.Empty<AdminReturnRequestSummaryDto>(),
+                pageNumber,
+                pageSize,
+                totalCount);
+        }
+
+        var result = new List<AdminReturnRequestSummaryDto>();
+        foreach (var request in requests)
+        {
+            var order = await _orderRepository.GetByIdAsync(request.OrderId, cancellationToken);
+            var shipment = order?.Shipments.FirstOrDefault(s => s.Id == request.ShipmentId);
+            var store = await _storeRepository.GetByIdAsync(request.StoreId, cancellationToken);
+            var seller = store != null ? await _userRepository.GetByIdAsync(store.SellerId, cancellationToken) : null;
+            var buyer = await _userRepository.GetByIdAsync(request.BuyerId, cancellationToken);
+
+            var sellerName = store?.Name ?? "Unknown Store";
+            var buyerAlias = buyer?.FirstName ?? "Buyer";
+            var subOrderTotal = shipment is not null ? shipment.Subtotal + shipment.ShippingCost : 0m;
+            var ageInDays = (int)(DateTime.UtcNow - request.CreatedAt).TotalDays;
+
+            result.Add(new AdminReturnRequestSummaryDto(
+                request.Id,
+                request.OrderId,
+                request.StoreId,
+                request.CaseNumber,
+                order?.OrderNumber ?? "Unknown",
+                sellerName,
+                request.Type.ToString(),
+                request.Status.ToString(),
+                sellerName,
+                buyerAlias,
+                request.Reason,
+                subOrderTotal,
+                order?.Currency ?? "USD",
+                request.CreatedAt,
+                ageInDays,
+                request.IsEscalated,
+                request.EscalatedAt));
+        }
+
+        return PagedResultDto<AdminReturnRequestSummaryDto>.Create(
+            result.AsReadOnly(),
+            pageNumber,
+            pageSize,
+            totalCount);
+    }
+
+    /// <summary>
+    /// Gets details of a specific return request for admin view.
+    /// </summary>
+    public async Task<AdminReturnRequestDetailsDto?> HandleAsync(
+        GetAdminReturnRequestDetailsQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        var returnRequest = await _returnRequestRepository.GetByIdWithItemsAsync(query.ReturnRequestId, cancellationToken);
+        if (returnRequest is null)
+        {
+            return null;
+        }
+
+        var order = await _orderRepository.GetByIdAsync(returnRequest.OrderId, cancellationToken);
+        if (order is null)
+        {
+            return null;
+        }
+
+        var shipment = order.Shipments.FirstOrDefault(s => s.Id == returnRequest.ShipmentId);
+        var store = await _storeRepository.GetByIdAsync(returnRequest.StoreId, cancellationToken);
+        var seller = store != null ? await _userRepository.GetByIdAsync(store.SellerId, cancellationToken) : null;
+        var buyer = await _userRepository.GetByIdAsync(returnRequest.BuyerId, cancellationToken);
+
+        var sellerName = store?.Name ?? "Unknown Store";
+        var buyerName = buyer?.FirstName is not null && buyer?.LastName is not null
+            ? $"{buyer.FirstName} {buyer.LastName}"
+            : order.RecipientName;
+        var subOrderTotal = shipment is not null ? shipment.Subtotal + shipment.ShippingCost : 0m;
+
+        // Get items for this shipment
+        var items = order.Items
+            .Where(i => i.StoreId == returnRequest.StoreId)
+            .Select(i => new SellerSubOrderItemDto(
+                i.Id,
+                i.ProductId,
+                i.ProductName,
+                i.UnitPrice,
+                i.Quantity,
+                i.LineTotal,
+                i.ShippingMethodName,
+                i.Status.ToString(),
+                i.CarrierName,
+                i.TrackingNumber,
+                i.TrackingUrl,
+                i.ShippedAt,
+                i.DeliveredAt,
+                i.CancelledAt,
+                i.RefundedAt,
+                i.RefundedAmount))
+            .ToList();
+
+        // Map return request items
+        var requestItems = returnRequest.Items.Select(i => new ReturnRequestItemDto(
+            i.Id,
+            i.OrderItemId,
+            i.ProductName,
+            i.Quantity)).ToList();
+
+        // Get linked refund info if available
+        LinkedRefundDto? linkedRefund = null;
+        if (returnRequest.LinkedRefundId.HasValue)
+        {
+            var refund = await _refundRepository.GetByIdAsync(returnRequest.LinkedRefundId.Value, cancellationToken);
+            if (refund is not null)
+            {
+                linkedRefund = new LinkedRefundDto(
+                    refund.Id,
+                    refund.Status.ToString(),
+                    refund.Amount,
+                    refund.Currency,
+                    refund.RefundTransactionId,
+                    refund.CreatedAt,
+                    refund.CompletedAt);
+            }
+        }
+
+        return new AdminReturnRequestDetailsDto(
+            returnRequest.Id,
+            returnRequest.OrderId,
+            returnRequest.ShipmentId,
+            returnRequest.StoreId,
+            returnRequest.CaseNumber,
+            order.OrderNumber,
+            sellerName,
+            returnRequest.Type.ToString(),
+            returnRequest.Status.ToString(),
+            sellerName,
+            seller?.Email?.Value,
+            buyerName,
+            buyer?.Email?.Value,
+            returnRequest.Reason,
+            returnRequest.Comments,
+            returnRequest.SellerResponse,
+            subOrderTotal,
+            order.Currency,
+            returnRequest.CreatedAt,
+            returnRequest.ApprovedAt,
+            returnRequest.RejectedAt,
+            returnRequest.CompletedAt,
+            items.AsReadOnly(),
+            requestItems.AsReadOnly(),
+            returnRequest.ResolutionType?.ToString(),
+            returnRequest.ResolutionNotes,
+            returnRequest.PartialRefundAmount,
+            returnRequest.ResolvedAt,
+            returnRequest.LinkedRefundId,
+            linkedRefund,
+            // Escalation info
+            returnRequest.IsEscalated,
+            returnRequest.EscalatedAt,
+            returnRequest.EscalatedByUserId,
+            returnRequest.EscalationReasonType?.ToString(),
+            returnRequest.EscalationNotes,
+            // Admin decision info
+            returnRequest.HasAdminDecision,
+            returnRequest.AdminDecisionByUserId,
+            returnRequest.AdminDecision?.ToString(),
+            returnRequest.AdminDecisionNotes,
+            returnRequest.AdminDecisionAt,
+            // Permissions
+            returnRequest.CanEscalate(),
+            returnRequest.Status == ReturnRequestStatus.UnderAdminReview);
+    }
+
+    /// <summary>
+    /// Escalates a case to admin review.
+    /// </summary>
+    public async Task<EscalateCaseResultDto> HandleAsync(
+        EscalateCaseCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+
+        // Parse escalation reason
+        if (!Enum.TryParse<EscalationReason>(command.EscalationReason, ignoreCase: true, out var escalationReason))
+        {
+            return new EscalateCaseResultDto(false, "Invalid escalation reason.");
+        }
+
+        var returnRequest = await _returnRequestRepository.GetByIdAsync(command.ReturnRequestId, cancellationToken);
+        if (returnRequest is null)
+        {
+            return new EscalateCaseResultDto(false, "Case not found.");
+        }
+
+        if (!returnRequest.CanEscalate())
+        {
+            return new EscalateCaseResultDto(false, $"Cannot escalate case in status {returnRequest.Status}.");
+        }
+
+        try
+        {
+            returnRequest.Escalate(command.EscalatedByUserId, escalationReason, command.Notes);
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        {
+            return new EscalateCaseResultDto(false, ex.Message);
+        }
+
+        await _returnRequestRepository.SaveChangesAsync(cancellationToken);
+
+        // Send notifications to buyer and seller
+        var order = await _orderRepository.GetByIdAsync(returnRequest.OrderId, cancellationToken);
+        var store = await _storeRepository.GetByIdAsync(returnRequest.StoreId, cancellationToken);
+        var buyer = await _userRepository.GetByIdAsync(returnRequest.BuyerId, cancellationToken);
+        var seller = store != null ? await _userRepository.GetByIdAsync(store.SellerId, cancellationToken) : null;
+
+        if (buyer?.Email is not null && seller?.Email is not null && order is not null)
+        {
+            await _notificationService.SendCaseEscalatedAsync(
+                returnRequest.Id,
+                returnRequest.CaseNumber,
+                order.OrderNumber,
+                buyer.Email.Value,
+                seller.Email.Value,
+                escalationReason.ToString(),
+                cancellationToken);
+        }
+
+        return new EscalateCaseResultDto(true, null, returnRequest.Status.ToString());
+    }
+
+    /// <summary>
+    /// Records an admin decision on an escalated case.
+    /// </summary>
+    public async Task<AdminDecisionResultDto> HandleAsync(
+        RecordAdminDecisionCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+
+        // Parse decision type
+        if (!Enum.TryParse<AdminDecisionType>(command.DecisionType, ignoreCase: true, out var decisionType))
+        {
+            return new AdminDecisionResultDto(false, "Invalid decision type.");
+        }
+
+        // Parse resolution type if provided
+        CaseResolutionType? resolutionType = null;
+        if (!string.IsNullOrWhiteSpace(command.ResolutionType) &&
+            Enum.TryParse<CaseResolutionType>(command.ResolutionType, ignoreCase: true, out var parsedResolution))
+        {
+            resolutionType = parsedResolution;
+        }
+
+        var returnRequest = await _returnRequestRepository.GetByIdWithItemsAsync(command.ReturnRequestId, cancellationToken);
+        if (returnRequest is null)
+        {
+            return new AdminDecisionResultDto(false, "Case not found.");
+        }
+
+        if (returnRequest.Status != ReturnRequestStatus.UnderAdminReview)
+        {
+            return new AdminDecisionResultDto(false, $"Cannot record decision for case in status {returnRequest.Status}. Must be under admin review.");
+        }
+
+        try
+        {
+            returnRequest.RecordAdminDecision(
+                command.AdminUserId,
+                decisionType,
+                command.DecisionNotes,
+                resolutionType,
+                command.PartialRefundAmount);
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        {
+            return new AdminDecisionResultDto(false, ex.Message);
+        }
+
+        await _returnRequestRepository.SaveChangesAsync(cancellationToken);
+
+        // Initiate refund if required and requested
+        Guid? refundId = null;
+        string? refundStatus = null;
+
+        if (command.InitiateRefund && returnRequest.ResolutionRequiresRefund())
+        {
+            var order = await _orderRepository.GetByIdAsync(returnRequest.OrderId, cancellationToken);
+            if (order is null)
+            {
+                return new AdminDecisionResultDto(true, "Case resolved but order not found for refund processing.", decisionType.ToString());
+            }
+
+            var shipment = order.Shipments.FirstOrDefault(s => s.Id == returnRequest.ShipmentId);
+            if (shipment is null)
+            {
+                return new AdminDecisionResultDto(true, "Case resolved but shipment not found for refund processing.", decisionType.ToString());
+            }
+
+            var store = await _storeRepository.GetByIdAsync(returnRequest.StoreId, cancellationToken);
+            if (store is null)
+            {
+                return new AdminDecisionResultDto(true, "Case resolved but store not found for refund processing.", decisionType.ToString());
+            }
+
+            decimal refundAmount;
+            if (resolutionType == CaseResolutionType.FullRefund)
+            {
+                refundAmount = shipment.Subtotal + shipment.ShippingCost;
+            }
+            else
+            {
+                refundAmount = command.PartialRefundAmount!.Value;
+            }
+
+            // Use RefundService to initiate the refund
+            var refundCommand = new SellerInitiateRefundCommand(
+                returnRequest.ShipmentId,
+                returnRequest.StoreId,
+                store.SellerId,
+                resolutionType == CaseResolutionType.FullRefund ? null : refundAmount,
+                $"Admin decision: {decisionType}. {command.DecisionNotes}".Trim());
+
+            var refundResult = await _refundService.HandleAsync(refundCommand, cancellationToken);
+
+            if (refundResult.IsSuccess && refundResult.RefundId.HasValue)
+            {
+                refundId = refundResult.RefundId;
+                refundStatus = refundResult.Status;
+                returnRequest.LinkRefund(refundResult.RefundId.Value);
+                await _returnRequestRepository.SaveChangesAsync(cancellationToken);
+            }
+        }
+
+        // Send notifications to buyer and seller
+        var orderInfo = await _orderRepository.GetByIdAsync(returnRequest.OrderId, cancellationToken);
+        var storeInfo = await _storeRepository.GetByIdAsync(returnRequest.StoreId, cancellationToken);
+        var buyer = await _userRepository.GetByIdAsync(returnRequest.BuyerId, cancellationToken);
+        var seller = storeInfo != null ? await _userRepository.GetByIdAsync(storeInfo.SellerId, cancellationToken) : null;
+
+        if (buyer?.Email is not null && seller?.Email is not null && orderInfo is not null)
+        {
+            await _notificationService.SendAdminDecisionRecordedAsync(
+                returnRequest.Id,
+                returnRequest.CaseNumber,
+                orderInfo.OrderNumber,
+                buyer.Email.Value,
+                seller.Email.Value,
+                decisionType.ToString(),
+                command.DecisionNotes,
+                cancellationToken);
+        }
+
+        return new AdminDecisionResultDto(true, null, decisionType.ToString(), refundId, refundStatus);
+    }
 }

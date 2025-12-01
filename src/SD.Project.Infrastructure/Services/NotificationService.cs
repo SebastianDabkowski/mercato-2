@@ -573,4 +573,55 @@ public sealed class NotificationService : INotificationService
             notesInfo);
         return Task.CompletedTask;
     }
+
+    public Task SendCaseEscalatedAsync(
+        Guid returnRequestId,
+        string caseNumber,
+        string orderNumber,
+        string buyerEmail,
+        string sellerEmail,
+        string escalationReason,
+        CancellationToken cancellationToken = default)
+    {
+        // TODO: Replace logging with real email/notification integration.
+        // Notify both buyer and seller that the case is now under admin review.
+        _logger.LogInformation(
+            "Case escalated notification sent. Case: {CaseNumber}, Order: {OrderNumber}. " +
+            "Reason: {EscalationReason}. Buyer: {BuyerEmail}, Seller: {SellerEmail}. Case ID: {ReturnRequestId}",
+            caseNumber,
+            orderNumber,
+            escalationReason,
+            buyerEmail,
+            sellerEmail,
+            returnRequestId);
+        return Task.CompletedTask;
+    }
+
+    public Task SendAdminDecisionRecordedAsync(
+        Guid returnRequestId,
+        string caseNumber,
+        string orderNumber,
+        string buyerEmail,
+        string sellerEmail,
+        string decisionType,
+        string? decisionNotes,
+        CancellationToken cancellationToken = default)
+    {
+        // TODO: Replace logging with real email/notification integration.
+        // Notify both buyer and seller of the admin's decision.
+        var notesInfo = !string.IsNullOrEmpty(decisionNotes)
+            ? $" Decision notes: {decisionNotes}"
+            : "";
+        _logger.LogInformation(
+            "Admin decision notification sent. Case: {CaseNumber}, Order: {OrderNumber}. " +
+            "Decision: {DecisionType}.{NotesInfo} Buyer: {BuyerEmail}, Seller: {SellerEmail}. Case ID: {ReturnRequestId}",
+            caseNumber,
+            orderNumber,
+            decisionType,
+            notesInfo,
+            buyerEmail,
+            sellerEmail,
+            returnRequestId);
+        return Task.CompletedTask;
+    }
 }
