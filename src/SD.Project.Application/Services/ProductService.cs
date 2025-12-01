@@ -91,10 +91,18 @@ public sealed class ProductService
 
     /// <summary>
     /// Retrieves active products for a specific store (public view).
+    /// Returns empty collection if store is not publicly visible.
     /// </summary>
     public async Task<IReadOnlyCollection<ProductDto>> HandleAsync(GetProductsByStoreIdQuery query, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(query);
+
+        // Check if the store is publicly visible
+        var store = await _storeRepository.GetByIdAsync(query.StoreId, cancellationToken);
+        if (store is null || !store.IsPubliclyVisible())
+        {
+            return Array.Empty<ProductDto>();
+        }
 
         var products = await _repository.GetByStoreIdAsync(query.StoreId, cancellationToken);
         return products
