@@ -406,4 +406,263 @@ public sealed class ShippingProviderService : IShippingProviderService
     }
 
     #endregion
+
+    #region Label Generation
+
+    /// <inheritdoc />
+    public async Task<GenerateLabelResult> GenerateLabelAsync(
+        Guid providerId,
+        string providerShipmentId,
+        LabelOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation(
+            "Generating shipping label for provider {ProviderId}, shipment {ProviderShipmentId}",
+            providerId, providerShipmentId);
+
+        var provider = await _providerRepository.GetByIdAsync(providerId, cancellationToken);
+        if (provider == null)
+        {
+            return new GenerateLabelResult(
+                false, null, null, null, null, null, null, null, null,
+                "Shipping provider not found.",
+                "PROVIDER_NOT_FOUND");
+        }
+
+        if (!provider.IsEnabled)
+        {
+            return new GenerateLabelResult(
+                false, null, null, null, null, null, null, null, null,
+                "Shipping provider is not enabled.",
+                "PROVIDER_DISABLED");
+        }
+
+        if (!SupportsLabelGeneration(provider.ProviderType))
+        {
+            return new GenerateLabelResult(
+                false, null, null, null, null, null, null, null, null,
+                "This shipping provider does not support label generation.",
+                "LABEL_NOT_SUPPORTED");
+        }
+
+        options ??= new LabelOptions();
+
+        // In simulation mode, return simulated label
+        if (_settings.SimulateProviders || provider.UseSandbox)
+        {
+            return SimulateGenerateLabel(provider, providerShipmentId, options);
+        }
+
+        // Real provider integration would go here based on provider type
+        return provider.ProviderType switch
+        {
+            ShippingProviderType.Manual => GenerateManualLabel(providerShipmentId, options),
+            ShippingProviderType.Dhl => await GenerateDhlLabelAsync(provider, providerShipmentId, options, cancellationToken),
+            ShippingProviderType.Ups => await GenerateUpsLabelAsync(provider, providerShipmentId, options, cancellationToken),
+            ShippingProviderType.FedEx => await GenerateFedExLabelAsync(provider, providerShipmentId, options, cancellationToken),
+            ShippingProviderType.InPost => await GenerateInPostLabelAsync(provider, providerShipmentId, options, cancellationToken),
+            _ => new GenerateLabelResult(
+                false, null, null, null, null, null, null, null, null,
+                $"Unsupported provider type: {provider.ProviderType}",
+                "UNSUPPORTED_PROVIDER")
+        };
+    }
+
+    /// <inheritdoc />
+    public bool SupportsLabelGeneration(ShippingProviderType providerType)
+    {
+        // All integrated providers support label generation except Manual
+        return providerType != ShippingProviderType.Manual;
+    }
+
+    private GenerateLabelResult SimulateGenerateLabel(
+        ShippingProvider provider,
+        string providerShipmentId,
+        LabelOptions options)
+    {
+        _logger.LogInformation(
+            "Simulating label generation for provider {ProviderType}, shipment {ProviderShipmentId}",
+            provider.ProviderType, providerShipmentId);
+
+        var format = options.Format ?? "PDF";
+        var labelSize = options.LabelSize ?? "4x6";
+        var carrierName = GetCarrierName(provider.ProviderType);
+        
+        // Extract tracking number from provider shipment ID (simulated format: SIM-SHIP-{guid})
+        var trackingNumber = providerShipmentId.StartsWith(SimulatedShipmentPrefix)
+            ? $"{SimulatedTrackingPrefix}{providerShipmentId[SimulatedShipmentPrefix.Length..]}".ToUpperInvariant()[..20]
+            : $"TRK-{Guid.NewGuid():N}"[..20].ToUpperInvariant();
+
+        // Generate a simulated PDF label
+        var labelData = GenerateSimulatedPdfLabel(carrierName, trackingNumber, labelSize);
+        var providerLabelId = $"LABEL-{Guid.NewGuid():N}";
+        var externalUrl = $"https://labels.example.com/{providerLabelId}/label.pdf";
+
+        return new GenerateLabelResult(
+            true,
+            labelData,
+            format,
+            labelSize,
+            providerLabelId,
+            trackingNumber,
+            carrierName,
+            externalUrl,
+            DateTime.UtcNow.AddDays(30), // Labels typically expire after 30 days
+            null,
+            null);
+    }
+
+    private static byte[] GenerateSimulatedPdfLabel(string carrierName, string trackingNumber, string labelSize)
+    {
+        // Generate a simple HTML-based label that can be converted to PDF
+        // In production, this would be replaced with actual carrier label data
+        var html = $@"<!DOCTYPE html>
+<html>
+<head>
+    <meta charset=""UTF-8"">
+    <title>Shipping Label</title>
+    <style>
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{ 
+            font-family: Arial, sans-serif; 
+            width: 4in; 
+            height: 6in; 
+            padding: 0.25in;
+            border: 2px solid #000;
+        }}
+        .header {{ 
+            text-align: center; 
+            padding: 10px 0; 
+            border-bottom: 2px solid #000;
+            margin-bottom: 10px;
+        }}
+        .carrier {{ font-size: 24px; font-weight: bold; }}
+        .barcode {{ 
+            text-align: center; 
+            padding: 20px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }}
+        .barcode-visual {{
+            font-family: 'Libre Barcode 128', monospace;
+            font-size: 48px;
+            letter-spacing: 2px;
+        }}
+        .tracking {{ 
+            font-size: 18px; 
+            font-weight: bold;
+            text-align: center;
+            padding: 10px 0;
+        }}
+        .address-section {{ 
+            padding: 10px 0;
+            border-top: 1px dashed #000;
+        }}
+        .label {{ font-size: 10px; color: #666; }}
+        .address {{ font-size: 14px; margin-top: 5px; }}
+        .footer {{ 
+            position: absolute;
+            bottom: 0.25in;
+            left: 0.25in;
+            right: 0.25in;
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+        }}
+    </style>
+</head>
+<body>
+    <div class=""header"">
+        <div class=""carrier"">{carrierName}</div>
+        <div>SHIPPING LABEL</div>
+    </div>
+    <div class=""barcode"">
+        <div class=""barcode-visual"">|||||||||||||||||||||||</div>
+        <div>{trackingNumber}</div>
+    </div>
+    <div class=""tracking"">
+        Tracking: {trackingNumber}
+    </div>
+    <div class=""address-section"">
+        <div class=""label"">SHIP TO:</div>
+        <div class=""address"">
+            [Recipient Name]<br/>
+            [Street Address]<br/>
+            [City, State ZIP]<br/>
+            [Country]
+        </div>
+    </div>
+    <div class=""address-section"">
+        <div class=""label"">FROM:</div>
+        <div class=""address"">
+            [Sender Name]<br/>
+            [Sender Address]<br/>
+            [City, State ZIP]<br/>
+            [Country]
+        </div>
+    </div>
+    <div class=""footer"">
+        Label Size: {labelSize} | Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm} UTC
+        <br/>This is a simulated shipping label for development purposes.
+    </div>
+</body>
+</html>";
+
+        return System.Text.Encoding.UTF8.GetBytes(html);
+    }
+
+    private static GenerateLabelResult GenerateManualLabel(string providerShipmentId, LabelOptions options)
+    {
+        // Manual shipping doesn't generate labels through providers
+        return new GenerateLabelResult(
+            false, null, null, null, null, null, null, null, null,
+            "Manual shipping does not support automatic label generation.",
+            "MANUAL_PROVIDER");
+    }
+
+    private Task<GenerateLabelResult> GenerateDhlLabelAsync(
+        ShippingProvider provider,
+        string providerShipmentId,
+        LabelOptions options,
+        CancellationToken cancellationToken)
+    {
+        // TODO: Implement real DHL label generation
+        _logger.LogWarning("Real DHL label generation not implemented. Falling back to simulation.");
+        return Task.FromResult(SimulateGenerateLabel(provider, providerShipmentId, options));
+    }
+
+    private Task<GenerateLabelResult> GenerateUpsLabelAsync(
+        ShippingProvider provider,
+        string providerShipmentId,
+        LabelOptions options,
+        CancellationToken cancellationToken)
+    {
+        // TODO: Implement real UPS label generation
+        _logger.LogWarning("Real UPS label generation not implemented. Falling back to simulation.");
+        return Task.FromResult(SimulateGenerateLabel(provider, providerShipmentId, options));
+    }
+
+    private Task<GenerateLabelResult> GenerateFedExLabelAsync(
+        ShippingProvider provider,
+        string providerShipmentId,
+        LabelOptions options,
+        CancellationToken cancellationToken)
+    {
+        // TODO: Implement real FedEx label generation
+        _logger.LogWarning("Real FedEx label generation not implemented. Falling back to simulation.");
+        return Task.FromResult(SimulateGenerateLabel(provider, providerShipmentId, options));
+    }
+
+    private Task<GenerateLabelResult> GenerateInPostLabelAsync(
+        ShippingProvider provider,
+        string providerShipmentId,
+        LabelOptions options,
+        CancellationToken cancellationToken)
+    {
+        // TODO: Implement real InPost label generation
+        _logger.LogWarning("Real InPost label generation not implemented. Falling back to simulation.");
+        return Task.FromResult(SimulateGenerateLabel(provider, providerShipmentId, options));
+    }
+
+    #endregion
 }
