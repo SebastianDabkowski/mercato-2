@@ -599,5 +599,45 @@ public static class SeedDataExtensions
                 }
             }
         }
+
+        // Seed sample seller ratings for testing the seller rating display feature
+        var sellerRatingRepo = scope.ServiceProvider.GetRequiredService<ISellerRatingRepository>();
+        var storeForRatings = await storeRepo.GetBySlugAsync("demo-store");
+        
+        if (storeForRatings is not null)
+        {
+            var (_, existingRatingCount) = await sellerRatingRepo.GetStoreRatingStatsAsync(storeForRatings.Id);
+            
+            if (existingRatingCount == 0)
+            {
+                // Create sample seller ratings with varying scores
+                var sellerRatingData = new[]
+                {
+                    (Rating: 5, Comment: "Great seller! Fast shipping and excellent communication.", DaysAgo: 3),
+                    (Rating: 4, Comment: "Good experience overall. Product as described.", DaysAgo: 8),
+                    (Rating: 5, Comment: "Absolutely wonderful seller. Highly recommend!", DaysAgo: 12),
+                    (Rating: 3, Comment: "Average experience, nothing special but nothing bad either.", DaysAgo: 18),
+                    (Rating: 4, Comment: "Prompt delivery, item well packaged.", DaysAgo: 25)
+                };
+
+                for (int i = 0; i < sellerRatingData.Length; i++)
+                {
+                    var data = sellerRatingData[i];
+                    var ratingOrderId = Guid.Parse($"77777777-7777-7777-7777-{i:D12}");
+                    var ratingBuyerId = Guid.Parse($"88888888-8888-8888-8888-{i:D12}");
+                    
+                    var sellerRating = new SellerRating(
+                        ratingOrderId,
+                        storeForRatings.Id,
+                        ratingBuyerId,
+                        data.Rating,
+                        data.Comment);
+                    
+                    await sellerRatingRepo.AddAsync(sellerRating);
+                }
+                
+                await sellerRatingRepo.SaveChangesAsync();
+            }
+        }
     }
 }

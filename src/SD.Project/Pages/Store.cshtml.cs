@@ -11,21 +11,26 @@ namespace SD.Project.Pages
         private readonly ILogger<StoreModel> _logger;
         private readonly StoreService _storeService;
         private readonly ProductService _productService;
+        private readonly SellerRatingService _sellerRatingService;
 
         public StoreDto? Store { get; private set; }
         public IReadOnlyCollection<ProductDto> Products { get; private set; } = Array.Empty<ProductDto>();
         public bool StoreNotFound { get; private set; }
         public bool StoreNotAccessible { get; private set; }
         public string? AccessibilityMessage { get; private set; }
+        public double AverageRating { get; private set; }
+        public int RatingCount { get; private set; }
 
         public StoreModel(
             ILogger<StoreModel> logger,
             StoreService storeService,
-            ProductService productService)
+            ProductService productService,
+            SellerRatingService sellerRatingService)
         {
             _logger = logger;
             _storeService = storeService;
             _productService = productService;
+            _sellerRatingService = sellerRatingService;
         }
 
         public async Task<IActionResult> OnGetAsync(string slug)
@@ -70,6 +75,11 @@ namespace SD.Project.Pages
 
             // Load products for the store
             Products = await _productService.HandleAsync(new GetProductsByStoreIdQuery(Store.Id));
+
+            // Load seller rating stats
+            var ratingStats = await _sellerRatingService.HandleAsync(new GetSellerRatingStatsQuery(Store.Id));
+            AverageRating = ratingStats.AverageRating;
+            RatingCount = ratingStats.RatingCount;
 
             return Page();
         }
