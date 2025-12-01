@@ -91,7 +91,14 @@ public sealed record SellerReturnRequestDetailsViewModel(
     DateTime? RejectedAt,
     DateTime? CompletedAt,
     IReadOnlyList<SellerSubOrderItemViewModel> Items,
-    IReadOnlyList<ReturnRequestItemViewModel> RequestItems);
+    IReadOnlyList<ReturnRequestItemViewModel> RequestItems,
+    string? ResolutionType = null,
+    string? ResolutionNotes = null,
+    decimal? PartialRefundAmount = null,
+    DateTime? ResolvedAt = null,
+    Guid? LinkedRefundId = null,
+    bool CanChangeResolution = false,
+    LinkedRefundViewModel? LinkedRefund = null);
 
 /// <summary>
 /// View model for linked refund information in buyer case details.
@@ -125,7 +132,11 @@ public sealed record BuyerCaseDetailsViewModel(
     DateTime? RejectedAt,
     DateTime? CompletedAt,
     IReadOnlyList<ReturnRequestItemViewModel> Items,
-    IReadOnlyList<LinkedRefundViewModel>? LinkedRefunds);
+    IReadOnlyList<LinkedRefundViewModel>? LinkedRefunds,
+    string? ResolutionType = null,
+    string? ResolutionNotes = null,
+    decimal? PartialRefundAmount = null,
+    DateTime? ResolvedAt = null);
 
 /// <summary>
 /// View model for buyer case summary (list view).
@@ -218,6 +229,45 @@ public static class ReturnRequestStatusHelper
         "Admin" => "bg-danger",
         "Buyer" => "bg-info",
         "Seller" => "bg-secondary",
+        _ => "bg-secondary"
+    };
+
+    /// <summary>
+    /// Gets a user-friendly display name for a resolution type.
+    /// </summary>
+    public static string GetResolutionTypeDisplayName(string? resolutionType) => resolutionType switch
+    {
+        "FullRefund" => "Full Refund",
+        "PartialRefund" => "Partial Refund",
+        "Replacement" => "Replacement",
+        "Repair" => "Repair",
+        "NoRefund" => "No Refund",
+        _ => resolutionType ?? "Not resolved"
+    };
+
+    /// <summary>
+    /// Gets the Bootstrap CSS class for a resolution type badge.
+    /// </summary>
+    public static string GetResolutionTypeBadgeClass(string? resolutionType) => resolutionType switch
+    {
+        "FullRefund" => "bg-success",
+        "PartialRefund" => "bg-info",
+        "Replacement" => "bg-primary",
+        "Repair" => "bg-primary",
+        "NoRefund" => "bg-danger",
+        _ => "bg-secondary"
+    };
+
+    /// <summary>
+    /// Gets the Bootstrap CSS class for a refund status badge.
+    /// </summary>
+    public static string GetRefundStatusBadgeClass(string status) => status switch
+    {
+        "Pending" => "bg-warning",
+        "Processing" => "bg-info",
+        "Completed" => "bg-success",
+        "Failed" => "bg-danger",
+        "Rejected" => "bg-danger",
         _ => "bg-secondary"
     };
 }

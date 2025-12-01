@@ -174,8 +174,8 @@
                     </div>
                 }
 
-                <!-- Complete Button for Approved Requests -->
-                @if (Model.ReturnRequest.Status == "Approved")
+                <!-- Case Resolution Section for Open Cases -->
+                @if (Model.ReturnRequest.Status == "Requested" || Model.ReturnRequest.Status == "Approved")
                 {
                     <div class="card mb-4 border-success">
                         <div class="card-header bg-success text-white">
@@ -184,21 +184,180 @@
                                     <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
                                     <path d="m10.97 4.97-.02.022-3.473 4.425-2.093-2.094a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05"/>
                                 </svg>
-                                Complete Return
+                                Resolve Case
                             </h5>
                         </div>
                         <div class="card-body">
-                            <p class="mb-3">Mark this return as complete once you have received the returned items and processed the refund.</p>
-                            <form method="post" asp-page-handler="Complete" asp-route-returnRequestId="@Model.ReturnRequest.ReturnRequestId">
-                                <button type="submit" class="btn btn-success"
-                                        onclick="return confirm('Have you received the returned items and processed the refund?');">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check2-all me-2" viewBox="0 0 16 16">
-                                        <path d="M12.354 4.354a.5.5 0 0 0-.708-.708L5 10.293 1.854 7.146a.5.5 0 1 0-.708.708l3.5 3.5a.5.5 0 0 0 .708 0zm-4.208 7-.896-.897.707-.707.543.543 6.646-6.647a.5.5 0 0 1 .708.708l-7 7a.5.5 0 0 1-.708 0"/>
-                                        <path d="m5.354 7.146.896.897-.707.707-.897-.896a.5.5 0 1 1 .708-.708"/>
-                                    </svg>
-                                    Mark Return as Complete
-                                </button>
+                            <p class="text-muted mb-4">Select a resolution for this case. The buyer will be notified of your decision.</p>
+                            
+                            <form method="post" asp-page-handler="Resolve" asp-route-returnRequestId="@Model.ReturnRequest.ReturnRequestId">
+                                <div class="mb-3">
+                                    <label for="ResolutionType" class="form-label">Resolution Type <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="ResolutionType" name="ResolutionType" required onchange="toggleRefundOptions()">
+                                        <option value="">Select a resolution...</option>
+                                        <option value="FullRefund">Full Refund - Refund entire sub-order amount</option>
+                                        <option value="PartialRefund">Partial Refund - Refund a specific amount</option>
+                                        <option value="Replacement">Replacement - Send replacement item(s)</option>
+                                        <option value="Repair">Repair - Repair the item(s)</option>
+                                        <option value="NoRefund">No Refund - Reject with explanation</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3" id="partialRefundAmountGroup" style="display: none;">
+                                    <label for="PartialRefundAmount" class="form-label">Partial Refund Amount <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">@Model.ReturnRequest.Currency</span>
+                                        <input type="number" step="0.01" min="0.01" max="@Model.ReturnRequest.SubOrderTotal" class="form-control" 
+                                               id="PartialRefundAmount" name="PartialRefundAmount" 
+                                               placeholder="Enter refund amount...">
+                                    </div>
+                                    <div class="form-text">Maximum refundable amount: @Model.ReturnRequest.Currency @Model.ReturnRequest.SubOrderTotal.ToString("N2")</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="ResolutionNotes" class="form-label">Resolution Notes</label>
+                                    <textarea class="form-control" id="ResolutionNotes" name="ResolutionNotes" rows="3" 
+                                              placeholder="Provide additional details about the resolution..."></textarea>
+                                    <div class="form-text" id="noRefundHint" style="display: none; color: #dc3545;">
+                                        Notes are required when selecting "No Refund" to explain the decision to the buyer.
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3" id="initiateRefundGroup" style="display: none;">
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="InitiateRefund" name="InitiateRefund" value="true" checked>
+                                        <label class="form-check-label" for="InitiateRefund">
+                                            <strong>Initiate refund automatically</strong>
+                                            <span class="text-muted d-block">Process the refund through the payments module immediately after confirming resolution.</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex justify-content-end gap-2">
+                                    <button type="submit" class="btn btn-success"
+                                            onclick="return confirm('Are you sure you want to resolve this case with the selected resolution?');">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-circle me-2" viewBox="0 0 16 16">
+                                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                                            <path d="m10.97 4.97-.02.022-3.473 4.425-2.093-2.094a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05"/>
+                                        </svg>
+                                        Confirm Resolution
+                                    </button>
+                                </div>
                             </form>
+                            
+                            <script>
+                                function toggleRefundOptions() {
+                                    var resolutionType = document.getElementById('ResolutionType').value;
+                                    var partialRefundGroup = document.getElementById('partialRefundAmountGroup');
+                                    var partialRefundInput = document.getElementById('PartialRefundAmount');
+                                    var initiateRefundGroup = document.getElementById('initiateRefundGroup');
+                                    var noRefundHint = document.getElementById('noRefundHint');
+                                    var resolutionNotes = document.getElementById('ResolutionNotes');
+                                    
+                                    // Show/hide partial refund amount
+                                    if (resolutionType === 'PartialRefund') {
+                                        partialRefundGroup.style.display = 'block';
+                                        partialRefundInput.required = true;
+                                    } else {
+                                        partialRefundGroup.style.display = 'none';
+                                        partialRefundInput.required = false;
+                                    }
+                                    
+                                    // Show/hide initiate refund checkbox
+                                    if (resolutionType === 'FullRefund' || resolutionType === 'PartialRefund') {
+                                        initiateRefundGroup.style.display = 'block';
+                                    } else {
+                                        initiateRefundGroup.style.display = 'none';
+                                    }
+                                    
+                                    // Show/hide no refund hint
+                                    if (resolutionType === 'NoRefund') {
+                                        noRefundHint.style.display = 'block';
+                                        resolutionNotes.required = true;
+                                    } else {
+                                        noRefundHint.style.display = 'none';
+                                        resolutionNotes.required = false;
+                                    }
+                                }
+                            </script>
+                        </div>
+                    </div>
+                }
+
+                <!-- Resolution Info for Resolved Cases -->
+                @if (Model.ReturnRequest.Status == "Completed" && Model.ReturnRequest.ResolutionType != null)
+                {
+                    var resolutionDisplayName = SD.Project.ViewModels.ReturnRequestStatusHelper.GetResolutionTypeDisplayName(Model.ReturnRequest.ResolutionType);
+                    var resolutionBadgeClass = SD.Project.ViewModels.ReturnRequestStatusHelper.GetResolutionTypeBadgeClass(Model.ReturnRequest.ResolutionType);
+                    
+                    <div class="card mb-4 border-success">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-check-circle-fill me-2" viewBox="0 0 16 16">
+                                    <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+                                </svg>
+                                Resolution
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <h6 class="text-muted mb-1">Resolution Type</h6>
+                                    <p class="mb-0">
+                                        <span class="badge @resolutionBadgeClass fs-6">@resolutionDisplayName</span>
+                                    </p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="text-muted mb-1">Resolved At</h6>
+                                    <p class="mb-0">@Model.ReturnRequest.ResolvedAt?.ToString("MMMM dd, yyyy 'at' h:mm tt")</p>
+                                </div>
+                            </div>
+                            
+                            @if (Model.ReturnRequest.ResolutionType == "PartialRefund" && Model.ReturnRequest.PartialRefundAmount.HasValue)
+                            {
+                                <div class="mb-3">
+                                    <h6 class="text-muted mb-1">Partial Refund Amount</h6>
+                                    <p class="mb-0 fw-bold text-info">@Model.ReturnRequest.Currency @Model.ReturnRequest.PartialRefundAmount.Value.ToString("N2")</p>
+                                </div>
+                            }
+                            
+                            @if (!string.IsNullOrEmpty(Model.ReturnRequest.ResolutionNotes))
+                            {
+                                <div class="mb-3">
+                                    <h6 class="text-muted mb-1">Resolution Notes</h6>
+                                    <div class="bg-light p-3 rounded">
+                                        @Model.ReturnRequest.ResolutionNotes
+                                    </div>
+                                </div>
+                            }
+                            
+                            @if (Model.ReturnRequest.LinkedRefund != null)
+                            {
+                                var refundStatusClass = SD.Project.ViewModels.ReturnRequestStatusHelper.GetRefundStatusBadgeClass(Model.ReturnRequest.LinkedRefund.Status);
+                                <div class="alert alert-info mb-0">
+                                    <h6 class="alert-heading">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-credit-card me-2" viewBox="0 0 16 16">
+                                            <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm2-1a1 1 0 0 0-1 1v1h14V4a1 1 0 0 0-1-1zm13 4H1v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1z"/>
+                                            <path d="M2 10a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/>
+                                        </svg>
+                                        Linked Refund
+                                    </h6>
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <small class="text-muted">Amount</small>
+                                            <p class="mb-0 fw-bold">@Model.ReturnRequest.LinkedRefund.Currency @Model.ReturnRequest.LinkedRefund.Amount.ToString("N2")</p>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <small class="text-muted">Status</small>
+                                            <p class="mb-0"><span class="badge @refundStatusClass">@Model.ReturnRequest.LinkedRefund.Status</span></p>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <small class="text-muted">Transaction ID</small>
+                                            <p class="mb-0"><code>@(Model.ReturnRequest.LinkedRefund.RefundTransactionId ?? "Pending")</code></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
                         </div>
                     </div>
                 }
@@ -440,11 +599,29 @@
                                 <p class="mb-0">@Model.ReturnRequest.CompletedAt.Value.ToString("MMMM dd, yyyy")</p>
                             </div>
                         }
+                        @if (Model.ReturnRequest.ResolutionType != null)
+                        {
+                            var resolutionDisplayName = SD.Project.ViewModels.ReturnRequestStatusHelper.GetResolutionTypeDisplayName(Model.ReturnRequest.ResolutionType);
+                            var resolutionBadgeClass = SD.Project.ViewModels.ReturnRequestStatusHelper.GetResolutionTypeBadgeClass(Model.ReturnRequest.ResolutionType);
+                            <div class="mb-3">
+                                <small class="text-muted">Resolution</small>
+                                <p class="mb-0">
+                                    <span class="badge @resolutionBadgeClass">@resolutionDisplayName</span>
+                                </p>
+                            </div>
+                        }
                         <hr>
                         <div class="d-flex justify-content-between">
                             <span class="fw-bold">Case Amount</span>
                             <span class="fw-bold text-primary">@Model.ReturnRequest.Currency @Model.ReturnRequest.SubOrderTotal.ToString("N2")</span>
                         </div>
+                        @if (Model.ReturnRequest.LinkedRefund != null)
+                        {
+                            <div class="d-flex justify-content-between mt-2">
+                                <span class="fw-bold">Refund Amount</span>
+                                <span class="fw-bold text-success">@Model.ReturnRequest.LinkedRefund.Currency @Model.ReturnRequest.LinkedRefund.Amount.ToString("N2")</span>
+                            </div>
+                        }
                     </div>
                 </div>
             </div>

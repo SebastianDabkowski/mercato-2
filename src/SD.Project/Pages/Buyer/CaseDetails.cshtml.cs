@@ -145,7 +145,11 @@ public class CaseDetailsModel : PageModel
             caseDetails.RejectedAt,
             caseDetails.CompletedAt,
             items,
-            linkedRefunds);
+            linkedRefunds,
+            caseDetails.ResolutionType,
+            caseDetails.ResolutionNotes,
+            caseDetails.PartialRefundAmount,
+            caseDetails.ResolvedAt);
 
         // Get messages
         var messageThread = await _caseMessageService.HandleAsync(

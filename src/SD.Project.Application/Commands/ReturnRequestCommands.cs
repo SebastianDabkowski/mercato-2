@@ -53,3 +53,25 @@ public sealed record RejectReturnRequestCommand(
 public sealed record CompleteReturnRequestCommand(
     Guid StoreId,
     Guid ReturnRequestId);
+
+/// <summary>
+/// Command for a seller to resolve a case with a specific resolution type.
+/// This can optionally initiate a refund if the resolution requires one.
+/// </summary>
+public sealed record ResolveCaseCommand(
+    Guid StoreId,
+    Guid SellerId,
+    Guid ReturnRequestId,
+    string ResolutionType,
+    string? ResolutionNotes,
+    decimal? PartialRefundAmount = null,
+    bool InitiateRefund = false);
+
+/// <summary>
+/// Command to link an existing refund to a case.
+/// Used when a refund was processed outside the normal case resolution flow.
+/// </summary>
+public sealed record LinkRefundToCaseCommand(
+    Guid StoreId,
+    Guid ReturnRequestId,
+    Guid RefundId);

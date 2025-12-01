@@ -38,6 +38,18 @@ public class ReturnDetailModel : PageModel
     [MaxLength(5000, ErrorMessage = "Message cannot exceed 5000 characters")]
     public string? MessageContent { get; set; }
 
+    [BindProperty]
+    public string? ResolutionType { get; set; }
+
+    [BindProperty]
+    public string? ResolutionNotes { get; set; }
+
+    [BindProperty]
+    public decimal? PartialRefundAmount { get; set; }
+
+    [BindProperty]
+    public bool InitiateRefund { get; set; }
+
     public ReturnDetailModel(
         ILogger<ReturnDetailModel> logger,
         ReturnRequestService returnRequestService,
@@ -219,6 +231,57 @@ public class ReturnDetailModel : PageModel
         return RedirectToPage(new { returnRequestId });
     }
 
+    public async Task<IActionResult> OnPostResolveAsync(Guid returnRequestId, CancellationToken cancellationToken = default)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(userIdClaim, out var userId))
+        {
+            return RedirectToPage("/Login");
+        }
+
+        var store = await _storeService.HandleAsync(new GetStoreBySellerIdQuery(userId), cancellationToken);
+        if (store is null)
+        {
+            TempData["Error"] = "Store not found.";
+            return RedirectToPage(new { returnRequestId });
+        }
+
+        if (string.IsNullOrWhiteSpace(ResolutionType))
+        {
+            TempData["Error"] = "Resolution type is required.";
+            return RedirectToPage(new { returnRequestId });
+        }
+
+        var result = await _returnRequestService.HandleAsync(
+            new ResolveCaseCommand(
+                store.Id,
+                userId,
+                returnRequestId,
+                ResolutionType,
+                ResolutionNotes,
+                PartialRefundAmount,
+                InitiateRefund),
+            cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            TempData["Error"] = result.ErrorMessage ?? "Failed to resolve case.";
+            _logger.LogWarning("Failed to resolve case {ReturnRequestId}: {Error}", returnRequestId, result.ErrorMessage);
+        }
+        else
+        {
+            var successMessage = $"Case resolved with {ReturnRequestStatusHelper.GetResolutionTypeDisplayName(result.ResolutionType)}.";
+            if (result.RefundId.HasValue)
+            {
+                successMessage += $" Refund initiated (Status: {result.RefundStatus}).";
+            }
+            TempData["Success"] = successMessage;
+            _logger.LogInformation("Case {ReturnRequestId} resolved by seller {UserId} with {ResolutionType}", returnRequestId, userId, result.ResolutionType);
+        }
+
+        return RedirectToPage(new { returnRequestId });
+    }
+
     private async Task LoadReturnRequestAsync(Guid returnRequestId, Guid storeId, Guid userId, CancellationToken cancellationToken)
     {
         // Get return request details
@@ -237,6 +300,20 @@ public class ReturnDetailModel : PageModel
             i.OrderItemId,
             i.ProductName,
             i.Quantity)).ToList();
+
+        // Map linked refund if available
+        LinkedRefundViewModel? linkedRefund = null;
+        if (returnRequest.LinkedRefund is not null)
+        {
+            linkedRefund = new LinkedRefundViewModel(
+                returnRequest.LinkedRefund.RefundId,
+                returnRequest.LinkedRefund.Status,
+                returnRequest.LinkedRefund.Amount,
+                returnRequest.LinkedRefund.Currency,
+                returnRequest.LinkedRefund.RefundTransactionId,
+                returnRequest.LinkedRefund.CreatedAt,
+                returnRequest.LinkedRefund.CompletedAt);
+        }
 
         ReturnRequest = new SellerReturnRequestDetailsViewModel(
             returnRequest.ReturnRequestId,
@@ -265,7 +342,14 @@ public class ReturnDetailModel : PageModel
                 i.Quantity,
                 i.LineTotal,
                 i.ShippingMethodName)).ToList().AsReadOnly(),
-            requestItems.AsReadOnly());
+            requestItems.AsReadOnly(),
+            returnRequest.ResolutionType,
+            returnRequest.ResolutionNotes,
+            returnRequest.PartialRefundAmount,
+            returnRequest.ResolvedAt,
+            returnRequest.LinkedRefundId,
+            returnRequest.CanChangeResolution,
+            linkedRefund);
 
         // Get messages
         var messageThread = await _caseMessageService.HandleAsync(

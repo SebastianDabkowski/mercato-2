@@ -548,4 +548,29 @@ public sealed class NotificationService : INotificationService
             returnRequestId);
         return Task.CompletedTask;
     }
+
+    public Task SendCaseResolvedAsync(
+        Guid returnRequestId,
+        string caseNumber,
+        string orderNumber,
+        string buyerEmail,
+        string resolutionType,
+        string? resolutionNotes,
+        CancellationToken cancellationToken = default)
+    {
+        // TODO: Replace logging with real email/notification integration.
+        // Notify the buyer when their case is resolved by the seller.
+        var notesInfo = !string.IsNullOrEmpty(resolutionNotes)
+            ? $" Resolution notes: {resolutionNotes}"
+            : "";
+        _logger.LogInformation(
+            "Case resolved notification sent to {BuyerEmail} for case {CaseNumber}. " +
+            "Order: {OrderNumber}. Resolution type: {ResolutionType}.{NotesInfo}",
+            buyerEmail,
+            caseNumber,
+            orderNumber,
+            resolutionType,
+            notesInfo);
+        return Task.CompletedTask;
+    }
 }

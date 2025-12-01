@@ -19,6 +19,7 @@ public sealed class ReturnRequestService
     private readonly IUserRepository _userRepository;
     private readonly IRefundRepository _refundRepository;
     private readonly INotificationService _notificationService;
+    private readonly RefundService _refundService;
 
     /// <summary>
     /// Number of days after delivery that a return can be initiated.
@@ -31,7 +32,8 @@ public sealed class ReturnRequestService
         IStoreRepository storeRepository,
         IUserRepository userRepository,
         IRefundRepository refundRepository,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        RefundService refundService)
     {
         _returnRequestRepository = returnRequestRepository;
         _orderRepository = orderRepository;
@@ -39,6 +41,7 @@ public sealed class ReturnRequestService
         _userRepository = userRepository;
         _refundRepository = refundRepository;
         _notificationService = notificationService;
+        _refundService = refundService;
     }
 
     /// <summary>
@@ -537,6 +540,24 @@ public sealed class ReturnRequestService
             i.ProductName,
             i.Quantity)).ToList();
 
+        // Get linked refund info if available
+        LinkedRefundDto? linkedRefund = null;
+        if (returnRequest.LinkedRefundId.HasValue)
+        {
+            var refund = await _refundRepository.GetByIdAsync(returnRequest.LinkedRefundId.Value, cancellationToken);
+            if (refund is not null)
+            {
+                linkedRefund = new LinkedRefundDto(
+                    refund.Id,
+                    refund.Status.ToString(),
+                    refund.Amount,
+                    refund.Currency,
+                    refund.RefundTransactionId,
+                    refund.CreatedAt,
+                    refund.CompletedAt);
+            }
+        }
+
         return new SellerReturnRequestDto(
             returnRequest.Id,
             returnRequest.OrderId,
@@ -557,7 +578,14 @@ public sealed class ReturnRequestService
             returnRequest.RejectedAt,
             returnRequest.CompletedAt,
             items.AsReadOnly(),
-            requestItems.AsReadOnly());
+            requestItems.AsReadOnly(),
+            returnRequest.ResolutionType?.ToString(),
+            returnRequest.ResolutionNotes,
+            returnRequest.PartialRefundAmount,
+            returnRequest.ResolvedAt,
+            returnRequest.LinkedRefundId,
+            returnRequest.CanChangeResolution(),
+            linkedRefund);
     }
 
     /// <summary>
@@ -779,6 +807,184 @@ public sealed class ReturnRequestService
             returnRequest.RejectedAt,
             returnRequest.CompletedAt,
             items.AsReadOnly(),
-            linkedRefunds.Count > 0 ? linkedRefunds.AsReadOnly() : null);
+            linkedRefunds.Count > 0 ? linkedRefunds.AsReadOnly() : null,
+            returnRequest.ResolutionType?.ToString(),
+            returnRequest.ResolutionNotes,
+            returnRequest.PartialRefundAmount,
+            returnRequest.ResolvedAt);
+    }
+
+    /// <summary>
+    /// Resolves a case with a specific resolution type.
+    /// If the resolution requires a refund and InitiateRefund is true, a refund will be initiated.
+    /// </summary>
+    public async Task<ResolveCaseResultDto> HandleAsync(
+        ResolveCaseCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+
+        // Validate resolution type
+        if (!Enum.TryParse<CaseResolutionType>(command.ResolutionType, ignoreCase: true, out var resolutionType))
+        {
+            return new ResolveCaseResultDto(false, "Invalid resolution type.");
+        }
+
+        var returnRequest = await _returnRequestRepository.GetByIdWithItemsAsync(command.ReturnRequestId, cancellationToken);
+        if (returnRequest is null || returnRequest.StoreId != command.StoreId)
+        {
+            return new ResolveCaseResultDto(false, "Case not found.");
+        }
+
+        // Check if case can be resolved
+        if (returnRequest.Status != ReturnRequestStatus.Requested && returnRequest.Status != ReturnRequestStatus.Approved)
+        {
+            return new ResolveCaseResultDto(false, $"Cannot resolve case in status {returnRequest.Status}.");
+        }
+
+        // For partial refunds, validate amount
+        if (resolutionType == CaseResolutionType.PartialRefund)
+        {
+            if (!command.PartialRefundAmount.HasValue || command.PartialRefundAmount.Value <= 0)
+            {
+                return new ResolveCaseResultDto(false, "Partial refund amount is required and must be greater than zero.");
+            }
+        }
+
+        // For NoRefund, notes are required
+        if (resolutionType == CaseResolutionType.NoRefund && string.IsNullOrWhiteSpace(command.ResolutionNotes))
+        {
+            return new ResolveCaseResultDto(false, "Resolution notes are required when rejecting with no refund.");
+        }
+
+        try
+        {
+            returnRequest.Resolve(resolutionType, command.ResolutionNotes, command.PartialRefundAmount);
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        {
+            return new ResolveCaseResultDto(false, ex.Message);
+        }
+
+        await _returnRequestRepository.SaveChangesAsync(cancellationToken);
+
+        // Initiate refund if required and requested
+        Guid? refundId = null;
+        string? refundStatus = null;
+
+        if (command.InitiateRefund && returnRequest.ResolutionRequiresRefund())
+        {
+            var order = await _orderRepository.GetByIdAsync(returnRequest.OrderId, cancellationToken);
+            if (order is null)
+            {
+                return new ResolveCaseResultDto(false, "Order not found for refund processing.");
+            }
+
+            var shipment = order.Shipments.FirstOrDefault(s => s.Id == returnRequest.ShipmentId);
+            if (shipment is null)
+            {
+                return new ResolveCaseResultDto(false, "Shipment not found for refund processing.");
+            }
+
+            decimal refundAmount;
+            if (resolutionType == CaseResolutionType.FullRefund)
+            {
+                refundAmount = shipment.Subtotal + shipment.ShippingCost;
+            }
+            else
+            {
+                refundAmount = command.PartialRefundAmount!.Value;
+            }
+
+            // Use RefundService to initiate the refund
+            var refundCommand = new SellerInitiateRefundCommand(
+                returnRequest.ShipmentId,
+                command.StoreId,
+                command.SellerId,
+                resolutionType == CaseResolutionType.FullRefund ? null : refundAmount,
+                $"Case resolution: {resolutionType}. {command.ResolutionNotes ?? ""}".Trim());
+
+            var refundResult = await _refundService.HandleAsync(refundCommand, cancellationToken);
+
+            if (refundResult.IsSuccess && refundResult.RefundId.HasValue)
+            {
+                refundId = refundResult.RefundId;
+                refundStatus = refundResult.Status;
+                returnRequest.LinkRefund(refundResult.RefundId.Value);
+                await _returnRequestRepository.SaveChangesAsync(cancellationToken);
+            }
+            else
+            {
+                // Refund failed, but case is still resolved. Return partial success.
+                return new ResolveCaseResultDto(
+                    true,
+                    $"Case resolved but refund initiation failed: {refundResult.ErrorMessage}",
+                    resolutionType.ToString());
+            }
+        }
+
+        // Send notification to buyer
+        var orderInfo = await _orderRepository.GetByIdAsync(returnRequest.OrderId, cancellationToken);
+        var buyer = await _userRepository.GetByIdAsync(returnRequest.BuyerId, cancellationToken);
+        if (buyer?.Email is not null && orderInfo is not null)
+        {
+            await _notificationService.SendCaseResolvedAsync(
+                returnRequest.Id,
+                returnRequest.CaseNumber,
+                orderInfo.OrderNumber,
+                buyer.Email.Value,
+                resolutionType.ToString(),
+                command.ResolutionNotes,
+                cancellationToken);
+        }
+
+        return new ResolveCaseResultDto(true, null, resolutionType.ToString(), refundId, refundStatus);
+    }
+
+    /// <summary>
+    /// Links an existing refund to a case.
+    /// </summary>
+    public async Task<LinkRefundResultDto> HandleAsync(
+        LinkRefundToCaseCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+
+        var returnRequest = await _returnRequestRepository.GetByIdAsync(command.ReturnRequestId, cancellationToken);
+        if (returnRequest is null || returnRequest.StoreId != command.StoreId)
+        {
+            return new LinkRefundResultDto(false, "Case not found.");
+        }
+
+        // Verify refund exists and belongs to this order
+        var refund = await _refundRepository.GetByIdAsync(command.RefundId, cancellationToken);
+        if (refund is null)
+        {
+            return new LinkRefundResultDto(false, "Refund not found.");
+        }
+
+        if (refund.OrderId != returnRequest.OrderId)
+        {
+            return new LinkRefundResultDto(false, "Refund does not belong to the same order as this case.");
+        }
+
+        // Only allow linking if refund is for the same shipment or order-level
+        if (refund.ShipmentId.HasValue && refund.ShipmentId.Value != returnRequest.ShipmentId)
+        {
+            return new LinkRefundResultDto(false, "Refund does not belong to the same sub-order as this case.");
+        }
+
+        try
+        {
+            returnRequest.LinkRefund(command.RefundId);
+        }
+        catch (ArgumentException ex)
+        {
+            return new LinkRefundResultDto(false, ex.Message);
+        }
+
+        await _returnRequestRepository.SaveChangesAsync(cancellationToken);
+
+        return new LinkRefundResultDto(true, null);
     }
 }
