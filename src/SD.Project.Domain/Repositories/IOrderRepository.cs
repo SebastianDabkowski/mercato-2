@@ -1,4 +1,5 @@
 using SD.Project.Domain.Entities;
+using SD.Project.Domain.ValueObjects;
 
 namespace SD.Project.Domain.Repositories;
 
@@ -118,5 +119,30 @@ public interface IOrderRepository
     /// </summary>
     Task<(int DeliveredCount, int CancelledCount, int OnTimeCount, int TotalShipments)> GetStoreShipmentStatsAsync(
         Guid storeId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets filtered and paginated orders for admin reports (all orders).
+    /// </summary>
+    Task<(IReadOnlyList<Order> Orders, int TotalCount)> GetFilteredOrdersAsync(
+        OrderStatus? status,
+        PaymentStatus? paymentStatus,
+        DateTime? fromDate,
+        DateTime? toDate,
+        Guid? sellerId,
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all orders matching the filter criteria for admin report export.
+    /// Used for CSV export of admin order reports.
+    /// </summary>
+    Task<IReadOnlyList<Order>> GetAllOrdersForReportExportAsync(
+        OrderStatus? status,
+        PaymentStatus? paymentStatus,
+        DateTime? fromDate,
+        DateTime? toDate,
+        Guid? sellerId,
         CancellationToken cancellationToken = default);
 }

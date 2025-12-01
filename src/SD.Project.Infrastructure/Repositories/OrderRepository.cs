@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SD.Project.Domain.Entities;
 using SD.Project.Domain.Repositories;
+using SD.Project.Domain.ValueObjects;
 using SD.Project.Infrastructure.Persistence;
 
 namespace SD.Project.Infrastructure.Repositories;
@@ -474,5 +475,181 @@ public sealed class OrderRepository : IOrderRepository
             (s.ShippedAt.Value - s.CreatedAt).TotalHours <= 48);
 
         return (deliveredCount, cancelledCount, onTimeShipments, shipments.Count);
+    }
+
+    public async Task<(IReadOnlyList<Order> Orders, int TotalCount)> GetFilteredOrdersAsync(
+        OrderStatus? status,
+        PaymentStatus? paymentStatus,
+        DateTime? fromDate,
+        DateTime? toDate,
+        Guid? sellerId,
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default)
+    {
+        // Start with all orders
+        var ordersQuery = _context.Orders.AsQueryable();
+
+        // Apply status filter
+        if (status.HasValue)
+        {
+            ordersQuery = ordersQuery.Where(o => o.Status == status.Value);
+        }
+
+        // Apply payment status filter
+        if (paymentStatus.HasValue)
+        {
+            ordersQuery = ordersQuery.Where(o => o.PaymentStatus == paymentStatus.Value);
+        }
+
+        // Apply date range filter
+        if (fromDate.HasValue)
+        {
+            ordersQuery = ordersQuery.Where(o => o.CreatedAt >= fromDate.Value);
+        }
+        if (toDate.HasValue)
+        {
+            // Include the entire end date
+            var endOfDay = toDate.Value.Date.AddDays(1);
+            ordersQuery = ordersQuery.Where(o => o.CreatedAt < endOfDay);
+        }
+
+        // For seller filter, we need to find orders that have shipments from that store
+        if (sellerId.HasValue)
+        {
+            var orderIdsWithSeller = await _context.OrderShipments
+                .Where(s => s.StoreId == sellerId.Value)
+                .Select(s => s.OrderId)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            ordersQuery = ordersQuery.Where(o => orderIdsWithSeller.Contains(o.Id));
+        }
+
+        // Get total count before pagination
+        var totalCount = await ordersQuery.CountAsync(cancellationToken);
+
+        // Apply pagination and ordering
+        var orders = await ordersQuery
+            .OrderByDescending(o => o.CreatedAt)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+
+        // Load items and shipments for each order
+        if (orders.Count > 0)
+        {
+            var orderIds = orders.Select(o => o.Id).ToList();
+            var allItems = await _context.OrderItems
+                .Where(i => orderIds.Contains(i.OrderId))
+                .ToListAsync(cancellationToken);
+
+            var itemsByOrder = allItems.GroupBy(i => i.OrderId).ToDictionary(g => g.Key, g => g.ToList());
+
+            var allShipments = await _context.OrderShipments
+                .Where(s => orderIds.Contains(s.OrderId))
+                .ToListAsync(cancellationToken);
+
+            var shipmentsByOrder = allShipments.GroupBy(s => s.OrderId).ToDictionary(g => g.Key, g => g.ToList());
+
+            foreach (var order in orders)
+            {
+                if (itemsByOrder.TryGetValue(order.Id, out var items))
+                {
+                    order.LoadItems(items);
+                }
+
+                if (shipmentsByOrder.TryGetValue(order.Id, out var shipments))
+                {
+                    order.LoadShipments(shipments);
+                }
+            }
+        }
+
+        return (orders.AsReadOnly(), totalCount);
+    }
+
+    public async Task<IReadOnlyList<Order>> GetAllOrdersForReportExportAsync(
+        OrderStatus? status,
+        PaymentStatus? paymentStatus,
+        DateTime? fromDate,
+        DateTime? toDate,
+        Guid? sellerId,
+        CancellationToken cancellationToken = default)
+    {
+        // Start with all orders
+        var ordersQuery = _context.Orders.AsQueryable();
+
+        // Apply status filter
+        if (status.HasValue)
+        {
+            ordersQuery = ordersQuery.Where(o => o.Status == status.Value);
+        }
+
+        // Apply payment status filter
+        if (paymentStatus.HasValue)
+        {
+            ordersQuery = ordersQuery.Where(o => o.PaymentStatus == paymentStatus.Value);
+        }
+
+        // Apply date range filter
+        if (fromDate.HasValue)
+        {
+            ordersQuery = ordersQuery.Where(o => o.CreatedAt >= fromDate.Value);
+        }
+        if (toDate.HasValue)
+        {
+            var endOfDay = toDate.Value.Date.AddDays(1);
+            ordersQuery = ordersQuery.Where(o => o.CreatedAt < endOfDay);
+        }
+
+        // For seller filter, we need to find orders that have shipments from that store
+        if (sellerId.HasValue)
+        {
+            var orderIdsWithSeller = await _context.OrderShipments
+                .Where(s => s.StoreId == sellerId.Value)
+                .Select(s => s.OrderId)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            ordersQuery = ordersQuery.Where(o => orderIdsWithSeller.Contains(o.Id));
+        }
+
+        // Get all matching orders ordered by date
+        var orders = await ordersQuery
+            .OrderByDescending(o => o.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        // Load items and shipments for each order
+        if (orders.Count > 0)
+        {
+            var orderIds = orders.Select(o => o.Id).ToList();
+            var allItems = await _context.OrderItems
+                .Where(i => orderIds.Contains(i.OrderId))
+                .ToListAsync(cancellationToken);
+
+            var itemsByOrder = allItems.GroupBy(i => i.OrderId).ToDictionary(g => g.Key, g => g.ToList());
+
+            var allShipments = await _context.OrderShipments
+                .Where(s => orderIds.Contains(s.OrderId))
+                .ToListAsync(cancellationToken);
+
+            var shipmentsByOrder = allShipments.GroupBy(s => s.OrderId).ToDictionary(g => g.Key, g => g.ToList());
+
+            foreach (var order in orders)
+            {
+                if (itemsByOrder.TryGetValue(order.Id, out var items))
+                {
+                    order.LoadItems(items);
+                }
+
+                if (shipmentsByOrder.TryGetValue(order.Id, out var shipments))
+                {
+                    order.LoadShipments(shipments);
+                }
+            }
+        }
+
+        return orders.AsReadOnly();
     }
 }
