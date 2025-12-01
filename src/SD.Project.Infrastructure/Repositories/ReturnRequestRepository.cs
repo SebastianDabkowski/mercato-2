@@ -137,6 +137,58 @@ public sealed class ReturnRequestRepository : IReturnRequestRepository
         return (requests.AsReadOnly(), totalCount);
     }
 
+    public async Task<(IReadOnlyList<ReturnRequest> Requests, int TotalCount)> GetFilteredForAdminAsync(
+        ReturnRequestStatus? status,
+        ReturnRequestType? type,
+        string? searchTerm,
+        DateTime? fromDate,
+        DateTime? toDate,
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.ReturnRequests.AsQueryable();
+
+        if (status.HasValue)
+        {
+            query = query.Where(r => r.Status == status.Value);
+        }
+
+        if (type.HasValue)
+        {
+            query = query.Where(r => r.Type == type.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var term = searchTerm.Trim().ToLowerInvariant();
+            query = query.Where(r =>
+                r.CaseNumber.ToLower().Contains(term) ||
+                r.Reason.ToLower().Contains(term));
+        }
+
+        if (fromDate.HasValue)
+        {
+            query = query.Where(r => r.CreatedAt >= fromDate.Value);
+        }
+
+        if (toDate.HasValue)
+        {
+            var endOfDay = toDate.Value.Date.AddDays(1);
+            query = query.Where(r => r.CreatedAt < endOfDay);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var requests = await query
+            .OrderByDescending(r => r.CreatedAt)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+
+        return (requests.AsReadOnly(), totalCount);
+    }
+
     public async Task<bool> ExistsForShipmentAsync(Guid shipmentId, CancellationToken cancellationToken = default)
     {
         return await _context.ReturnRequests

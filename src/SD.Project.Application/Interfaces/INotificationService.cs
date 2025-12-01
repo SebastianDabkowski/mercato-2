@@ -456,4 +456,46 @@ public interface INotificationService
         string resolutionType,
         string? resolutionNotes,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends notifications when a case is escalated to admin review.
+    /// Notifies both the buyer and seller that the case is now under admin review.
+    /// </summary>
+    /// <param name="returnRequestId">The ID of the return request (case).</param>
+    /// <param name="caseNumber">The case number for display.</param>
+    /// <param name="orderNumber">The order number for display.</param>
+    /// <param name="buyerEmail">The buyer's email address.</param>
+    /// <param name="sellerEmail">The seller's email address.</param>
+    /// <param name="escalationReason">The reason for escalation.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendCaseEscalatedAsync(
+        Guid returnRequestId,
+        string caseNumber,
+        string orderNumber,
+        string buyerEmail,
+        string sellerEmail,
+        string escalationReason,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends notifications when an admin records a decision on an escalated case.
+    /// Notifies both the buyer and seller of the admin's decision.
+    /// </summary>
+    /// <param name="returnRequestId">The ID of the return request (case).</param>
+    /// <param name="caseNumber">The case number for display.</param>
+    /// <param name="orderNumber">The order number for display.</param>
+    /// <param name="buyerEmail">The buyer's email address.</param>
+    /// <param name="sellerEmail">The seller's email address.</param>
+    /// <param name="decisionType">The type of admin decision.</param>
+    /// <param name="decisionNotes">Notes explaining the decision.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task SendAdminDecisionRecordedAsync(
+        Guid returnRequestId,
+        string caseNumber,
+        string orderNumber,
+        string buyerEmail,
+        string sellerEmail,
+        string decisionType,
+        string? decisionNotes,
+        CancellationToken cancellationToken = default);
 }

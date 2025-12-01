@@ -180,3 +180,93 @@ public sealed record ResolveCaseResultDto(
 public sealed record LinkRefundResultDto(
     bool IsSuccess,
     string? ErrorMessage);
+
+/// <summary>
+/// DTO for admin view of a return request summary in list.
+/// </summary>
+public sealed record AdminReturnRequestSummaryDto(
+    Guid ReturnRequestId,
+    Guid OrderId,
+    Guid StoreId,
+    string CaseNumber,
+    string OrderNumber,
+    string StoreName,
+    string Type,
+    string Status,
+    string SellerName,
+    string BuyerAlias,
+    string Reason,
+    decimal SubOrderTotal,
+    string Currency,
+    DateTime CreatedAt,
+    int AgeInDays,
+    bool IsEscalated,
+    DateTime? EscalatedAt);
+
+/// <summary>
+/// DTO for admin view of return request details including all case data.
+/// </summary>
+public sealed record AdminReturnRequestDetailsDto(
+    Guid ReturnRequestId,
+    Guid OrderId,
+    Guid ShipmentId,
+    Guid StoreId,
+    string CaseNumber,
+    string OrderNumber,
+    string StoreName,
+    string Type,
+    string Status,
+    string SellerName,
+    string? SellerEmail,
+    string BuyerName,
+    string? BuyerEmail,
+    string Reason,
+    string? Comments,
+    string? SellerResponse,
+    decimal SubOrderTotal,
+    string Currency,
+    DateTime CreatedAt,
+    DateTime? ApprovedAt,
+    DateTime? RejectedAt,
+    DateTime? CompletedAt,
+    IReadOnlyList<SellerSubOrderItemDto> Items,
+    IReadOnlyList<ReturnRequestItemDto> RequestItems,
+    string? ResolutionType,
+    string? ResolutionNotes,
+    decimal? PartialRefundAmount,
+    DateTime? ResolvedAt,
+    Guid? LinkedRefundId,
+    LinkedRefundDto? LinkedRefund,
+    // Escalation info
+    bool IsEscalated,
+    DateTime? EscalatedAt,
+    Guid? EscalatedByUserId,
+    string? EscalationReason,
+    string? EscalationNotes,
+    // Admin decision info
+    bool HasAdminDecision,
+    Guid? AdminDecisionByUserId,
+    string? AdminDecision,
+    string? AdminDecisionNotes,
+    DateTime? AdminDecisionAt,
+    // Permissions
+    bool CanEscalate,
+    bool CanRecordDecision);
+
+/// <summary>
+/// Result DTO for escalating a case.
+/// </summary>
+public sealed record EscalateCaseResultDto(
+    bool IsSuccess,
+    string? ErrorMessage,
+    string? NewStatus = null);
+
+/// <summary>
+/// Result DTO for recording an admin decision.
+/// </summary>
+public sealed record AdminDecisionResultDto(
+    bool IsSuccess,
+    string? ErrorMessage,
+    string? Decision = null,
+    Guid? RefundId = null,
+    string? RefundStatus = null);

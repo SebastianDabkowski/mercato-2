@@ -270,4 +270,133 @@ public static class ReturnRequestStatusHelper
         "Rejected" => "bg-danger",
         _ => "bg-secondary"
     };
+
+    /// <summary>
+    /// Gets the Bootstrap CSS class for an escalation reason badge.
+    /// </summary>
+    public static string GetEscalationReasonBadgeClass(string? reason) => reason switch
+    {
+        "BuyerRequested" => "bg-warning",
+        "SLABreach" => "bg-danger",
+        "AdminFlagged" => "bg-info",
+        _ => "bg-secondary"
+    };
+
+    /// <summary>
+    /// Gets a user-friendly display name for an escalation reason.
+    /// </summary>
+    public static string GetEscalationReasonDisplayName(string? reason) => reason switch
+    {
+        "BuyerRequested" => "Buyer Requested",
+        "SLABreach" => "SLA Breach",
+        "AdminFlagged" => "Admin Flagged",
+        _ => reason ?? "Unknown"
+    };
+
+    /// <summary>
+    /// Gets the Bootstrap CSS class for an admin decision badge.
+    /// </summary>
+    public static string GetAdminDecisionBadgeClass(string? decision) => decision switch
+    {
+        "OverrideSeller" => "bg-warning",
+        "EnforceRefund" => "bg-success",
+        "CloseWithoutAction" => "bg-secondary",
+        _ => "bg-secondary"
+    };
+
+    /// <summary>
+    /// Gets a user-friendly display name for an admin decision.
+    /// </summary>
+    public static string GetAdminDecisionDisplayName(string? decision) => decision switch
+    {
+        "OverrideSeller" => "Override Seller Decision",
+        "EnforceRefund" => "Enforce Refund",
+        "CloseWithoutAction" => "Close Without Action",
+        _ => decision ?? "No Decision"
+    };
 }
+
+/// <summary>
+/// View model for admin view of return request summary in list.
+/// </summary>
+public sealed record AdminReturnRequestSummaryViewModel(
+    Guid ReturnRequestId,
+    Guid OrderId,
+    Guid StoreId,
+    string CaseNumber,
+    string OrderNumber,
+    string StoreName,
+    string Type,
+    string Status,
+    string SellerName,
+    string BuyerAlias,
+    string Reason,
+    decimal SubOrderTotal,
+    string Currency,
+    DateTime CreatedAt,
+    int AgeInDays,
+    bool IsEscalated,
+    DateTime? EscalatedAt);
+
+/// <summary>
+/// View model for admin view of return request details.
+/// </summary>
+public sealed record AdminReturnRequestDetailsViewModel(
+    Guid ReturnRequestId,
+    Guid OrderId,
+    Guid ShipmentId,
+    Guid StoreId,
+    string CaseNumber,
+    string OrderNumber,
+    string StoreName,
+    string Type,
+    string Status,
+    string SellerName,
+    string? SellerEmail,
+    string BuyerName,
+    string? BuyerEmail,
+    string Reason,
+    string? Comments,
+    string? SellerResponse,
+    decimal SubOrderTotal,
+    string Currency,
+    DateTime CreatedAt,
+    DateTime? ApprovedAt,
+    DateTime? RejectedAt,
+    DateTime? CompletedAt,
+    IReadOnlyList<AdminCaseItemViewModel> Items,
+    IReadOnlyList<ReturnRequestItemViewModel> RequestItems,
+    string? ResolutionType,
+    string? ResolutionNotes,
+    decimal? PartialRefundAmount,
+    DateTime? ResolvedAt,
+    Guid? LinkedRefundId,
+    LinkedRefundViewModel? LinkedRefund,
+    // Escalation info
+    bool IsEscalated,
+    DateTime? EscalatedAt,
+    Guid? EscalatedByUserId,
+    string? EscalationReason,
+    string? EscalationNotes,
+    // Admin decision info
+    bool HasAdminDecision,
+    Guid? AdminDecisionByUserId,
+    string? AdminDecision,
+    string? AdminDecisionNotes,
+    DateTime? AdminDecisionAt,
+    // Permissions
+    bool CanEscalate,
+    bool CanRecordDecision);
+
+/// <summary>
+/// View model for an item in admin case details (extended version with status info).
+/// </summary>
+public sealed record AdminCaseItemViewModel(
+    Guid ItemId,
+    Guid ProductId,
+    string ProductName,
+    decimal UnitPrice,
+    int Quantity,
+    decimal LineTotal,
+    string? ShippingMethodName,
+    string Status);
