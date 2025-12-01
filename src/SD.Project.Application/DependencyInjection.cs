@@ -62,6 +62,7 @@ public static class DependencyInjection
         services.AddScoped<SellerOrderReportService>();
         services.AddScoped<CommissionSummaryService>();
         services.AddScoped<UserAnalyticsService>();
+        services.AddScoped<AnalyticsQueryService>();
         services.AddScoped<IAuthorizationService, AuthorizationService>();
 
         // Domain services for cart totals calculation

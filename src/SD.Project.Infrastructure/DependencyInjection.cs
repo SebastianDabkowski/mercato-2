@@ -75,6 +75,7 @@ public static class DependencyInjection
         services.AddScoped<IDashboardRepository, DashboardRepository>();
         services.AddScoped<IUserAnalyticsRepository, UserAnalyticsRepository>();
         services.AddScoped<ISellerDashboardRepository, SellerDashboardRepository>();
+        services.AddScoped<IAnalyticsEventRepository, AnalyticsEventRepository>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IPushNotificationService, PushNotificationService>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
@@ -88,6 +89,16 @@ public static class DependencyInjection
         services.AddScoped<ISecurityAlertService, SecurityAlertService>();
         services.AddScoped<IImageStorageService, LocalImageStorageService>();
         services.AddSingleton<ILoginRateLimiter, LoginRateLimiter>();
+
+        // Analytics configuration and service
+        services.Configure<AnalyticsOptions>(options =>
+        {
+            var section = configuration.GetSection("Analytics");
+            options.Enabled = section.GetValue<bool>("Enabled", true);
+            options.LogToConsole = section.GetValue<bool>("LogToConsole", true);
+            options.PersistToDatabase = section.GetValue<bool>("PersistToDatabase", true);
+        });
+        services.AddScoped<IAnalyticsService, AnalyticsService>();
 
         return services;
     }

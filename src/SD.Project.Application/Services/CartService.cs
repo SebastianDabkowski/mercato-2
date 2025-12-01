@@ -1,5 +1,6 @@
 using SD.Project.Application.Commands;
 using SD.Project.Application.DTOs;
+using SD.Project.Application.Interfaces;
 using SD.Project.Application.Queries;
 using SD.Project.Domain.Entities;
 using SD.Project.Domain.Repositories;
@@ -19,6 +20,7 @@ public sealed class CartService
     private readonly IPromoCodeRepository _promoCodeRepository;
     private readonly CartTotalsCalculator _cartTotalsCalculator;
     private readonly PromoCodeValidator _promoCodeValidator;
+    private readonly IAnalyticsService _analyticsService;
 
     public CartService(
         ICartRepository cartRepository,
@@ -27,7 +29,8 @@ public sealed class CartService
         IShippingRuleRepository shippingRuleRepository,
         IPromoCodeRepository promoCodeRepository,
         CartTotalsCalculator cartTotalsCalculator,
-        PromoCodeValidator promoCodeValidator)
+        PromoCodeValidator promoCodeValidator,
+        IAnalyticsService analyticsService)
     {
         _cartRepository = cartRepository;
         _productRepository = productRepository;
@@ -36,6 +39,7 @@ public sealed class CartService
         _promoCodeRepository = promoCodeRepository;
         _cartTotalsCalculator = cartTotalsCalculator;
         _promoCodeValidator = promoCodeValidator;
+        _analyticsService = analyticsService;
     }
 
     /// <summary>
@@ -126,6 +130,18 @@ public sealed class CartService
         // Save changes
         await _cartRepository.UpdateAsync(cart, cancellationToken);
         await _cartRepository.SaveChangesAsync(cancellationToken);
+
+        // Track add-to-cart analytics event
+        // Fire-and-forget: AnalyticsService handles exceptions internally
+        _ = _analyticsService.TrackAddToCartAsync(
+            command.ProductId,
+            product.StoreId,
+            command.Quantity,
+            product.Price.Amount,
+            product.Price.Currency,
+            command.BuyerId,
+            command.SessionId,
+            cancellationToken);
 
         // Map to DTO
         var itemDto = MapToCartItemDto(cartItem, product);

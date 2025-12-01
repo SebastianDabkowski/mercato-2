@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using SD.Project.Application.Commands;
 using SD.Project.Application.DTOs;
+using SD.Project.Application.Interfaces;
 using SD.Project.Application.Queries;
 using SD.Project.Application.Services;
 using SD.Project.Domain.Entities;
@@ -25,6 +26,7 @@ public class ProductModel : PageModel
     private readonly CartService _cartService;
     private readonly ReviewService _reviewService;
     private readonly ProductQuestionService _questionService;
+    private readonly IAnalyticsService _analyticsService;
 
     /// <summary>
     /// The product being viewed.
@@ -101,7 +103,8 @@ public class ProductModel : PageModel
         StoreService storeService,
         CartService cartService,
         ReviewService reviewService,
-        ProductQuestionService questionService)
+        ProductQuestionService questionService,
+        IAnalyticsService analyticsService)
     {
         _logger = logger;
         _productService = productService;
@@ -110,6 +113,7 @@ public class ProductModel : PageModel
         _cartService = cartService;
         _reviewService = reviewService;
         _questionService = questionService;
+        _analyticsService = analyticsService;
     }
 
     public async Task<IActionResult> OnGetAsync(
@@ -142,6 +146,16 @@ public class ProductModel : PageModel
 
         Product = MapToViewModel(productDto);
         _logger.LogDebug("Loaded product {ProductId}: {ProductName}", id.Value, Product.Name);
+
+        // Track product view analytics event
+        // Fire-and-forget: AnalyticsService handles exceptions internally
+        var (buyerId, sessionId) = GetCartIdentifiers();
+        _ = _analyticsService.TrackProductViewAsync(
+            productDto.Id,
+            productDto.StoreId,
+            buyerId,
+            sessionId,
+            cancellationToken);
 
         // Load category ID for navigation link
         if (!string.IsNullOrEmpty(Product.Category))
