@@ -71,7 +71,9 @@ public static class DependencyInjection
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IProductQuestionRepository, ProductQuestionRepository>();
         services.AddScoped<IOrderMessageRepository, OrderMessageRepository>();
+        services.AddScoped<IPushSubscriptionRepository, PushSubscriptionRepository>();
         services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<IPushNotificationService, PushNotificationService>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
         services.AddScoped<IPaymentProviderService, PaymentProviderService>();
         services.AddScoped<IShippingProviderService, ShippingProviderService>();
